@@ -1,0 +1,14 @@
+{
+  "DEBUG": false,
+  "input": {
+    "type": "las_file",
+    "path" : "./input_files/well0-MDT_OFA_CMR_103LTP.las",
+    "time_mnemonic": "TIME"
+  },
+  "output": {
+    "type": "raw_over_tcp",
+    "ip": "127.0.0.1",
+    "port": 17042,
+    "event_type": "raw_well0"
+  }
+}
