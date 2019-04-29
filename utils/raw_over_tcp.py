@@ -11,16 +11,13 @@ __all__ = [
 ]
 
 
-def format_and_send(statuses, settings):
+def format_and_send(event_type, statuses, settings):
     timestamp = get_timestamp()
-    event = format_event(timestamp, statuses, settings)
+    event = format_event(timestamp, event_type, statuses, settings)
     send_event(event, settings)
 
 
-def format_event(timestamp, statuses, settings):
-    output_settings = settings['output']
-    event_type = output_settings['event_type']
-
+def format_event(timestamp, event_type, statuses, settings):
     event_data = statuses.copy()
     event_data['__type'] = event_type
     event_data['liverig__index__timestamp'] = timestamp

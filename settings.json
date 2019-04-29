@@ -2,13 +2,28 @@
   "DEBUG": false,
   "input": {
     "type": "las_file",
-    "path" : "./input_files/well0-MDT_OFA_CMR_103LTP.las",
-    "time_mnemonic": "TIME"
+    "sources": {
+      "raw_well0": {
+        "path_list" : [
+          "./input_files/well0-MDT_OFA_CMR_103LTP.las",
+          "./input_files/well0-MDT_OFA_CMR_104LTP.las",
+          "./input_files/well0-MDT_OFA_CMR_106LTP.las"
+        ],
+        "index_mnemonic": "TIME"
+      },
+      "raw_well3": {
+        "path_list" : [
+          "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
+          "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
+        ],
+        "index_mnemonic": "TIME"
+      }
+    }
   },
   "output": {
     "type": "raw_over_tcp",
     "ip": "127.0.0.1",
-    "port": 17042,
-    "event_type": "raw_well0"
-  }
+    "port": 17042
+  },
+  "temp_dir": "./temp"
 }
