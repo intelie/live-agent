@@ -12,7 +12,7 @@ def send_event(event, settings):
     if not event:
         return
 
-    message = bytes('{}\n'.format(event), 'utf-8')
+    message = '{}\n'.format(event)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.connect((ip, port))

@@ -1,0 +1,8 @@
+FROM centos:7
+
+RUN yum -y install python-virtualenv rpm-build
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod a+x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

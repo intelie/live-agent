@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Pool
 import time
+import logging
 import locale
 from enum import Enum
 import csv
@@ -21,7 +22,7 @@ def delay_output(last_timestamp, next_timestamp, event_type=''):
     else:
         sleep_time = max(next_timestamp - last_timestamp, 0)
 
-    print("{}: Sleeping for {} seconds".format(event_type, sleep_time))
+    logging.info("{}: Sleeping for {} seconds".format(event_type, sleep_time))
     time.sleep(sleep_time)
 
 
@@ -66,7 +67,8 @@ def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
 
     try:
         path = path_list[path_index]
-        data = lasio.read(path)
+        with open(path, 'r') as las_file:
+            data = lasio.read(las_file)
         success = True
     except Exception as e:
         data = e
@@ -76,7 +78,7 @@ def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
 
 
 def export_curves_data(event_type, las_data, index_mnemonic, output_func, settings):
-    print("Exporting curves for {}".format(event_type))
+    logging.info("Exporting curves for {}".format(event_type))
     output_dir = settings.get('temp_dir', '/tmp')
 
     source_name = las_data.version.SOURCE.value
@@ -94,11 +96,11 @@ def export_curves_data(event_type, las_data, index_mnemonic, output_func, settin
                 ''
             ])
 
-    print('File {} created'.format(output_filename))
+    logging.info('File {} created'.format(output_filename))
 
 
 def generate_events(event_type, las_data, index_mnemonic, output_func, settings):
-    print("Generating events for {}".format(event_type))
+    logging.info("Generating events for {}".format(event_type))
 
     curves_data = dict(
         (item.mnemonic, item.unit)
@@ -122,7 +124,7 @@ def generate_events(event_type, las_data, index_mnemonic, output_func, settings)
             output_func(event_type, statuses, settings)
             last_timestamp = next_timestamp
 
-    print("Sleeping for 5 minutes between runs")
+    logging.info("Sleeping for 5 minutes between runs")
     time.sleep(60 * 5)
 
 
@@ -169,16 +171,16 @@ def events_from_las(output_func, settings):
     sources = input_settings.get('sources', {})
     num_sources = len(sources)
 
-    with Pool(processes=num_sources) as pool:
-        results = [
-            pool.apply_async(
-                process_source,
-                (event_type, source_settings, output_func, settings)
-            )
-            for event_type, source_settings in sources.items()
-        ]
-        pool.close()
-        pool.join()
-        [item.wait() for item in results]
+    pool = Pool(processes=num_sources)
+    results = [
+        pool.apply_async(
+            process_source,
+            (event_type, source_settings, output_func, settings)
+        )
+        for event_type, source_settings in sources.items()
+    ]
+    pool.close()
+    pool.join()
+    [item.wait() for item in results]
 
     locale.setlocale(locale.LC_ALL, default_locale)

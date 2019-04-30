@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $# -eq 1 ]
+then
+	settings=$1
+else
+	select settings in src/main/*.json
+	do break; done
+fi
+
+if [ "$settings" == "" ]
+then
+	exit
+fi
+
+python src/main/events_generator.py console $settings
+
