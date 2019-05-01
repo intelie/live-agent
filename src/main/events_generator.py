@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-import signal
 import sys
 
 from runner.daemon import Daemon
@@ -18,15 +17,11 @@ LOGFILE_ENVVAR = 'LOG_FILE'
 DEFAULT_LOG = "/var/log/live-replayer.log"
 
 
-def sig_handler(signum, frame):
-    # Assuming signal is SIGUSR1, this is the only registered listener
-    las_parser.enable_debug_for_next_frame()
-
-
 class EventFromImage(Daemon):
 
     def __init__(self, pidfile, settings_file):
-        Daemon.__init__(self, pidfile)
+        logfile = get_logfile()
+        Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
         self.settings_file = settings_file
 
     def resolve_input_handler(self, settings):
@@ -53,26 +48,37 @@ class EventFromImage(Daemon):
         return input_func(output_func, settings)
 
     def run(self):
-        signal.signal(signal.SIGUSR1, sig_handler)
-
         try:
             with open(self.settings_file, 'r') as fd:
                 settings = json.load(fd)
                 self.process_inputs(settings)
         except KeyboardInterrupt:
             logging.info('Execution interrupted')
+            raise
         except:
             logging.exception('Error processing inputs')
+            raise
 
 
-def configure_log(console=False):
+def get_logfile():
     if LOGFILE_ENVVAR in os.environ:
         logfile = os.environ[LOGFILE_ENVVAR]
     else:
         logfile = DEFAULT_LOG
 
-    logging.basicConfig(filename=None if console else logfile,
-                        level=logging.INFO, format='%(asctime)-15s %(levelname)8s [%(module)s] %(message)s')
+    return logfile
+
+
+def configure_log(console=False):
+    logfile = get_logfile()
+    if console:
+        logfile = '/dev/stdout'
+
+    logging.basicConfig(
+        filename=logfile,
+        level=logging.INFO,
+        format='%(asctime)-15s %(levelname)8s [%(module)s] %(message)s'
+    )
 
 
 if __name__ == '__main__':
