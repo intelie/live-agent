@@ -124,9 +124,6 @@ def generate_events(event_type, las_data, index_mnemonic, output_func, settings)
             output_func(event_type, statuses, settings)
             last_timestamp = next_timestamp
 
-    logging.info("Sleeping for 5 minutes between runs")
-    time.sleep(60 * 5)
-
 
 def process_source(event_type, source_settings, output_func, settings):
     debug_mode = settings.get('DEBUG', False)
@@ -157,6 +154,8 @@ def process_source(event_type, source_settings, output_func, settings):
         elif read_mode == READ_MODES.SINGLE_PASS:
             break
 
+        logging.info("Sleeping for 5 minutes between runs")
+        time.sleep(60 * 5)
         iterations += 1
 
     return
