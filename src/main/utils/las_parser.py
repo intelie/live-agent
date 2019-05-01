@@ -22,17 +22,18 @@ def delay_output(last_timestamp, next_timestamp, event_type=''):
     else:
         sleep_time = max(next_timestamp - last_timestamp, 0)
 
-    logging.info("{}: Sleeping for {} seconds".format(event_type, sleep_time))
+    logging.debug("{}: Sleeping for {} seconds".format(event_type, sleep_time))
     time.sleep(sleep_time)
 
 
-def read_next_frame(values_iterator, curves, curves_data, index_mnemonic):
+def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnemonic):
     try:
         index, values = next(values_iterator)
         success = True
-    except:
+    except Exception as e:
         output_frame = {}
         success = False
+        logging.info("{}: Error reading next value, {}<{}>".format(event_type, e, type(e)))
 
     if success:
         output_frame = {
@@ -47,20 +48,11 @@ def read_next_frame(values_iterator, curves, curves_data, index_mnemonic):
     return success, output_frame
 
 
-def read_metadata(las_data, settings):
-    return {
-        'well': las_data.well,
-        'version': las_data.version,
-        'params': las_data.params,
-        'header': las_data.header,
-    }
-
-
 def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
     path_list = source_settings['path_list']
     index_mnemonic = source_settings['index_mnemonic']
 
-    if mode == 'round-robin':
+    if mode == READ_MODES.CONTINUOUS:
         path_index = iterations % len(path_list)
     else:
         path_index = iterations
@@ -69,10 +61,13 @@ def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
         path = path_list[path_index]
         with open(path, 'r') as las_file:
             data = lasio.read(las_file)
+
         success = True
+        logging.debug("Success opening file {}>".format(path))
     except Exception as e:
         data = e
         success = False
+        logging.error("Error opening file {}, {}<{}>".format(path, e, type(e)))
 
     return success, data, index_mnemonic
 
@@ -100,7 +95,7 @@ def export_curves_data(event_type, las_data, index_mnemonic, output_func, settin
 
 
 def generate_events(event_type, las_data, index_mnemonic, output_func, settings):
-    logging.info("Generating events for {}".format(event_type))
+    logging.info("{}: Event generation started".format(event_type))
 
     curves_data = dict(
         (item.mnemonic, item.unit)
@@ -114,7 +109,7 @@ def generate_events(event_type, las_data, index_mnemonic, output_func, settings)
     last_timestamp = 0
     while success:
         success, statuses = read_next_frame(
-            values_iterator, curves, curves_data, index_mnemonic
+            event_type, values_iterator, curves, curves_data, index_mnemonic
         )
 
         if success:
@@ -137,26 +132,41 @@ def process_source(event_type, source_settings, output_func, settings):
 
     iterations = 0
     while True:
-        success, las_data, index_mnemonic = open_las(
-            source_settings,
-            iterations,
-            mode=read_mode
-        )
-
-        if success:
-            handling_func(
-                event_type,
-                las_data,
-                index_mnemonic,
-                output_func,
-                settings
+        try:
+            success, las_data, index_mnemonic = open_las(
+                source_settings,
+                iterations,
+                mode=read_mode
             )
-        elif read_mode == READ_MODES.SINGLE_PASS:
-            break
 
-        logging.info("Sleeping for 5 minutes between runs")
-        time.sleep(60 * 5)
-        iterations += 1
+            if success:
+                handling_func(
+                    event_type,
+                    las_data,
+                    index_mnemonic,
+                    output_func,
+                    settings
+                )
+                logging.info("{}: Iteration {} successful".format(
+                    event_type, iterations
+                ))
+
+            elif read_mode == READ_MODES.SINGLE_PASS:
+                logging.info("{}: Single pass mode, exiting".format(event_type))
+                break
+            else:
+                raise las_data
+
+            logging.info("{}: Sleeping for 5 minutes between runs".format(event_type))
+            time.sleep(60 * 5)
+            iterations += 1
+
+        except Exception as e:
+            logging.error(
+                "{}: Error processing events during iteration {}, {}<{}>".format(
+                    event_type, iterations, e, type(e)
+                )
+            )
 
     return
 
