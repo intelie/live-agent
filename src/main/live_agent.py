@@ -6,8 +6,9 @@ import sys
 from multiprocessing import Pool
 
 from runner.daemon import Daemon
-from utils import las_parser
-from utils import raw_over_tcp, console_output
+from process_modules import PROCESS_HANDLERS
+from output_modules import OUTPUT_HANDLERS
+from utils.filter import filter_dict
 
 __all__ = []
 
@@ -25,78 +26,111 @@ class LiveAgent(Daemon):
         Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
         self.settings_file = settings_file
 
+    def resolve_process_handler(self, process_type):
+        return PROCESS_HANDLERS.get(process_type)
+
+    def resolve_output_handler(self, output_settings):
+        output_type = output_settings.get('type')
+        return OUTPUT_HANDLERS.get(output_type)
+
     def get_output_options(self, settings):
-        output_settings = settings.get('output', {})
-        destinations = output_settings.get('destinations', {})
+        destinations = settings.get('output', {})
+        invalid_destinations = dict(
+            (name, out_settings)
+            for name, out_settings in destinations.items()
+            if out_settings.get('type') not in OUTPUT_HANDLERS
+        )
+
+        for name, info in invalid_destinations.items():
+            logging.error("Invalid output configured: {}, {}".format(
+                name, info
+            ))
+
         return destinations
 
-    def get_input_sources(self, settings, output_options):
-        input_settings = settings.get('input', {})
-        sources = input_settings.get('sources', {})
-        for item in sources.values():
-            assert(item.get('destination') in output_options)
+    def get_processes(self, settings, output_options):
+        processes = filter_dict(
+            settings.get('processes', {}),
+            lambda _k, v: v.get('enabled') is True
+        )
 
-        return sources
+        invalid_processes = filter_dict(
+            processes,
+            lambda _k, v: (
+                (v.get('type') not in PROCESS_HANDLERS) or
+                (v.get('destination', {}).get('name') not in output_options)
+            )
+        )
 
-    def resolve_handlers(self, input_sources, output_options):
+        for name, info in invalid_processes.items():
+            logging.error("Invalid process configured: {}, {}".format(
+                name, info
+            ))
+
+        valid_processes = filter_dict(
+            processes,
+            lambda name, _v: name not in invalid_processes
+        )
+
+        return valid_processes
+
+    def resolve_handlers(self, settings):
+        output_options = self.get_output_options(settings)
+        registered_processes = self.get_processes(settings, output_options)
+
         output_funcs = dict(
             (name, (self.resolve_output_handler(out_settings), out_settings))
             for name, out_settings in output_options.items()
         )
 
-        for name, in_settings in input_sources.items():
-            input_type = in_settings.pop('type')
-            output_type = in_settings.pop('destination')
-            in_settings.update(
-                input_func=self.resolve_input_handler(input_type),
+        for name, process_settings in registered_processes.items():
+            process_type = process_settings.pop('type')
+            output_type = process_settings['destination']['name']
+            process_settings.update(
+                process_func=self.resolve_process_handler(process_type),
                 output=output_funcs.get(output_type)
             )
 
-        return input_sources
+        return registered_processes
 
-    def resolve_input_handler(self, input_type):
-        input_handlers = {
-            'las_file': las_parser.events_from_las,
-        }
-        return input_handlers.get(input_type)
+    def start_processes(self, settings):
+        processes_to_run = self.resolve_handlers(settings)
+        num_processes = len(processes_to_run)
+        logging.info('Starting {} processes: {}'.format(
+            num_processes, ', '.join(processes_to_run.keys())
+        ))
 
-    def resolve_output_handler(self, output_settings):
-        output_handlers = {
-            'raw_over_tcp': raw_over_tcp.format_and_send,
-            'console': console_output.format_and_send,
-        }
-        output_type = output_settings.get('type')
-        return output_handlers.get(output_type)
+        if num_processes > 1:
+            results = []
+            pool = Pool(processes=num_processes)
+            for name, process_settings in processes_to_run.items():
+                process_func = process_settings.pop('process_func')
+                output_info = process_settings.pop('output')
 
-    def process_inputs(self, settings):
-        output_options = self.get_output_options(settings)
-        input_sources = self.get_input_sources(settings, output_options)
-
-        resolved_sources = self.resolve_handlers(input_sources, output_options)
-        num_sources = len(resolved_sources)
-
-        pool = Pool(processes=num_sources)
-        results = []
-        for name, source_settings in resolved_sources.items():
-            input_func = source_settings.pop('input_func')
-            output_info = source_settings.pop('output')
-
-            results.append(
-                pool.apply_async(
-                    input_func,
-                    (name, source_settings, output_info, settings)
+                results.append(
+                    pool.apply_async(
+                        process_func,
+                        (name, process_settings, output_info, settings)
+                    )
                 )
-            )
 
-        pool.close()
-        pool.join()
-        return [item.wait() for item in results]
+            pool.close()
+            pool.join()
+            result = [item.wait() for item in results]
+        else:
+            for name, process_settings in processes_to_run.items():
+                process_func = process_settings.pop('process_func')
+                output_info = process_settings.pop('output')
+
+                result = process_func(name, process_settings, output_info, settings)
+
+        return result
 
     def run(self):
         try:
             with open(self.settings_file, 'r') as fd:
                 settings = json.load(fd)
-                self.process_inputs(settings)
+                self.start_processes(settings)
         except KeyboardInterrupt:
             logging.info('Execution interrupted')
             raise

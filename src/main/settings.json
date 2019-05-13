@@ -1,42 +1,96 @@
 {
   "DEBUG": false,
-  "input": {
-    "sources": {
-      "raw_well0": {
-        "type": "las_file",
-        "path_list" : [
-          "./input_files/well0-MDT_OFA_CMR_103LTP.las",
-          "./input_files/well0-MDT_OFA_CMR_104LTP.las",
-          "./input_files/well0-MDT_OFA_CMR_106LTP.las"
-        ],
-        "index_mnemonic": "TIME",
-        "destination": "tcp"
+  "temp_dir": "./temp",
+  "processes": {
+    "well0_replay": {
+      "type": "las_file",
+      "path_list" : [
+        "./input_files/well0-MDT_OFA_CMR_103LTP.las",
+        "./input_files/well0-MDT_OFA_CMR_104LTP.las",
+        "./input_files/well0-MDT_OFA_CMR_106LTP.las"
+      ],
+      "index_mnemonic": "TIME",
+      "destination": {
+        "name": "events",
+        "event_type": "raw_well0"
       },
-      "raw_well3": {
-        "type": "las_file",
-        "path_list" : [
-          "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
-          "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
-        ],
-        "index_mnemonic": "TIME",
-        "destination": "tcp"
-      }
+      "enabled": true
+    },
+    "well3_replay": {
+      "type": "las_file",
+      "path_list" : [
+        "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
+        "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
+      ],
+      "index_mnemonic": "TIME",
+      "destination": {
+        "name": "rest_events",
+        "event_type": "raw_well3"
+      },
+      "enabled": true
+    },
+    "well0_flowrate": {
+      "type": "flowrate_monitor",
+      "request": {
+        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well0?username=teste&password=teste",
+        "interval": 30
+      },
+      "monitor": {
+        "index_mnemonic": "ETIM",
+        "flowrate_mnemonics": ["POHP", "POHP2"],
+        "max_threshold": 10,
+        "window_duration": 600
+      },
+      "destination": {
+        "name": "messenger",
+        "author": {"id": 1, "name": "Admin"},
+        "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+      },
+      "enabled": true
+    },
+    "well3_flowrate": {
+      "type": "flowrate_monitor",
+      "request": {
+        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well3?username=teste&password=teste",
+        "interval": 30
+      },
+      "monitor": {
+        "index_mnemonic": "ETIM",
+        "flowrate_mnemonics": ["POHP", "POHP2"],
+        "max_threshold": 10,
+        "window_duration": 600
+      },
+      "destination": {
+        "name": "rest_messenger",
+        "author": {"id": 1, "name": "Admin"},
+        "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
+      },
+      "enabled": true
     }
   },
   "output": {
-    "destinations": {
-      "tcp": {
-        "type": "raw_over_tcp",
-        "ip": "127.0.0.1",
-        "port": 17042
-      },
-      "rest": {
-        "type": "rest_input",
-        "url": "http://localhost:8080/services/plugin-restinput/shell/",
-        "username": "admin",
-        "password": "admin"
-      }
+    "events": {
+      "type": "raw_over_tcp",
+      "ip": "127.0.0.1",
+      "port": 17042
+    },
+    "rest_events": {
+      "type": "raw_over_rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
+    },
+    "messenger": {
+      "type": "chat_over_tcp",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
+    },
+    "rest_messenger": {
+      "type": "chat_over_rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
     }
-  },
-  "temp_dir": "./temp"
+  }
 }

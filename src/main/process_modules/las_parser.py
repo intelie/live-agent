@@ -46,9 +46,9 @@ def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnem
     return success, output_frame
 
 
-def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
-    path_list = source_settings['path_list']
-    index_mnemonic = source_settings['index_mnemonic']
+def open_las(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
+    path_list = process_settings['path_list']
+    index_mnemonic = process_settings['index_mnemonic']
 
     if mode == READ_MODES.CONTINUOUS:
         path_index = iterations % len(path_list)
@@ -119,8 +119,9 @@ def generate_events(event_type, las_data, index_mnemonic, output_info, settings)
             last_timestamp = next_timestamp
 
 
-def events_from_las(event_type, source_settings, output_info, settings):
+def events_from_las(process_name, process_settings, output_info, settings):
     debug_mode = settings.get('DEBUG', False)
+    event_type = process_settings['destination']['event_type']
 
     if debug_mode:
         read_mode = READ_MODES.SINGLE_PASS
@@ -133,7 +134,7 @@ def events_from_las(event_type, source_settings, output_info, settings):
     while True:
         try:
             success, las_data, index_mnemonic = open_las(
-                source_settings,
+                process_settings,
                 iterations,
                 mode=read_mode
             )
