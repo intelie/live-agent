@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-from multiprocessing import Pool
 import time
 import logging
-import locale
 from enum import Enum
 import csv
 
@@ -72,7 +70,7 @@ def open_las(source_settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, index_mnemonic
 
 
-def export_curves_data(event_type, las_data, index_mnemonic, output_func, settings):
+def export_curves_data(event_type, las_data, index_mnemonic, output_info, settings):
     logging.info("Exporting curves for {}".format(event_type))
     output_dir = settings.get('temp_dir', '/tmp')
 
@@ -94,8 +92,9 @@ def export_curves_data(event_type, las_data, index_mnemonic, output_func, settin
     logging.info('File {} created'.format(output_filename))
 
 
-def generate_events(event_type, las_data, index_mnemonic, output_func, settings):
+def generate_events(event_type, las_data, index_mnemonic, output_info, settings):
     logging.info("{}: Event generation started".format(event_type))
+    output_func, output_settings = output_info
 
     curves_data = dict(
         (item.mnemonic, item.unit)
@@ -116,11 +115,11 @@ def generate_events(event_type, las_data, index_mnemonic, output_func, settings)
             next_timestamp = statuses.get(index_mnemonic, {}).get('value', 0)
 
             delay_output(last_timestamp, next_timestamp, event_type)
-            output_func(event_type, statuses, settings)
+            output_func(event_type, statuses, output_settings)
             last_timestamp = next_timestamp
 
 
-def process_source(event_type, source_settings, output_func, settings):
+def events_from_las(event_type, source_settings, output_info, settings):
     debug_mode = settings.get('DEBUG', False)
 
     if debug_mode:
@@ -144,7 +143,7 @@ def process_source(event_type, source_settings, output_func, settings):
                     event_type,
                     las_data,
                     index_mnemonic,
-                    output_func,
+                    output_info,
                     settings
                 )
                 logging.info("{}: Iteration {} successful".format(
@@ -169,27 +168,3 @@ def process_source(event_type, source_settings, output_func, settings):
             )
 
     return
-
-
-def events_from_las(output_func, settings):
-    input_settings = settings.get('input', {})
-
-    default_locale = locale.getlocale()
-    locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
-
-    sources = input_settings.get('sources', {})
-    num_sources = len(sources)
-
-    pool = Pool(processes=num_sources)
-    results = [
-        pool.apply_async(
-            process_source,
-            (event_type, source_settings, output_func, settings)
-        )
-        for event_type, source_settings in sources.items()
-    ]
-    pool.close()
-    pool.join()
-    [item.wait() for item in results]
-
-    locale.setlocale(locale.LC_ALL, default_locale)

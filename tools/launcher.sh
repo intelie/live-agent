@@ -9,7 +9,7 @@
 BASE_DIR=$(dirname $0)
 SETTINGS_FILE="$1"
 
-APP_ENTRY_POINT="${BASE_DIR}/lib/events_generator.py"
+APP_ENTRY_POINT="${BASE_DIR}/lib/live_agent.py"
 VIRTUALENV_ACTIVATE="${BASE_DIR}/pyenv/bin/activate"
 
 # Simple validations on the environment and parameters

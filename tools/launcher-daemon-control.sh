@@ -13,7 +13,7 @@ BASE_DIR=$(dirname ${SCRIPT_PATH})
 
 SETTINGS_FILE="${BASE_DIR}/settings.json"
 
-APP_ENTRY_POINT="${BASE_DIR}/lib/events_generator.py"
+APP_ENTRY_POINT="${BASE_DIR}/lib/live_agent.py"
 VIRTUALENV_ACTIVATE="${BASE_DIR}/pyenv/bin/activate"
 
 PID_FILE=/var/run/live-replayer.pid

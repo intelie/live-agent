@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+from multiprocessing import Pool
 
 from runner.daemon import Daemon
 from utils import las_parser
@@ -11,41 +12,85 @@ from utils import raw_over_tcp, console_output
 __all__ = []
 
 PIDFILE_ENVVAR = 'PID_FILE'
-DEFAULT_PIDFILE = "/var/run/live-replayer.pid"
+DEFAULT_PIDFILE = "/var/run/live-agent.pid"
 
 LOGFILE_ENVVAR = 'LOG_FILE'
-DEFAULT_LOG = "/var/log/live-replayer.log"
+DEFAULT_LOG = "/var/log/live-agent.log"
 
 
-class EventFromImage(Daemon):
+class LiveAgent(Daemon):
 
     def __init__(self, pidfile, settings_file):
         logfile = get_logfile()
         Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
         self.settings_file = settings_file
 
-    def resolve_input_handler(self, settings):
+    def get_output_options(self, settings):
+        output_settings = settings.get('output', {})
+        destinations = output_settings.get('destinations', {})
+        return destinations
+
+    def get_input_sources(self, settings, output_options):
+        input_settings = settings.get('input', {})
+        sources = input_settings.get('sources', {})
+        for item in sources.values():
+            assert(item.get('destination') in output_options)
+
+        return sources
+
+    def resolve_handlers(self, input_sources, output_options):
+        output_funcs = dict(
+            (name, (self.resolve_output_handler(out_settings), out_settings))
+            for name, out_settings in output_options.items()
+        )
+
+        for name, in_settings in input_sources.items():
+            input_type = in_settings.pop('type')
+            output_type = in_settings.pop('destination')
+            in_settings.update(
+                input_func=self.resolve_input_handler(input_type),
+                output=output_funcs.get(output_type)
+            )
+
+        return input_sources
+
+    def resolve_input_handler(self, input_type):
         input_handlers = {
             'las_file': las_parser.events_from_las,
         }
-        input_settings = settings.get('input', {})
-        input_type = input_settings.get('type', 'las_file')
         return input_handlers.get(input_type)
 
-    def resolve_output_handler(self, settings):
+    def resolve_output_handler(self, output_settings):
         output_handlers = {
             'raw_over_tcp': raw_over_tcp.format_and_send,
             'console': console_output.format_and_send,
         }
-        output_settings = settings.get('output', {})
-        output_type = output_settings.get('type', 'console')
+        output_type = output_settings.get('type')
         return output_handlers.get(output_type)
 
     def process_inputs(self, settings):
-        input_func = self.resolve_input_handler(settings)
-        output_func = self.resolve_output_handler(settings)
+        output_options = self.get_output_options(settings)
+        input_sources = self.get_input_sources(settings, output_options)
 
-        return input_func(output_func, settings)
+        resolved_sources = self.resolve_handlers(input_sources, output_options)
+        num_sources = len(resolved_sources)
+
+        pool = Pool(processes=num_sources)
+        results = []
+        for name, source_settings in resolved_sources.items():
+            input_func = source_settings.pop('input_func')
+            output_info = source_settings.pop('output')
+
+            results.append(
+                pool.apply_async(
+                    input_func,
+                    (name, source_settings, output_info, settings)
+                )
+            )
+
+        pool.close()
+        pool.join()
+        return [item.wait() for item in results]
 
     def run(self):
         try:
@@ -102,7 +147,7 @@ if __name__ == '__main__':
     else:
         pidfile = DEFAULT_PIDFILE
 
-    daemon = EventFromImage(pidfile, settings_file)
+    daemon = LiveAgent(pidfile, settings_file)
 
     configure_log(command == 'console')
 

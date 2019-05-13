@@ -4,8 +4,7 @@ import socket
 __all__ = ['send_event']
 
 
-def send_event(event, settings):
-    output_settings = settings['output']
+def send_event(event, output_settings):
     ip = output_settings['ip']
     port = output_settings['port']
 

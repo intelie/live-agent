@@ -1,29 +1,42 @@
 {
   "DEBUG": false,
   "input": {
-    "type": "las_file",
     "sources": {
       "raw_well0": {
+        "type": "las_file",
         "path_list" : [
           "./input_files/well0-MDT_OFA_CMR_103LTP.las",
           "./input_files/well0-MDT_OFA_CMR_104LTP.las",
           "./input_files/well0-MDT_OFA_CMR_106LTP.las"
         ],
-        "index_mnemonic": "TIME"
+        "index_mnemonic": "TIME",
+        "destination": "tcp"
       },
       "raw_well3": {
+        "type": "las_file",
         "path_list" : [
           "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
           "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
         ],
-        "index_mnemonic": "TIME"
+        "index_mnemonic": "TIME",
+        "destination": "tcp"
       }
     }
   },
   "output": {
-    "type": "raw_over_tcp",
-    "ip": "127.0.0.1",
-    "port": 17042
+    "destinations": {
+      "tcp": {
+        "type": "raw_over_tcp",
+        "ip": "127.0.0.1",
+        "port": 17042
+      },
+      "rest": {
+        "type": "rest_input",
+        "url": "http://localhost:8080/services/plugin-restinput/shell/",
+        "username": "admin",
+        "password": "admin"
+      }
+    }
   },
   "temp_dir": "./temp"
 }

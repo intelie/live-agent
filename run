@@ -13,5 +13,5 @@ then
 	exit
 fi
 
-python src/main/events_generator.py console $settings
+python src/main/live_agent.py console $settings
 
