@@ -29,4 +29,4 @@ def format_event(timestamp, message, settings):
 
 
 def get_timestamp():
-    return time.time() * 1000
+    return int(time.time() * 1000)
