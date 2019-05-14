@@ -24,7 +24,7 @@ OUTPUT_HANDLERS = {
     ),
     'chat_over_tcp': partial(
         messenger.format_and_send,
-        connection_func=rest_input.send_event
+        connection_func=collector.send_event
     ),
     'chat_over_rest': partial(
         messenger.format_and_send,
