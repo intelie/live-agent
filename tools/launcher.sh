@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Launcher script installed as /opt/intelie/live-replayer/collect
+# Launcher script installed as /opt/intelie/live-agent/collect
 #
 # Starts the program in console mode
 #

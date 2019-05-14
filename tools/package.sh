@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Change the version when there are changes in the image or build entry point
-DOCKER_IMAGE_c6=intelie/live-replayer-build-c6:20181116
-DOCKER_IMAGE_c7=intelie/live-replayer-build-c7:20181116
+DOCKER_IMAGE_c6=intelie/live-agent-build-c6:20181116
+DOCKER_IMAGE_c7=intelie/live-agent-build-c7:20181116
 
 DOCKER_DIR=tools/builder
 DOCKERFILE_c6=tools/builder/Dockerfile-c6

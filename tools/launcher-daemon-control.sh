@@ -2,7 +2,7 @@
 # chkconfig: 345 99 01
 # description: BOP Video Collector
 
-# Service Launcher script installed as /opt/intelie/live-replayer/collect-daemon
+# Service Launcher script installed as /opt/intelie/live-agent/collect-daemon
 #
 # Controls the execution of the program as a daemon
 #
@@ -16,7 +16,7 @@ SETTINGS_FILE="${BASE_DIR}/settings.json"
 APP_ENTRY_POINT="${BASE_DIR}/lib/live_agent.py"
 VIRTUALENV_ACTIVATE="${BASE_DIR}/pyenv/bin/activate"
 
-PID_FILE=/var/run/live-replayer.pid
+PID_FILE=/var/run/live-agent.pid
 
 COMMAND="$1"
 

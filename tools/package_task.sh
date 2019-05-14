@@ -4,11 +4,11 @@
 
 PROJECT_ROOT=/build
 BUILD_TEMP=${PROJECT_ROOT}/temp
-VIRTUALENV_PATH=/opt/intelie/live-replayer/pyenv
+VIRTUALENV_PATH=/opt/intelie/live-agent/pyenv
 
 LAUNCHER_SCRIPT_NAME="collect"
 DAEMON_SCRIPT_NAME="collect-daemon"
-PACKAGE_NAME="live-replayer"
+PACKAGE_NAME="live-agent"
 
 RPM_BUILD_ROOT=${BUILD_TEMP}/rpmbuild
 

@@ -1,10 +1,10 @@
 %define debug_package %{nil}
 %global __os_install_post %{nil}
 
-%define service_name    live-replayer
+%define service_name    live-agent
 
-Summary:        Live events replayer
-Name:           live-replayer
+Summary:        Intelie Live external agent
+Name:           live-agent
 Version:        %{version}
 Release:        %{release}
 License:        Intelie Commercial License
@@ -12,9 +12,9 @@ Vendor:         Intelie
 Group:          Application/Util
 BuildArch:      x86_64
 
-Source:         live-replayer-%{version}-%{release}.tar.gz
+Source:         live-agent-%{version}-%{release}.tar.gz
 
-Prefix: /opt/intelie/live-replayer
+Prefix: /opt/intelie/live-agent
 
 Requires: %{requiredPython}
 AutoReqProv: no
