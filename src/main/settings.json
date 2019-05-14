@@ -33,11 +33,11 @@
       "type": "flowrate_monitor",
       "request": {
         "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well0?username=teste&password=teste",
-        "interval": 30
+        "interval": 60
       },
       "monitor": {
         "index_mnemonic": "ETIM",
-        "flowrate_mnemonics": ["POHP", "POHP2"],
+        "flowrate_mnemonics": ["POHP", "POHP2", "POTFR"],
         "max_threshold": 10,
         "window_duration": 600
       },
@@ -52,11 +52,11 @@
       "type": "flowrate_monitor",
       "request": {
         "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well3?username=teste&password=teste",
-        "interval": 30
+        "interval": 60
       },
       "monitor": {
         "index_mnemonic": "ETIM",
-        "flowrate_mnemonics": ["POHP", "POHP2"],
+        "flowrate_mnemonics": ["POHP", "POHP2", "POTFR"],
         "max_threshold": 10,
         "window_duration": 600
       },
