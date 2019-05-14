@@ -103,16 +103,14 @@ def notify_frequent_changes(process_name, process_settings, output_info, setting
                 process_name, iterations
             ))
 
-            await_next_request(interval, process_name)
-
         except Exception as e:
             logging.error(
                 "{}: Error processing events during request {}, {}<{}>".format(
                     process_name, iterations, e, type(e)
                 )
             )
-            raise
 
+        await_next_request(interval, process_name)
         iterations += 1
 
     return
