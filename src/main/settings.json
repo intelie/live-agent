@@ -82,9 +82,8 @@
     },
     "messenger": {
       "type": "chat_over_tcp",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "admin",
-      "password": "admin"
+      "ip": "127.0.0.1",
+      "port": 17042
     },
     "rest_messenger": {
       "type": "chat_over_rest",
