@@ -5,7 +5,7 @@ Live Replayer
 
 _(Requirements: Python 2.7 , install dependencies from requirements.txt)_
 
-    python src/main/generate_events.py console [settings_file]
+    python src/main/live_agent.py console [settings_file]
 
     # Shortcut 1:
     ./run [settings_file]
@@ -15,14 +15,19 @@ _(Requirements: Python 2.7 , install dependencies from requirements.txt)_
 
 The project includes the following sample settings:
 
-`src/main/settings.json` : Replays two sets of files concurrently
+`src/main/settings-monitor.json` : Generates notifications on messenger whenever the values for some defined metrics are updated too frequently
+`src/main/settings-replay.json` : Continuously replays MDT job files for two wells
+`src/main/settings.json` : Replay and monitor
 
 
 ### Building
 
 (requires packages `fabric` , `virtualenv`)
 
-    tools/package.sh
+    tools/package.sh [c6|c7]
+
+`c6`: Build for centos6 and derivates (red hat 6, amazon linux, etc)
+`c7`: Build for centos7 and derivates (redhat 7, amazon linux 2, etc)
 
 
 ### Testing the built packages

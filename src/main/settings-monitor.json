@@ -2,33 +2,6 @@
   "DEBUG": false,
   "temp_dir": "./temp",
   "processes": {
-    "well0_replay": {
-      "type": "las_file",
-      "path_list" : [
-        "./input_files/well0-MDT_OFA_CMR_103LTP.las",
-        "./input_files/well0-MDT_OFA_CMR_104LTP.las",
-        "./input_files/well0-MDT_OFA_CMR_106LTP.las"
-      ],
-      "index_mnemonic": "TIME",
-      "destination": {
-        "name": "events",
-        "event_type": "raw_well0"
-      },
-      "enabled": true
-    },
-    "well3_replay": {
-      "type": "las_file",
-      "path_list" : [
-        "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
-        "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
-      ],
-      "index_mnemonic": "TIME",
-      "destination": {
-        "name": "rest_events",
-        "event_type": "raw_well3"
-      },
-      "enabled": true
-    },
     "well0_flowrate": {
       "type": "flowrate_monitor",
       "request": {
