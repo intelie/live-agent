@@ -1,17 +1,28 @@
-Live Replayer
--------------
+Live Agent
+----------
 
-### Running in DEV:
+### Project setup:
 
-_(Requirements: Python 2.7 , install dependencies from requirements.txt)_
+Requires python 2.7, 3.4 or newer
 
-    python src/main/live_agent.py console [settings_file]
+    # 1- Create a virtualenv
 
-    # Shortcut 1:
-    ./run [settings_file]
+    # 2- Activate the virtualenv
 
-    # Shortcut 2:
-    ./run    # then select the settings file from the list
+    # 3- Install project requirements
+    $ pip install -r requirements.txt
+
+    # 4- Execute the application in one of the modes below:
+
+    # 4.1- Direct execution
+    $ python src/main/live_agent.py console [settings_file]
+
+    # 4.2- Shortcut defining the settings file
+    $ ./run [settings_file]
+
+    # 4.3- Shortcut without defining the settings file
+    $ ./run  # then select the settings file from the list
+
 
 The project includes the following sample settings:
 
@@ -22,7 +33,7 @@ The project includes the following sample settings:
 
 ### Building
 
-(requires packages `fabric` , `virtualenv`)
+Requires packages `fabric` and `virtualenv`, will generate a rpm file for installation on the target system
 
     tools/package.sh [c6|c7]
 
@@ -30,14 +41,21 @@ The project includes the following sample settings:
 `c7`: Build for centos7 and derivates (redhat 7, amazon linux 2, etc)
 
 
+### Installing on the target system
+
+     rpm -Uvh <rpmfile>
+
+
 ### Testing the built packages
 
 (As of now the testing is entirely manual)
+
 
 #### In a container:
 
     tools/test-envs/run_centos_container.sh [6|7]
     # Build dir will be available at /packages, so you can install and test
+
 
 #### In a VM:
 
@@ -45,7 +63,7 @@ This allows to a more complete test, including running the app as a service
 
 - Install VirtualBox and Vagrant (https://www.vagrantup.com/downloads.html)
 
-cd to `tools/test-envs/RedHat6` or `tools/test/RedHat7
+cd to `tools/test-envs/RedHat6` or `tools/test/RedHat7`
 
 Starting VM:
 
