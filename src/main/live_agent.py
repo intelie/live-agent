@@ -149,15 +149,32 @@ def get_logfile():
 
 
 def configure_log(console=False):
-    logfile = get_logfile()
-    if console:
-        logfile = '/dev/stdout'
+    python_version = sys.version_info.major
 
-    logging.basicConfig(
-        filename=logfile,
-        level=logging.INFO,
-        format='%(asctime)-15s %(levelname)8s [%(module)s] %(message)s'
-    )
+    log_level = logging.INFO
+    log_file = get_logfile()
+    log_format = '%(asctime)-15s %(levelname)8s [%(module)s] %(message)s'
+
+    if python_version == 3:
+        if console:
+            handlers = [logging.StreamHandler()]
+        else:
+            handlers = [logging.FileHandler(log_file)]
+
+        logging.basicConfig(
+            level=log_level,
+            format=log_format,
+            handlers=handlers,
+        )
+    else:
+        if console:
+            log_file = '/dev/stdout'
+
+        logging.basicConfig(
+            level=log_level,
+            format=log_format,
+            filename=log_file,
+        )
 
 
 if __name__ == '__main__':
