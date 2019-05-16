@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import time
 import logging
 from enum import Enum
 import csv
 
 import lasio
+
+from utils import loop
 
 __all__ = [
     'events_from_las'
@@ -20,8 +21,7 @@ def delay_output(last_timestamp, next_timestamp, event_type=''):
     else:
         sleep_time = max(next_timestamp - last_timestamp, 0)
 
-    logging.debug("{}: Sleeping for {} seconds".format(event_type, sleep_time))
-    time.sleep(sleep_time)
+    loop.await_next_cycle(sleep_time, event_type)
 
 
 def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnemonic):
@@ -157,8 +157,12 @@ def events_from_las(process_name, process_settings, output_info, settings):
             else:
                 raise las_data
 
-            logging.info("{}: Sleeping for 5 minutes between runs".format(event_type))
-            time.sleep(60 * 5)
+            loop.await_next_cycle(
+                60 * 5,
+                event_type,
+                message="Sleeping for 5 minutes between runs",
+                level=logging.info
+            )
             iterations += 1
 
         except Exception as e:

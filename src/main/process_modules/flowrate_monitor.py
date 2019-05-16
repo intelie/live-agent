@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
-import time
 import logging
 import requests
+
+from utils import loop
 
 
 __all__ = [
     'notify_frequent_changes'
 ]
-
-
-def await_next_request(sleep_time, process_name=''):
-    logging.debug("{}: Sleeping for {} seconds".format(process_name, sleep_time))
-    time.sleep(sleep_time)
 
 
 def refresh_accumulator(flowrate_data, accumulator, index_mnemonic, window_duration):
@@ -64,12 +60,12 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
             index = event.get(index_mnemonic)
             mnemonic_value = event.get(mnemonic)
             if mnemonic_value:
-                change_counter[mnemonic].add(mnemonic_value)
+                change_counter[mnemonic].add("{:.1f}".format(mnemonic_value))
                 latest_changes[mnemonic] = index
 
     # Generate alerts whether the threshold was reached
     # and the most recent change was in the latest batch of events
-    template = u'Whoa! {} was changed {} times over the last {} seconds, please calm down'
+    template = u'Whoa! {} was changed {} times over the last {} seconds, please calm down ({})'
 
     max_threshold = monitor_settings['max_threshold']
     interval = process_settings['request']['interval']
@@ -80,7 +76,10 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
         latest_change = latest_changes[mnemonic]
         if (number_of_changes > max_threshold) and (latest_change > interval_start):
             message = template.format(
-                mnemonic, number_of_changes, int(end - begin)
+                mnemonic,
+                number_of_changes,
+                int(end - begin),
+                ', '.join(change_counter[mnemonic])
             )
             send_chat_message(message, process_settings, output_info, settings)
             logging.info("{}: Sending message '{}'".format(
@@ -125,7 +124,7 @@ def notify_frequent_changes(process_name, process_settings, output_info, setting
                 )
             )
 
-        await_next_request(interval, process_name)
+        loop.await_next_cycle(interval, process_name)
         iterations += 1
 
     return
