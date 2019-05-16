@@ -40,7 +40,7 @@ def send_chat_message(message, process_settings, output_info, settings):
     output_func(message, output_settings)
 
 
-def check_rate(flowrate_data, accumulator, process_settings, output_info, settings):
+def check_rate(process_name, flowrate_data, accumulator, process_settings, output_info, settings):
     monitor_settings = process_settings.get('monitor', {})
     index_mnemonic = monitor_settings['index_mnemonic']
     window_duration = monitor_settings['window_duration']
@@ -54,24 +54,38 @@ def check_rate(flowrate_data, accumulator, process_settings, output_info, settin
         (mnemonic, set())
         for mnemonic in flowrate_mnemonics
     )
+    latest_changes = dict(
+        (mnemonic, 0)
+        for mnemonic in flowrate_mnemonics
+    )
 
     for event in accumulator:
         for mnemonic in flowrate_mnemonics:
+            index = event.get(index_mnemonic)
             mnemonic_value = event.get(mnemonic)
             if mnemonic_value:
                 change_counter[mnemonic].add(mnemonic_value)
+                latest_changes[mnemonic] = index
 
     # Generate alerts whether the threshold was reached
+    # and the most recent change was in the latest batch of events
     template = u'Whoa! {} was changed {} times over the last {} seconds, please calm down'
 
     max_threshold = monitor_settings['max_threshold']
+    interval = process_settings['request']['interval']
+    interval_start = end - interval
+
     for mnemonic in flowrate_mnemonics:
         number_of_changes = len(change_counter[mnemonic])
-        if number_of_changes > max_threshold:
+        latest_change = latest_changes[mnemonic]
+        if (number_of_changes > max_threshold) and (latest_change > interval_start):
             message = template.format(
                 mnemonic, number_of_changes, int(end - begin)
             )
             send_chat_message(message, process_settings, output_info, settings)
+            logging.info("{}: Sending message '{}'".format(
+                process_name, message
+            ))
 
     return accumulator
 
@@ -93,13 +107,14 @@ def notify_frequent_changes(process_name, process_settings, output_info, setting
             flowrate_data = r.json()
 
             accumulator = check_rate(
+                process_name,
                 flowrate_data,
                 accumulator,
                 process_settings,
                 output_info,
                 settings
             )
-            logging.info("{}: Request {} successful".format(
+            logging.debug("{}: Request {} successful".format(
                 process_name, iterations
             ))
 
