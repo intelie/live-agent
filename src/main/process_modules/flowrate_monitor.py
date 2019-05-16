@@ -6,7 +6,7 @@ from utils import loop
 
 
 __all__ = [
-    'notify_frequent_changes'
+    'start'
 ]
 
 
@@ -89,7 +89,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
     return accumulator
 
 
-def notify_frequent_changes(process_name, process_settings, output_info, settings):
+def start(process_name, process_settings, output_info, settings):
     logging.info("{}: Flowrate monitor started".format(process_name))
     session = requests.Session()
     accumulator = []

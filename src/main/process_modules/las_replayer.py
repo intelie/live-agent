@@ -8,7 +8,7 @@ import lasio
 from utils import loop
 
 __all__ = [
-    'events_from_las'
+    'start'
 ]
 
 
@@ -119,7 +119,7 @@ def generate_events(event_type, las_data, index_mnemonic, output_info, settings)
             last_timestamp = next_timestamp
 
 
-def events_from_las(process_name, process_settings, output_info, settings):
+def start(process_name, process_settings, output_info, settings):
     debug_mode = settings.get('DEBUG', False)
     event_type = process_settings['destination']['event_type']
 
