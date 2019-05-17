@@ -4,6 +4,9 @@ import requests
 from functools import partial
 from enum import Enum
 
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
 from utils import loop
 
 __all__ = ['start']
@@ -26,7 +29,7 @@ https://shellgamechanger.intelie.com/#/dashboard/51/?mode=view&span=2019-05-16%2
 
 PRETEST_STATES = Enum(
     'PRETEST_STATES',
-    'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE, PRETEST_DONE'
+    'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE, COMPLETE'
 )
 
 
@@ -69,10 +72,10 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     # In order to avoid detecting the same evet twice we must trim the set of events
     # so we avoid looking into the same events twice
     # We also must ignore events without data
-    latest_index = probe_data.get('latest_seen_index', 0)
+    latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = filter_events(
         event_list,
-        latest_index,
+        latest_seen_index,
         index_mnemonic,
         pretest_volume_mnemonic
     )
@@ -84,7 +87,6 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     # Check if the value was zero and has changed
     if valid_events:
         first_event, last_event = valid_events[0], valid_events[-1]
-        probe_data.update(latest_seen_index=last_event.get(index_mnemonic))
 
         first_value = first_event.get(pretest_volume_mnemonic)
         last_value = last_event.get(pretest_volume_mnemonic)
@@ -97,7 +99,6 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
         is_drawdown = False
 
     # There was a change.
-    detected_state = None
     if is_drawdown:
         depth_mnemonic = probe_data['depth_mnemonic']
         pressure_mnemonic = probe_data['pressure_mnemonic']
@@ -110,15 +111,19 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
 
         # Drawdown started at the first of these events
         drawdown_event = events_during_drawdown[0]
-        etim = drawdown_event.get(index_mnemonic)
-        pressure = drawdown_event.get(pressure_mnemonic)
-        depth = drawdown_event.get(depth_mnemonic)
+        etim = drawdown_event.get(index_mnemonic, -1)
+        pressure = drawdown_event.get(pressure_mnemonic, -1)
+        depth = drawdown_event.get(depth_mnemonic, -1)
 
-        if (etim and pressure and depth):
-            message = "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"  # NOQA
-            message_sender(process_name, message.format(probe_name, depth, etim, pressure))
-            detected_state = PRETEST_STATES.DRAWDOWN_START
+        message = "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"  # NOQA
+        message_sender(process_name, message.format(probe_name, depth, etim, pressure))
 
+        detected_state = PRETEST_STATES.DRAWDOWN_START
+        latest_seen_index = etim
+    else:
+        detected_state = None
+
+    probe_data.update(latest_seen_index=latest_seen_index)
     return detected_state
 
 
@@ -130,10 +135,10 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     # In order to avoid detecting the same evet twice we must trim the set of events
     # so we avoid looking into the same events twice
     # We also must ignore events without data
-    latest_index = probe_data.get('latest_seen_index', 0)
+    latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = filter_events(
         event_list,
-        latest_index,
+        latest_seen_index,
         index_mnemonic,
         pretest_volume_mnemonic
     )
@@ -141,7 +146,6 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     # Check if the value is stable
     if len(valid_events) > 1:
         prev_event, last_event = valid_events[-2], valid_events[-1]
-        probe_data.update(latest_seen_index=last_event.get(index_mnemonic))
 
         last_pretest_volume = last_event.get(pretest_volume_mnemonic)
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
@@ -153,7 +157,6 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     else:
         drawdown_stopped = False
 
-    detected_state = None
     if drawdown_stopped:
         depth_mnemonic = probe_data['depth_mnemonic']
         pressure_mnemonic = probe_data['pressure_mnemonic']
@@ -166,28 +169,141 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
 
         # Drawdown finished at the first of these events
         drawdown_event = events_after_drawdown[0]
-        etim = drawdown_event.get(index_mnemonic)
-        pressure = drawdown_event.get(pressure_mnemonic)
-        depth = drawdown_event.get(depth_mnemonic)
+        etim = drawdown_event.get(index_mnemonic, -1)
+        pressure = drawdown_event.get(pressure_mnemonic, -1)
+        depth = drawdown_event.get(depth_mnemonic, -1)
 
-        if (etim and pressure and depth):
-            message = "Probe {}@{:.0f} ft: Drawdown ended at {:.2f} s with pressure {:.2f} psi"  # NOQA
-            message_sender(process_name, message.format(probe_name, depth, etim, pressure))
-            detected_state = PRETEST_STATES.DRAWDOWN_END
+        message = "Probe {}@{:.0f} ft: Drawdown ended at {:.2f} s with pressure {:.2f} psi"  # NOQA
+        message_sender(process_name, message.format(probe_name, depth, etim, pressure))
 
+        detected_state = PRETEST_STATES.DRAWDOWN_END
+        latest_seen_index = etim
+    else:
+        detected_state = None
+
+    probe_data.update(latest_seen_index=latest_seen_index)
     return detected_state
 
 
-def stabilize_buildup(process_name, probe_name, probe_data, event_list, message, slope=1):
-    # index_mnemonic = probe_data['index_mnemonic']
-    # pressure_mnemonic = probe_data['pressure_mnemonic']
-    # valid_events = [
-    #     item for item in event_list
-    #     if item.get(pressure_mnemonic) is not None
-    # ]
+def find_stable_buildup(process_name, probe_name, probe_data, event_list, message_sender, targets=None):
+    """
+    State when the slope of the linear regression of {pressure_mnemonic}
+    over {buildup_duration} seconds is <= {target_slope}
+    """
+    index_mnemonic = probe_data['index_mnemonic']
+    pressure_mnemonic = probe_data['pressure_mnemonic']
+    depth_mnemonic = probe_data['depth_mnemonic']
+    buildup_duration = probe_data['buildup_duration']
+    buildup_wait_period = probe_data['buildup_wait_period']
+    target_slopes = sorted(targets)
+    detected_state = None
 
-    logging.info("{}: Trying to a stable buildup".format(process_name))
-    return PRETEST_STATES.INACTIVE
+    # In order to avoid detecting the same event twice we must trim the set of events
+    # so we avoid looking into the same events twice
+    # We also must ignore events without data
+    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    valid_events = filter_events(
+        event_list,
+        latest_seen_index,
+        index_mnemonic,
+        pressure_mnemonic
+    )
+
+    logging.info("{}: Trying to detect a buildup with a slope <= {}, watching {} events".format(
+        process_name,
+        ', '.join(str(item) for item in target_slopes),
+        len(valid_events)
+    ))
+
+    data = [
+        {
+            index_mnemonic: item.get(index_mnemonic),
+            pressure_mnemonic: item.get(pressure_mnemonic),
+            depth_mnemonic: item.get(depth_mnemonic),
+        }
+        for item in valid_events
+    ]
+
+    target_state = None
+    if data:
+        start_index = 0
+        measured_slopes = []
+
+        while True:
+            segment_start = data[start_index][index_mnemonic]
+            expected_end = segment_start + buildup_duration
+
+            segment_to_check = [
+                item for item in data[start_index:]
+                if item[index_mnemonic] <= expected_end
+            ]
+            segment_end = segment_to_check[-1][index_mnemonic]
+
+            ##
+            # do detection
+            ##
+            x = np.array([
+                item.get(index_mnemonic) for item in segment_to_check
+            ]).reshape((-1, 1))
+            y = np.array([
+                item.get(pressure_mnemonic) for item in segment_to_check
+            ])
+
+            model = LinearRegression().fit(x, y)
+            segment_slope = abs(model.coef_[0])
+            measured_slopes.append(segment_slope)
+
+            matching_slopes = [
+                item for item in target_slopes
+                if segment_slope <= item
+            ]
+
+            if matching_slopes:
+                target_slope = matching_slopes[0]
+                target_state = targets[target_slope]
+
+                # Use the last event of the segment as reference
+                drawdown_event = segment_to_check[-1]
+                etim = drawdown_event.get(index_mnemonic, -1)
+                pressure = drawdown_event.get(pressure_mnemonic, -1)
+                depth = drawdown_event.get(depth_mnemonic, -1)
+
+                message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
+                message_sender(
+                    process_name,
+                    message.format(probe_name, depth, target_slope, segment_slope, etim, pressure)
+                )
+
+                detected_state = target_state
+                latest_seen_index = etim
+                break
+
+            elif (segment_end - segment_start) < buildup_duration:
+                break
+
+            else:
+                start_index += 1
+
+        if detected_state is None:
+            logging.info("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
+                process_name, max(target_slopes), measured_slopes
+            ))
+
+            # If a stable buildup takes too long, give up
+            latest_event_index = data[-1].get(index_mnemonic)
+            wait_period = latest_event_index - latest_seen_index
+            if wait_period > buildup_wait_period:
+                message = "Probe {}@{:.0f} ft: Buildup did not stabilize within {} after {} s"  # NOQA
+                message_sender(
+                    process_name,
+                    message.format(probe_name, depth, target_slope, wait_period)
+                )
+
+                detected_state = PRETEST_STATES.INACTIVE
+                latest_seen_index = latest_event_index
+
+    probe_data.update(latest_seen_index=latest_seen_index)
+    return detected_state
 
 
 def recycle_pump(process_name, probe_name, probe_data, event_list, message):
@@ -223,9 +339,20 @@ def start(process_name, process_settings, output_info, _settings):
     functions_map = {
         PRETEST_STATES.INACTIVE: find_drawdown,
         PRETEST_STATES.DRAWDOWN_START: find_buildup,
-        PRETEST_STATES.DRAWDOWN_END: partial(stabilize_buildup, slope=0.1),
-        PRETEST_STATES.BUILDUP_STABLE: partial(stabilize_buildup, slope=0.01),
-        PRETEST_STATES.PRETEST_DONE: recycle_pump,
+        PRETEST_STATES.DRAWDOWN_END: partial(
+            find_stable_buildup,
+            targets={
+                0.01: PRETEST_STATES.COMPLETE,
+                0.1: PRETEST_STATES.BUILDUP_STABLE,
+            }
+        ),
+        PRETEST_STATES.BUILDUP_STABLE: partial(
+            find_stable_buildup,
+            targets=(
+                {'slope': 0.01, 'state': PRETEST_STATES.COMPLETE},
+            )
+        ),
+        PRETEST_STATES.COMPLETE: recycle_pump,
         'send_message': partial(
             send_chat_message,
             process_settings=process_settings,
@@ -239,6 +366,8 @@ def start(process_name, process_settings, output_info, _settings):
     monitor_settings = process_settings.get('monitor', {})
     index_mnemonic = monitor_settings['index_mnemonic']
     window_duration = monitor_settings['window_duration']
+    buildup_duration = monitor_settings['buildup_duration']
+    buildup_wait_period = monitor_settings['buildup_wait_period']
     probes = monitor_settings['probes']
 
     iterations = 0
@@ -253,11 +382,14 @@ def start(process_name, process_settings, output_info, _settings):
             accumulator, start, end = loop.refresh_accumulator(
                 latest_events, accumulator, index_mnemonic, window_duration
             )
-            # events_to_check = filter_events(latest_events, latest_index, process_settings)
 
             if accumulator:
                 for probe_name, probe_data in probes.items():
-                    probe_data.update(index_mnemonic=index_mnemonic)
+                    probe_data.update(
+                        index_mnemonic=index_mnemonic,
+                        buildup_duration=buildup_duration,
+                        buildup_wait_period=buildup_wait_period,
+                    )
                     find_pretest(
                         process_name,
                         probe_name,
@@ -265,9 +397,6 @@ def start(process_name, process_settings, output_info, _settings):
                         accumulator,
                         functions_map,
                     )
-
-                # latest_event = events_to_check[-1]
-                # latest_index = latest_event.get(index_mnemonic, 0)
             else:
                 logging.warning("{}: No events received after index {}".format(
                     process_name, latest_index
@@ -291,6 +420,7 @@ def start(process_name, process_settings, output_info, _settings):
                     process_name, iterations, e, type(e)
                 )
             )
+            raise
 
         loop.await_next_cycle(interval, process_name)
         iterations += 1

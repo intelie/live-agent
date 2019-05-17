@@ -4,18 +4,21 @@
   "processes": {
     "well0_pretest": {
       "type": "pretest_monitor",
+      "enabled": true,
       "request": {
         "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well0?username=teste&password=teste",
-        "interval": 30
+        "interval": 15
       },
       "monitor": {
-        "window_duration": 60,
         "index_mnemonic": "ETIM",
+        "window_duration": 60,
+        "buildup_duration": 30,
+        "buildup_wait_period": 120,
         "probes": {
           "1": {
-            "depth_mnemonic": "PQDVP1",
-            "pressure_mnemonic": "QDPRESS_PQ1",
-            "pretest_volume_mnemonic": "PQPTV1",
+            "depth_mnemonic": "DVP1",
+            "pressure_mnemonic": "BRD1",
+            "pretest_volume_mnemonic": "PTV1",
             "pumpout_flowrate_mnemonic": "POTFR",
             "pumpout_volume_mnemonic": "POTCV"
           },
@@ -23,6 +26,9 @@
             "depth_mnemonic": "PQDVP2",
             "pressure_mnemonic": "QDPRESS_PQ2",
             "pretest_volume_mnemonic": "PQPTV2",
+            "depth_mnemonic": "DVP2",
+            "pressure_mnemonic": "BRD2",
+            "pretest_volume_mnemonic": "PTV2",
             "pumpout_flowrate_mnemonic": "POTFR",
             "pumpout_volume_mnemonic": "POTCV"
           }
@@ -32,18 +38,20 @@
         "name": "messenger",
         "author": {"id": 1, "name": "Pretest monitor"},
         "room": {"id": "eia02b6rencfqrjfq5um06842o"}
-      },
-      "enabled": false
+      }
     },
     "well3_pretest": {
       "type": "pretest_monitor",
+      "enabled": true,
       "request": {
         "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well3?username=teste&password=teste",
-        "interval": 30
+        "interval": 15
       },
       "monitor": {
-        "window_duration": 60,
         "index_mnemonic": "ETIM",
+        "window_duration": 60,
+        "buildup_duration": 30,
+        "buildup_wait_period": 120,
         "probes": {
           "1": {
             "depth_mnemonic": "PQDVP1",
@@ -65,8 +73,7 @@
         "name": "rest_messenger",
         "author": {"id": 1, "name": "Pretest monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
-      },
-      "enabled": true
+      }
     }
   },
   "output": {
