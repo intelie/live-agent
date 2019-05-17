@@ -31,7 +31,7 @@ def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnem
     except Exception as e:
         output_frame = {}
         success = False
-        logging.info("{}: Error reading next value, {}<{}>".format(event_type, e, type(e)))
+        logging.debug("{}: Error reading next value, {}<{}>".format(event_type, e, type(e)))
 
     if success:
         output_frame = {
@@ -161,9 +161,17 @@ def start(process_name, process_settings, output_info, settings):
                 60 * 5,
                 event_type,
                 message="Sleeping for 5 minutes between runs",
-                level=logging.info
+                log_func=logging.info
             )
             iterations += 1
+
+        except KeyboardInterrupt:
+            logging.info(
+                "{}: Stopping after {} iterations".format(
+                    event_type, iterations
+                )
+            )
+            raise
 
         except Exception as e:
             logging.error(
