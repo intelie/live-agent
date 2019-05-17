@@ -10,21 +10,6 @@ __all__ = [
 ]
 
 
-def refresh_accumulator(flowrate_data, accumulator, index_mnemonic, window_duration):
-    # Find out the latest timestamp received
-    latest_value = flowrate_data[-1]
-    latest_time = latest_value.get(index_mnemonic, 0)
-    window_start = latest_time - window_duration
-
-    # Purge old events and add the new ones
-    purged_accumulator = [
-        item for item in accumulator
-        if item.get(index_mnemonic) > window_start
-    ]
-    purged_accumulator.extend(flowrate_data)
-    return purged_accumulator, window_start, latest_time
-
-
 def send_chat_message(message, process_settings, output_info, settings):
     destination_settings = process_settings['destination']
     output_func, output_settings = output_info
@@ -42,7 +27,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
     window_duration = monitor_settings['window_duration']
 
     # Calculate the number of changes per mnemonic during the window
-    accumulator, begin, end = refresh_accumulator(
+    accumulator, begin, end = loop.refresh_accumulator(
         flowrate_data, accumulator, index_mnemonic, window_duration
     )
     flowrate_mnemonics = monitor_settings['flowrate_mnemonics']
