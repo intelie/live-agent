@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import json
-import logging
 import os
 import sys
+import signal
+import json
+import logging
 from multiprocessing import Pool
 
 from runner.daemon import Daemon
@@ -102,21 +103,26 @@ class LiveAgent(Daemon):
 
         if num_processes > 1:
             results = []
-            pool = Pool(processes=num_processes)
-            for name, process_settings in processes_to_run.items():
-                process_func = process_settings.pop('process_func')
-                output_info = process_settings.pop('output')
+            pool = Pool(processes=num_processes, initializer=init_worker)
+            try:
+                for name, process_settings in processes_to_run.items():
+                    process_func = process_settings.pop('process_func')
+                    output_info = process_settings.pop('output')
 
-                results.append(
-                    pool.apply_async(
-                        process_func,
-                        (name, process_settings, output_info, settings)
+                    results.append(
+                        pool.apply_async(
+                            process_func,
+                            (name, process_settings, output_info, settings)
+                        )
                     )
-                )
+                pool.close()
+                pool.join()
+                result = [item.wait() for item in results]
 
-            pool.close()
-            pool.join()
-            result = [item.wait() for item in results]
+            except KeyboardInterrupt:
+                pool.terminate()
+                pool.join()
+
         else:
             for name, process_settings in processes_to_run.items():
                 process_func = process_settings.pop('process_func')
@@ -137,6 +143,10 @@ class LiveAgent(Daemon):
         except:
             logging.exception('Error processing inputs')
             raise
+
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def get_logfile():
