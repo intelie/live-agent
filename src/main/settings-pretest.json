@@ -1,0 +1,96 @@
+{
+  "DEBUG": false,
+  "temp_dir": "./temp",
+  "processes": {
+    "well0_pretest": {
+      "type": "pretest_monitor",
+      "request": {
+        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well0?username=teste&password=teste",
+        "interval": 30
+      },
+      "monitor": {
+        "window_duration": 60,
+        "index_mnemonic": "ETIM",
+        "probes": {
+          "1": {
+            "depth_mnemonic": "PQDVP1",
+            "pressure_mnemonic": "QDPRESS_PQ1",
+            "pretest_volume_mnemonic": "PQPTV1",
+            "pumpout_flowrate_mnemonic": "POTFR",
+            "pumpout_volume_mnemonic": "POTCV"
+          },
+          "2": {
+            "depth_mnemonic": "PQDVP2",
+            "pressure_mnemonic": "QDPRESS_PQ2",
+            "pretest_volume_mnemonic": "PQPTV2",
+            "pumpout_flowrate_mnemonic": "POTFR",
+            "pumpout_volume_mnemonic": "POTCV"
+          }
+        }
+      },
+      "destination": {
+        "name": "messenger",
+        "author": {"id": 1, "name": "Pretest monitor"},
+        "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+      },
+      "enabled": false
+    },
+    "well3_pretest": {
+      "type": "pretest_monitor",
+      "request": {
+        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well3?username=teste&password=teste",
+        "interval": 30
+      },
+      "monitor": {
+        "window_duration": 60,
+        "index_mnemonic": "ETIM",
+        "probes": {
+          "1": {
+            "depth_mnemonic": "PQDVP1",
+            "pressure_mnemonic": "QDPRESS_PQ1",
+            "pretest_volume_mnemonic": "PQPTV1",
+            "pumpout_flowrate_mnemonic": "POTFR",
+            "pumpout_volume_mnemonic": "POTCV"
+          },
+          "2": {
+            "depth_mnemonic": "PQDVP2",
+            "pressure_mnemonic": "QDPRESS_PQ2",
+            "pretest_volume_mnemonic": "PQPTV2",
+            "pumpout_flowrate_mnemonic": "POTFR",
+            "pumpout_volume_mnemonic": "POTCV"
+          }
+        }
+      },
+      "destination": {
+        "name": "rest_messenger",
+        "author": {"id": 1, "name": "Pretest monitor"},
+        "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
+      },
+      "enabled": true
+    }
+  },
+  "output": {
+    "events": {
+      "type": "raw_over_tcp",
+      "ip": "127.0.0.1",
+      "port": 17042
+    },
+    "rest_events": {
+      "type": "raw_over_rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
+    },
+    "messenger": {
+      "type": "chat_over_tcp",
+      "ip": "127.0.0.1",
+      "port": 17042
+    },
+    "rest_messenger": {
+      "type": "chat_over_rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
+    }
+  }
+}

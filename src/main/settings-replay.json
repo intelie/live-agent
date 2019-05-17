@@ -14,7 +14,7 @@
         "name": "events",
         "event_type": "raw_well0"
       },
-      "enabled": true
+      "enabled": false
     },
     "well3_replay": {
       "type": "las_file",
