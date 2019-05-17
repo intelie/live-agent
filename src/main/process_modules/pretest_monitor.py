@@ -348,9 +348,9 @@ def start(process_name, process_settings, output_info, _settings):
         ),
         PRETEST_STATES.BUILDUP_STABLE: partial(
             find_stable_buildup,
-            targets=(
-                {'slope': 0.01, 'state': PRETEST_STATES.COMPLETE},
-            )
+            targets={
+                0.01: PRETEST_STATES.COMPLETE,
+            }
         ),
         PRETEST_STATES.COMPLETE: recycle_pump,
         'send_message': partial(
