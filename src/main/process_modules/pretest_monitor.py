@@ -34,6 +34,42 @@ PRETEST_STATES = Enum(
 )
 
 
+def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
+    annotation_templates = {
+        PRETEST_STATES.DRAWDOWN_START: {
+            'message': "Probe {}: Pretest in progress".format(probe_name),
+            '__color': '#E87919',
+        },
+        PRETEST_STATES.COMPLETE: {
+            'message': "Probe {}: Pretest completed".format(probe_name),
+            '__overwrite': ['uid'],
+            '__color': '#73E819',
+        }
+    }
+
+    annotation_data = annotation_templates.get(current_state)
+    begin = probe_data.get('pretest_begin_timestamp')
+    end = probe_data.get('pretest_end_timestamp')
+    if annotation_data and begin:
+        annotation_data.update(
+            uid='{}-{}-{:.0f}'.format(
+                process_name,
+                probe_name,
+                begin,
+            ),
+            begin=begin,
+            end=end,
+        )
+        annotation_func(probe_name, annotation_data)
+
+    elif not begin:
+        logging.error('{}, probe {}: Cannot create annotation without begin timestamp'.format(
+            process_name, probe_name
+        ))
+
+    return
+
+
 def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
     events_in_window = [
         item for item in events
@@ -97,20 +133,25 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
         ]
 
         # Drawdown started at the first of these events
-        drawdown_event = events_during_drawdown[0]
-        etim = drawdown_event.get(index_mnemonic, -1)
-        pressure = drawdown_event.get(pressure_mnemonic, -1)
-        depth = drawdown_event.get(depth_mnemonic, -1)
+        reference_event = events_during_drawdown[0]
+        etim = reference_event.get(index_mnemonic, -1)
+        pressure = reference_event.get(pressure_mnemonic, -1)
+        depth = reference_event.get(depth_mnemonic, -1)
 
         message = "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"  # NOQA
         message_sender(process_name, message.format(probe_name, depth, etim, pressure))
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
+        pretest_begin_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
     else:
         detected_state = None
+        pretest_begin_timestamp = None
 
-    probe_data.update(latest_seen_index=latest_seen_index)
+    probe_data.update(
+        latest_seen_index=latest_seen_index,
+        pretest_begin_timestamp=pretest_begin_timestamp,
+    )
     return detected_state
 
 
@@ -155,10 +196,10 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
         ]
 
         # Drawdown finished at the first of these events
-        drawdown_event = events_after_drawdown[0]
-        etim = drawdown_event.get(index_mnemonic, -1)
-        pressure = drawdown_event.get(pressure_mnemonic, -1)
-        depth = drawdown_event.get(depth_mnemonic, -1)
+        reference_event = events_after_drawdown[0]
+        etim = reference_event.get(index_mnemonic, -1)
+        pressure = reference_event.get(pressure_mnemonic, -1)
+        depth = reference_event.get(depth_mnemonic, -1)
 
         message = "Probe {}@{:.0f} ft: Drawdown ended at {:.2f} s with pressure {:.2f} psi"  # NOQA
         message_sender(process_name, message.format(probe_name, depth, etim, pressure))
@@ -258,10 +299,10 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
                 target_state = targets[target_slope]
 
                 # Use the last event of the segment as reference
-                drawdown_event = segment_to_check[-1]
-                etim = drawdown_event.get(index_mnemonic, -1)
-                pressure = drawdown_event.get(pressure_mnemonic, -1)
-                depth = drawdown_event.get(depth_mnemonic, -1)
+                reference_event = segment_to_check[-1]
+                etim = reference_event.get(index_mnemonic, -1)
+                pressure = reference_event.get(pressure_mnemonic, -1)
+                depth = reference_event.get(depth_mnemonic, -1)
 
                 message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}, r²: {:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
                 message_sender(
@@ -279,6 +320,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
 
                 detected_state = target_state
                 latest_seen_index = etim
+                pretest_end_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
                 break
             else:
                 start_index += 1
@@ -287,6 +329,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
             logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
                 process_name, max(target_slopes), measured_slopes
             ))
+            pretest_end_timestamp = None
 
             # If a stable buildup takes too long, give up
             latest_event_index = data[-1].get(index_mnemonic)
@@ -301,7 +344,10 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
                 detected_state = PRETEST_STATES.INACTIVE
                 latest_seen_index = latest_event_index
 
-    probe_data.update(latest_seen_index=latest_seen_index)
+    probe_data.update(
+        latest_seen_index=latest_seen_index,
+        pretest_end_timestamp=pretest_end_timestamp,
+    )
     return detected_state
 
 
@@ -351,10 +397,10 @@ def recycle_pump(process_name, probe_name, probe_data, event_list, message_sende
         ]
 
         # Reset finished at the first of these events
-        drawdown_event = events_during_drawdown[0]
-        etim = drawdown_event.get(index_mnemonic, -1)
-        pressure = drawdown_event.get(pressure_mnemonic, -1)
-        depth = drawdown_event.get(depth_mnemonic, -1)
+        reference_event = events_during_drawdown[0]
+        etim = reference_event.get(index_mnemonic, -1)
+        pressure = reference_event.get(pressure_mnemonic, -1)
+        depth = reference_event.get(depth_mnemonic, -1)
 
         message = "Probe {}@{:.0f} ft: Pump reset at {:.1f} s with pressure {:.2f} psi"  # NOQA
         message_sender(process_name, message.format(probe_name, depth, etim, pressure))
@@ -384,6 +430,13 @@ def find_pretest(process_name, probe_name, probe_data, event_list, functions_map
     )
     if detected_state:
         current_state = detected_state
+        maybe_create_annotation(
+            process_name,
+            probe_name,
+            probe_data,
+            current_state,
+            annotation_func=functions_map['create_annotation']
+        )
 
     probe_data.update(process_state=current_state)
     return current_state
@@ -414,7 +467,12 @@ def start(process_name, process_settings, output_info, _settings):
             messenger.send_chat_message,
             process_settings=process_settings,
             output_info=output_info
-        )
+        ),
+        'create_annotation': partial(
+            annotation.create,
+            process_settings=process_settings,
+            output_info=output_info
+        ),
     }
 
     url = process_settings['request']['url']

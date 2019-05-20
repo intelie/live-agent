@@ -34,7 +34,8 @@
       "destination": {
         "name": "tcp",
         "author": {"id": 1, "name": "Pretest monitor"},
-        "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+        "room": {"id": "eia02b6rencfqrjfq5um06842o"},
+        "dashboard": {"id": 17, "name": "Well 0: Pretest"}
       }
     },
     "well3_pretest": {
@@ -69,7 +70,8 @@
       "destination": {
         "name": "rest",
         "author": {"id": 1, "name": "Pretest monitor"},
-        "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
+        "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
+        "dashboard": {"id": 18, "name": "Well 3: Pretest"}
       }
     }
   },
