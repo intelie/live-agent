@@ -69,7 +69,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     index_mnemonic = probe_data['index_mnemonic']
     pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
 
-    # In order to avoid detecting the same evet twice we must trim the set of events
+    # In order to avoid detecting the same event twice we must trim the set of events
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
@@ -132,7 +132,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     index_mnemonic = probe_data['index_mnemonic']
     pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
 
-    # In order to avoid detecting the same evet twice we must trim the set of events
+    # In order to avoid detecting the same event twice we must trim the set of events
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
@@ -318,8 +318,67 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
     return detected_state
 
 
-def recycle_pump(process_name, probe_name, probe_data, event_list, message):
-    return PRETEST_STATES.INACTIVE
+def recycle_pump(process_name, probe_name, probe_data, event_list, message_sender):
+    """State when {pretest_volume_mnemonic} returns to zero"""
+    index_mnemonic = probe_data['index_mnemonic']
+    pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
+
+    # In order to avoid detecting the same event twice we must trim the set of events
+    # so we avoid looking into the same events twice
+    # We also must ignore events without data
+    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    valid_events = filter_events(
+        event_list,
+        latest_seen_index,
+        index_mnemonic,
+        pretest_volume_mnemonic
+    )
+
+    # Before recycling the pump, {pretest_volume_mnemonic} must be higher than zero
+    while valid_events and (valid_events[0].get(pretest_volume_mnemonic) == 0):
+        valid_events.pop(0)
+
+    # Check if the value was not zero and has changed
+    if valid_events:
+        first_event, last_event = valid_events[0], valid_events[-1]
+
+        first_value = first_event.get(pretest_volume_mnemonic)
+        last_value = last_event.get(pretest_volume_mnemonic)
+        is_reset = last_value == 0
+
+        logging.debug((
+            "{}: Pump reset detection: {}; {} -> {}."
+        ).format(process_name, is_reset, first_value, last_value))
+    else:
+        is_reset = False
+
+    # There was a change.
+    if is_reset:
+        depth_mnemonic = probe_data['depth_mnemonic']
+        pressure_mnemonic = probe_data['pressure_mnemonic']
+
+        # Find reset point
+        events_during_drawdown = [
+            item for item in valid_events
+            if item.get(pretest_volume_mnemonic, 0) == 0
+        ]
+
+        # Reset finished at the first of these events
+        drawdown_event = events_during_drawdown[0]
+        etim = drawdown_event.get(index_mnemonic, -1)
+        pressure = drawdown_event.get(pressure_mnemonic, -1)
+        depth = drawdown_event.get(depth_mnemonic, -1)
+
+        message = "Probe {}@{:.0f} ft: Pump reset at {:.1f} s with pressure {:.2f} psi"  # NOQA
+        message_sender(process_name, message.format(probe_name, depth, etim, pressure))
+
+        detected_state = PRETEST_STATES.INACTIVE
+        latest_seen_index = etim
+    else:
+        detected_state = None
+
+    probe_data.update(latest_seen_index=latest_seen_index)
+    return detected_state
 
 
 def find_pretest(process_name, probe_name, probe_data, event_list, functions_map):
