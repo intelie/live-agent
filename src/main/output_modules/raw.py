@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import time
+from utils.timestamp import get_timestamp
 
 __all__ = [
     'format_event',
@@ -18,7 +18,3 @@ def format_event(timestamp, event_type, statuses, settings):
     event_data['__type'] = event_type
     event_data['liverig__index__timestamp'] = timestamp
     return event_data
-
-
-def get_timestamp():
-    return int(time.time() * 1000)

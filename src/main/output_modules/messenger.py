@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import time
 import uuid
+
+from utils.timestamp import get_timestamp
 
 __all__ = [
     'format_event',
-    'get_timestamp',
 ]
 
 
@@ -26,7 +26,3 @@ def format_event(timestamp, message, settings):
         'room': room_data,
         'author': author_data,
     }
-
-
-def get_timestamp():
-    return int(time.time() * 1000)
