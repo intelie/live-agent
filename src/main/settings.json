@@ -88,9 +88,6 @@
             "pumpout_volume_mnemonic": "POTCV"
           },
           "2": {
-            "depth_mnemonic": "PQDVP2",
-            "pressure_mnemonic": "QDPRESS_PQ2",
-            "pretest_volume_mnemonic": "PQPTV2",
             "depth_mnemonic": "DVP2",
             "pressure_mnemonic": "BRD2",
             "pretest_volume_mnemonic": "PTV2",
