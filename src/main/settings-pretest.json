@@ -32,7 +32,7 @@
         }
       },
       "destination": {
-        "name": "messenger",
+        "name": "tcp",
         "author": {"id": 1, "name": "Pretest monitor"},
         "room": {"id": "eia02b6rencfqrjfq5um06842o"}
       }
@@ -67,31 +67,20 @@
         }
       },
       "destination": {
-        "name": "rest_messenger",
+        "name": "rest",
         "author": {"id": 1, "name": "Pretest monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
       }
     }
   },
   "output": {
-    "events": {
-      "type": "raw_over_tcp",
+    "tcp": {
+      "type": "tcp",
       "ip": "127.0.0.1",
       "port": 17042
     },
-    "rest_events": {
-      "type": "raw_over_rest",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "admin",
-      "password": "admin"
-    },
-    "messenger": {
-      "type": "chat_over_tcp",
-      "ip": "127.0.0.1",
-      "port": 17042
-    },
-    "rest_messenger": {
-      "type": "chat_over_rest",
+    "rest": {
+      "type": "rest",
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "admin",
       "password": "admin"

@@ -5,6 +5,7 @@ import csv
 
 import lasio
 
+from output_modules import raw
 from utils import loop
 
 __all__ = [
@@ -94,7 +95,7 @@ def export_curves_data(event_type, las_data, index_mnemonic, output_info, settin
 
 def generate_events(event_type, las_data, index_mnemonic, output_info, settings):
     logging.info("{}: Event generation started".format(event_type))
-    output_func, output_settings = output_info
+    connection_func, output_settings = output_info
 
     curves_data = dict(
         (item.mnemonic, item.unit)
@@ -115,7 +116,7 @@ def generate_events(event_type, las_data, index_mnemonic, output_info, settings)
             next_timestamp = statuses.get(index_mnemonic, {}).get('value', 0)
 
             delay_output(last_timestamp, next_timestamp, event_type)
-            output_func(event_type, statuses, output_settings)
+            raw.format_and_send(event_type, statuses, output_settings, connection_func=connection_func)
             last_timestamp = next_timestamp
 
 

@@ -7,7 +7,8 @@ from enum import Enum
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from utils import loop
+from output_modules import messenger, annotation
+from utils import loop, timestamp
 
 __all__ = ['start']
 
@@ -48,20 +49,6 @@ def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
         valid_events = events_in_window
 
     return valid_events
-
-
-def send_chat_message(process_name, message, process_settings=None, output_info=None):
-    destination_settings = process_settings['destination']
-    output_func, output_settings = output_info
-
-    output_settings.update(
-        room=destination_settings['room'],
-        author=destination_settings['author'],
-    )
-    logging.info("{}: Sending message '{}'".format(
-        process_name, message
-    ))
-    output_func(message, output_settings)
 
 
 def find_drawdown(process_name, probe_name, probe_data, event_list, message_sender):
@@ -387,14 +374,13 @@ def find_pretest(process_name, probe_name, probe_data, event_list, functions_map
         process_name, probe_name, current_state
     ))
 
-    message_sender_func = functions_map['send_message']
     state_transition_func = functions_map[current_state]
     detected_state = state_transition_func(
         process_name,
         probe_name,
         probe_data,
         event_list,
-        message_sender_func
+        message_sender=functions_map['send_message']
     )
     if detected_state:
         current_state = detected_state
@@ -425,7 +411,7 @@ def start(process_name, process_settings, output_info, _settings):
         ),
         PRETEST_STATES.COMPLETE: recycle_pump,
         'send_message': partial(
-            send_chat_message,
+            messenger.send_chat_message,
             process_settings=process_settings,
             output_info=output_info
         )

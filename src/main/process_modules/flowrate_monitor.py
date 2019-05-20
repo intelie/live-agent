@@ -2,23 +2,13 @@
 import logging
 import requests
 
+from output_modules import messenger
 from utils import loop
 
 
 __all__ = [
     'start'
 ]
-
-
-def send_chat_message(message, process_settings, output_info, settings):
-    destination_settings = process_settings['destination']
-    output_func, output_settings = output_info
-
-    output_settings.update(
-        room=destination_settings['room'],
-        author=destination_settings['author'],
-    )
-    output_func(message, output_settings)
 
 
 def check_rate(process_name, flowrate_data, accumulator, process_settings, output_info, settings):
@@ -66,10 +56,12 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
                 int(end - begin),
                 ', '.join(change_counter[mnemonic])
             )
-            send_chat_message(message, process_settings, output_info, settings)
-            logging.info("{}: Sending message '{}'".format(
-                process_name, message
-            ))
+            messenger.send_chat_message(
+                process_name,
+                message,
+                process_settings,
+                output_info
+            )
 
     return accumulator
 

@@ -12,7 +12,7 @@
       ],
       "index_mnemonic": "TIME",
       "destination": {
-        "name": "events",
+        "name": "tcp",
         "event_type": "raw_well0"
       }
     },
@@ -25,30 +25,19 @@
       ],
       "index_mnemonic": "TIME",
       "destination": {
-        "name": "rest_events",
+        "name": "rest",
         "event_type": "raw_well3"
       }
     }
   },
   "output": {
-    "events": {
-      "type": "raw_over_tcp",
+    "tcp": {
+      "type": "tcp",
       "ip": "127.0.0.1",
       "port": 17042
     },
-    "rest_events": {
-      "type": "raw_over_rest",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "admin",
-      "password": "admin"
-    },
-    "messenger": {
-      "type": "chat_over_tcp",
-      "ip": "127.0.0.1",
-      "port": 17042
-    },
-    "rest_messenger": {
-      "type": "chat_over_rest",
+    "rest": {
+      "type": "rest",
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "admin",
       "password": "admin"

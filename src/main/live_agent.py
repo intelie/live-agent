@@ -8,7 +8,7 @@ from multiprocessing import Pool
 
 from runner.daemon import Daemon
 from process_modules import PROCESS_HANDLERS
-from output_modules import OUTPUT_HANDLERS
+from live_client import CONNECTION_HANDLERS
 from utils.filter import filter_dict
 
 __all__ = []
@@ -32,14 +32,14 @@ class LiveAgent(Daemon):
 
     def resolve_output_handler(self, output_settings):
         output_type = output_settings.get('type')
-        return OUTPUT_HANDLERS.get(output_type)
+        return CONNECTION_HANDLERS.get(output_type)
 
     def get_output_options(self, settings):
         destinations = settings.get('output', {})
         invalid_destinations = dict(
             (name, out_settings)
             for name, out_settings in destinations.items()
-            if out_settings.get('type') not in OUTPUT_HANDLERS
+            if out_settings.get('type') not in CONNECTION_HANDLERS
         )
 
         for name, info in invalid_destinations.items():
