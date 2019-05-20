@@ -92,7 +92,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
         last_value = last_event.get(pretest_volume_mnemonic)
         is_drawdown = last_value > 0
 
-        logging.info((
+        logging.debug((
             "{}: Start of a drawdown detection: {}; {} -> {}."
         ).format(process_name, is_drawdown, first_value, last_value))
     else:
@@ -151,7 +151,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
         drawdown_stopped = (last_pretest_volume == prev_pretest_volume)
 
-        logging.info((
+        logging.debug((
             "{}: End of drawdown detection: {}; {} -> {}."
         ).format(process_name, drawdown_stopped, prev_pretest_volume, last_pretest_volume))
     else:
@@ -209,7 +209,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         pressure_mnemonic
     )
 
-    logging.info("{}: Trying to detect a buildup with a slope <= {}, watching {} events".format(
+    logging.debug("{}: Trying to detect a buildup with a slope <= {}, watching {} events".format(
         process_name,
         ', '.join(str(item) for item in target_slopes),
         len(valid_events)
@@ -239,6 +239,12 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
             ]
             segment_end = segment_to_check[-1][index_mnemonic]
 
+            if (segment_end - segment_start) < (buildup_duration * 0.9):
+                logging.debug("{}: Not enough data, {} s of data available, {} s are needed".format(
+                    process_name, (segment_end - segment_start), buildup_duration
+                ))
+                break
+
             ##
             # do detection
             ##
@@ -259,6 +265,8 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
             ]
 
             if matching_slopes:
+                r_score = model.score(x, y)
+
                 target_slope = matching_slopes[0]
                 target_state = targets[target_slope]
 
@@ -268,24 +276,28 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
                 pressure = drawdown_event.get(pressure_mnemonic, -1)
                 depth = drawdown_event.get(depth_mnemonic, -1)
 
-                message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
+                message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}, r²: {:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
                 message_sender(
                     process_name,
-                    message.format(probe_name, depth, target_slope, segment_slope, etim, pressure)
+                    message.format(
+                        probe_name,
+                        depth,
+                        target_slope,
+                        segment_slope,
+                        r_score,
+                        etim,
+                        pressure
+                    )
                 )
 
                 detected_state = target_state
                 latest_seen_index = etim
                 break
-
-            elif (segment_end - segment_start) < buildup_duration:
-                break
-
             else:
                 start_index += 1
 
         if detected_state is None:
-            logging.info("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
+            logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
                 process_name, max(target_slopes), measured_slopes
             ))
 
@@ -312,7 +324,7 @@ def recycle_pump(process_name, probe_name, probe_data, event_list, message):
 
 def find_pretest(process_name, probe_name, probe_data, event_list, functions_map):
     current_state = probe_data.get('process_state', PRETEST_STATES.INACTIVE)
-    logging.info("{}: Pretest monitor for probe {} at state {}".format(
+    logging.debug("{}: Pretest monitor for probe {} at state {}".format(
         process_name, probe_name, current_state
     ))
 
@@ -402,7 +414,7 @@ def start(process_name, process_settings, output_info, _settings):
                     process_name, latest_index
                 ))
 
-            logging.info("{}: Request {} successful".format(
+            logging.debug("{}: Request {} successful".format(
                 process_name, iterations
             ))
 

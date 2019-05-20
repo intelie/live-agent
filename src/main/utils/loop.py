@@ -34,4 +34,8 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
             purged_accumulator.append(item)
             seen_indexes.add(index)
 
+    logging.debug("{} events between {} and {} out of {} stored events".format(
+        len(purged_accumulator), window_start, window_end, len(accumulator)
+    ))
+
     return purged_accumulator, window_start, window_end
