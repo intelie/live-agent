@@ -35,28 +35,31 @@ PRETEST_STATES = Enum(
 
 
 def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
+    begin = probe_data.get('pretest_begin_timestamp')
+    end = probe_data.get('pretest_end_timestamp')
+
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
             'message': "Probe {}: Pretest in progress".format(probe_name),
             '__color': '#E87919',
         },
         PRETEST_STATES.COMPLETE: {
-            'message': "Probe {}: Pretest completed".format(probe_name),
+            'message': "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, ((end or 0) - begin)),
             '__overwrite': ['uid'],
             '__color': '#73E819',
         }
     }
 
     annotation_data = annotation_templates.get(current_state)
-    begin = probe_data.get('pretest_begin_timestamp')
-    end = probe_data.get('pretest_end_timestamp')
     if annotation_data and begin:
         annotation_data.update(
+            __src='pretest_monitor',
             uid='{}-{}-{:.0f}'.format(
                 process_name,
                 probe_name,
                 begin,
             ),
+            createdAt=begin,
             begin=begin,
             end=end,
         )
@@ -144,6 +147,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
         pretest_begin_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+        logging.debug("Probe {}: Pretest began at {:.0f}".format(probe_name, pretest_begin_timestamp))
     else:
         detected_state = None
         pretest_begin_timestamp = None
@@ -321,6 +325,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
                 detected_state = target_state
                 latest_seen_index = etim
                 pretest_end_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+                logging.debug("Probe {}: Pretest finished at {:.0f}".format(probe_name, pretest_end_timestamp))
                 break
             else:
                 start_index += 1

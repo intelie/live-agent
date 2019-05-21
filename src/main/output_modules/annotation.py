@@ -36,18 +36,23 @@ def format_event(timestamp, annotation_data, settings):
     room_data = settings['room']
     dashboard_data = settings['dashboard']
 
+    end = annotation_data.get('end')
+    end = end if (end is None) else int(end)
+
     message_event = annotation_data.copy()
     message_event.update({
         '__type': '__annotations',
         '__src': message_event.get('__src', 'live_agent'),
         'uid': message_event.get('uid', str(uuid.uuid4())),
-        'createdAt': message_event.get('createdAt', timestamp),
-        'begin': message_event.get('begin', timestamp),
+        'createdAt': int(message_event.get('createdAt', timestamp)),
+        'begin': int(message_event.get('begin', timestamp)),
+        'end': end,
         'author': author_data.get('name'),
         'room': room_data,
         'dashboardId': dashboard_data.get('id'),
         'dashboard': dashboard_data.get('name'),
         'searchable': True,
     })
+    logging.debug('Creating annotation {}'.format(message_event))
 
     return message_event

@@ -1,5 +1,5 @@
-lasio==0.23         # las_parser
-pandas==0.24.2      # las_parser
-enum34==1.1.6       # las_parser
+lasio==0.23         # las_replayer
+pandas==0.24.2      # las_replayer
+enum34==1.1.6       # las_replayer
 requests==2.21.0    # flowrate_monitor
-scikit-learn>=0.20  # pretest_monitor, las_parser
+scikit-learn>=0.20  # pretest_monitor, las_replayer
