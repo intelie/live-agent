@@ -37,6 +37,10 @@ PRETEST_STATES = Enum(
 def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
     begin = probe_data.get('pretest_begin_timestamp')
     end = probe_data.get('pretest_end_timestamp')
+    if end is None:
+        duration = -1.0
+    else:
+        duration = (end - begin) / 1000
 
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
@@ -44,7 +48,7 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
             '__color': '#E87919',
         },
         PRETEST_STATES.COMPLETE: {
-            'message': "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, ((end or 0) - begin)),
+            'message': "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, duration),
             '__overwrite': ['uid'],
             '__color': '#73E819',
         }
