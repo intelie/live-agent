@@ -30,7 +30,7 @@ https://shellgamechanger.intelie.com/#/dashboard/51/?mode=view&span=2019-05-16%2
 
 PRETEST_STATES = Enum(
     'PRETEST_STATES',
-    'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE, COMPLETE'
+    'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE'
 )
 
 
@@ -467,7 +467,21 @@ def find_pretest(process_name, probe_name, probe_data, event_list, functions_map
         event_list,
         message_sender=functions_map['send_message']
     )
-    if detected_state:
+
+    if (detected_state is None) and (current_state != PRETEST_STATES.INACTIVE):
+        # Did the pretest volume get reset?
+        detected_state = find_pump_recycle(
+            process_name,
+            probe_name,
+            probe_data,
+            event_list,
+            message_sender=functions_map['send_message']
+        )
+
+    if detected_state and (detected_state != current_state):
+        logging.info("{}: Pretest monitor for probe {}, {} -> {}".format(
+            process_name, probe_name, current_state, detected_state
+        ))
         current_state = detected_state
         maybe_create_annotation(
             process_name,
@@ -501,7 +515,6 @@ def start(process_name, process_settings, output_info, _settings):
                 0.01: PRETEST_STATES.INACTIVE,
             }
         ),
-        PRETEST_STATES.COMPLETE: recycle_pump,  # Unreachable at the moment
         'send_message': partial(
             send_message,
             process_settings=process_settings,
