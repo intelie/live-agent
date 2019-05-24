@@ -8,7 +8,7 @@ __all__ = [
 
 
 def format_and_send(event_type, statuses, settings, connection_func=None):
-    timestamp = get_timestamp()
+    timestamp = statuses.pop('timestamp', get_timestamp())
     event = format_event(timestamp, event_type, statuses, settings)
     connection_func(event, settings)
 
