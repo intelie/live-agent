@@ -63,7 +63,7 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
             'message': "Probe {}: Pretest in progress".format(probe_name),
             '__color': '#E87919',
         },
-        PRETEST_STATES.COMPLETE: {
+        PRETEST_STATES.INACTIVE: {
             'message': "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, duration),
             '__overwrite': ['uid'],
             '__color': '#73E819',
@@ -491,17 +491,17 @@ def start(process_name, process_settings, output_info, _settings):
         PRETEST_STATES.DRAWDOWN_END: partial(
             find_stable_buildup,
             targets={
-                0.01: PRETEST_STATES.COMPLETE,
+                0.01: PRETEST_STATES.INACTIVE,
                 0.1: PRETEST_STATES.BUILDUP_STABLE,
             }
         ),
         PRETEST_STATES.BUILDUP_STABLE: partial(
             find_stable_buildup,
             targets={
-                0.01: PRETEST_STATES.COMPLETE,
+                0.01: PRETEST_STATES.INACTIVE,
             }
         ),
-        PRETEST_STATES.COMPLETE: recycle_pump,
+        PRETEST_STATES.COMPLETE: recycle_pump,  # Unreachable at the moment
         'send_message': partial(
             send_message,
             process_settings=process_settings,
