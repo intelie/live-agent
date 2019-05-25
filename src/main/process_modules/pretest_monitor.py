@@ -284,6 +284,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         for item in valid_events
     ]
 
+    pretest_end_timestamp = None
     target_state = None
     if data:
         start_index = 0
@@ -363,7 +364,6 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
             logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
                 process_name, max(target_slopes), measured_slopes
             ))
-            pretest_end_timestamp = None
 
             # If a stable buildup takes too long, give up
             latest_event_index = data[-1].get(index_mnemonic)
