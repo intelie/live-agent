@@ -12,7 +12,11 @@
       "index_mnemonic": "TIME",
       "destination": {
         "name": "tcp",
-        "event_type": "raw_well0"
+        "event_type": "raw_well0",
+        "author": {"id": 1, "name": "Data replayer"},
+        "room": {"id": "eia02b6rencfqrjfq5um06842o"},
+        "dashboard": {"id": 15, "name": "Well 0"},
+        "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
       },
       "enabled": true
     },
@@ -25,7 +29,11 @@
       "index_mnemonic": "TIME",
       "destination": {
         "name": "rest",
-        "event_type": "raw_well3"
+        "event_type": "raw_well3",
+        "author": {"id": 1, "name": "Data replayer"},
+        "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
+        "dashboard": {"id": 13, "name": "Well 3"},
+        "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
       },
       "enabled": true
     },

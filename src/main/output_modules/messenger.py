@@ -31,16 +31,20 @@ def maybe_send_message_event(process_name, message, timestamp, process_settings=
 
 def send_chat_message(process_name, message, process_settings=None, output_info=None):
     destination_settings = process_settings['destination']
-    connection_func, output_settings = output_info
+    room = destination_settings.get('room')
+    author = destination_settings.get('author')
 
-    output_settings.update(
-        room=destination_settings['room'],
-        author=destination_settings['author'],
-    )
-    logging.info("{}: Sending message '{}'".format(
-        process_name, message
-    ))
-    format_and_send(message, output_settings, connection_func=connection_func)
+    if (room and author):
+        connection_func, output_settings = output_info
+
+        output_settings.update(
+            room=room,
+            author=author,
+        )
+        logging.info("{}: Sending message '{}'".format(
+            process_name, message
+        ))
+        format_and_send(message, output_settings, connection_func=connection_func)
 
 
 def format_and_send(message, settings, connection_func=None):

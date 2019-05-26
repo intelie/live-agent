@@ -5,8 +5,8 @@ import csv
 
 import lasio
 
-from output_modules import raw
-from utils import loop
+from output_modules import raw, messenger
+from utils import loop, timestamp
 
 __all__ = [
     'start'
@@ -14,6 +14,22 @@ __all__ = [
 
 
 READ_MODES = Enum('READ_MODES', 'SINGLE_PASS, CONTINUOUS')
+
+
+def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
+    messenger.maybe_send_message_event(
+        process_name,
+        message,
+        timestamp,
+        process_settings=process_settings,
+        output_info=output_info
+    )
+    messenger.send_chat_message(
+        process_name,
+        message,
+        process_settings=process_settings,
+        output_info=output_info
+    )
 
 
 def delay_output(last_timestamp, next_timestamp, event_type=''):
@@ -71,7 +87,7 @@ def open_las(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, index_mnemonic
 
 
-def export_curves_data(event_type, las_data, index_mnemonic, output_info, settings):
+def export_curves_data(event_type, las_data, index_mnemonic, process_settings, output_info, settings):
     logging.info("Exporting curves for {}".format(event_type))
     output_dir = settings.get('temp_dir', '/tmp')
 
@@ -93,10 +109,11 @@ def export_curves_data(event_type, las_data, index_mnemonic, output_info, settin
     logging.info('File {} created'.format(output_filename))
 
 
-def generate_events(event_type, las_data, index_mnemonic, output_info, settings):
+def generate_events(event_type, las_data, index_mnemonic, process_settings, output_info, settings):
     logging.info("{}: Event generation started".format(event_type))
     connection_func, output_settings = output_info
 
+    source_name = las_data.version.SOURCE.value
     curves_data = dict(
         (item.mnemonic, item.unit)
         for item in las_data.curves
@@ -116,6 +133,16 @@ def generate_events(event_type, las_data, index_mnemonic, output_info, settings)
             next_timestamp = statuses.get(index_mnemonic, {}).get('value', 0)
 
             delay_output(last_timestamp, next_timestamp, event_type)
+            if last_timestamp == 0:
+                message = "Replay from '{}' started at TIME {}".format(source_name, next_timestamp)
+                send_message(
+                    event_type,
+                    message,
+                    timestamp.get_timestamp(),
+                    process_settings=process_settings,
+                    output_info=output_info
+                )
+
             raw.format_and_send(event_type, statuses, output_settings, connection_func=connection_func)
             last_timestamp = next_timestamp
 
@@ -145,8 +172,9 @@ def start(process_name, process_settings, output_info, settings):
                     event_type,
                     las_data,
                     index_mnemonic,
+                    process_settings,
                     output_info,
-                    settings
+                    settings,
                 )
                 logging.info("{}: Iteration {} successful".format(
                     event_type, iterations
