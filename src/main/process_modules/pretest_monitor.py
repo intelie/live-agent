@@ -55,9 +55,9 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
     begin = probe_data.get('pretest_begin_timestamp')
     end = probe_data.get('pretest_end_timestamp')
     if end is None:
-        duration = -1.0
+        duration = 0
     else:
-        duration = (end - begin) / 1000
+        duration = max((end - begin), 0) / 1000
 
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
