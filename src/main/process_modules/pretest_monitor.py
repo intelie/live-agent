@@ -118,7 +118,7 @@ def maybe_reset_latest_index(probe_data, event_list):
 
     last_event = event_list[-1]
     last_event_index = last_event.get(index_mnemonic, latest_seen_index)
-    if latest_seen_index < last_event_index:
+    if last_event_index < latest_seen_index:
         probe_data['latest_seen_index'] = last_event_index
 
     return probe_data
