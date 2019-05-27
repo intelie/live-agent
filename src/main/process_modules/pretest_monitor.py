@@ -111,6 +111,19 @@ def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
     return valid_events
 
 
+def maybe_reset_latest_index(probe_data, event_list):
+    # If the index gets reset we must reset {latest_seen_index}
+    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    index_mnemonic = probe_data['index_mnemonic']
+
+    last_event = event_list[-1]
+    last_event_index = last_event.get(index_mnemonic, latest_seen_index)
+    if latest_seen_index < last_event_index:
+        probe_data['latest_seen_index'] = last_event_index
+
+    return probe_data
+
+
 def find_drawdown(process_name, probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} starts to raise"""
     index_mnemonic = probe_data['index_mnemonic']
@@ -446,6 +459,7 @@ def find_pretest(process_name, probe_name, probe_data, event_list, functions_map
     ))
 
     state_transition_func = functions_map[current_state]
+    probe_data = maybe_reset_latest_index(probe_data, event_list)
     detected_state = state_transition_func(
         process_name,
         probe_name,
