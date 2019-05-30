@@ -75,19 +75,6 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
     return
 
 
-def maybe_reset_latest_index(probe_data, event_list):
-    # If the index gets reset we must reset {latest_seen_index}
-    latest_seen_index = probe_data.get('latest_seen_index', 0)
-    index_mnemonic = probe_data['index_mnemonic']
-
-    last_event = event_list[-1]
-    last_event_index = last_event.get(index_mnemonic, latest_seen_index)
-    if last_event_index < latest_seen_index:
-        probe_data['latest_seen_index'] = last_event_index
-
-    return probe_data
-
-
 def find_drawdown(process_name, probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} starts to raise"""
     index_mnemonic = probe_data['index_mnemonic']
@@ -396,7 +383,7 @@ def find_pretest(process_name, probe_name, probe_data, event_list, functions_map
     ))
 
     state_transition_func = functions_map[current_state]
-    probe_data = maybe_reset_latest_index(probe_data, event_list)
+    probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
     detected_state = state_transition_func(
         process_name,
         probe_name,
