@@ -78,23 +78,6 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
     return
 
 
-def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
-    events_in_window = [
-        item for item in events
-        if item.get(index_mnemonic) > window_start
-    ]
-
-    if value_mnemonic:
-        valid_events = [
-            item for item in events_in_window
-            if item.get(value_mnemonic) is not None
-        ]
-    else:
-        valid_events = events_in_window
-
-    return valid_events
-
-
 def maybe_reset_latest_index(probe_data, event_list):
     # If the index gets reset we must reset {latest_seen_index}
     latest_seen_index = probe_data.get('latest_seen_index', 0)
@@ -392,7 +375,7 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
-    valid_events = filter_events(
+    valid_events = loop.filter_events(
         event_list,
         latest_seen_index,
         index_mnemonic,
