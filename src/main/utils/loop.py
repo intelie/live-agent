@@ -2,7 +2,11 @@
 import logging
 import time
 
-__all__ = ['await_next_cycle']
+__all__ = [
+    'await_next_cycle',
+    'refresh_accumulator',
+    'filter_events',
+]
 
 
 def await_next_cycle(sleep_time, process_name, message=None, log_func=None):
@@ -29,7 +33,7 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
 
     purged_accumulator = []
     for item in accumulator:
-        index = item.get(index_mnemonic)
+        index = item.get(index_mnemonic, 0)
         if (index not in seen_indexes) and (window_start <= index <= window_end):
             purged_accumulator.append(item)
             seen_indexes.add(index)
@@ -44,7 +48,7 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
 def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
     events_in_window = [
         item for item in events
-        if item.get(index_mnemonic) > window_start
+        if item.get(index_mnemonic, 0) > window_start
     ]
 
     if value_mnemonic:

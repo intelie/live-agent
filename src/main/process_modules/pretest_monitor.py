@@ -317,6 +317,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         # If a stable buildup takes too long, give up
         latest_event_index = data[-1].get(index_mnemonic)
         wait_period = latest_event_index - latest_seen_index
+        depth = data[-1].get(depth_mnemonic, -1)
         if wait_period > buildup_wait_period:
             message = "Probe {}@{:.0f} ft: Buildup did not stabilize within {} after {} s"  # NOQA
             message_sender(

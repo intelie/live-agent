@@ -122,6 +122,7 @@ class LiveAgent(Daemon):
             except KeyboardInterrupt:
                 pool.terminate()
                 pool.join()
+                result = []
 
         else:
             for name, process_settings in processes_to_run.items():
