@@ -6,9 +6,27 @@ from output_modules import raw
 from utils.timestamp import get_timestamp
 
 __all__ = [
-    'send_chat_message',
+    'send_message',
+    'maybe_send_message_event',
+    'maybe_send_chat_message',
     'format_and_send',
 ]
+
+
+def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
+    maybe_send_message_event(
+        process_name,
+        message,
+        timestamp,
+        process_settings=process_settings,
+        output_info=output_info
+    )
+    maybe_send_chat_message(
+        process_name,
+        message,
+        process_settings=process_settings,
+        output_info=output_info
+    )
 
 
 def maybe_send_message_event(process_name, message, timestamp, process_settings=None, output_info=None):
@@ -29,7 +47,7 @@ def maybe_send_message_event(process_name, message, timestamp, process_settings=
         raw.format_and_send(event_type, event, output_settings, connection_func=connection_func)
 
 
-def send_chat_message(process_name, message, process_settings=None, output_info=None):
+def maybe_send_chat_message(process_name, message, process_settings=None, output_info=None):
     destination_settings = process_settings['destination']
     room = destination_settings.get('room')
     author = destination_settings.get('author')

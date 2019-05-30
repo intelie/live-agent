@@ -24,7 +24,7 @@ def send_message(process_name, message, timestamp, process_settings=None, output
         process_settings=process_settings,
         output_info=output_info
     )
-    messenger.send_chat_message(
+    messenger.maybe_send_chat_message(
         process_name,
         message,
         process_settings=process_settings,
@@ -192,7 +192,6 @@ def start(process_name, process_settings, output_info, settings):
                 message="Sleeping for 5 minutes between runs",
                 log_func=logging.info
             )
-            iterations += 1
 
         except KeyboardInterrupt:
             logging.info(
@@ -208,5 +207,7 @@ def start(process_name, process_settings, output_info, settings):
                     event_type, iterations, e, type(e)
                 )
             )
+
+        iterations += 1
 
     return

@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 from output_modules import messenger, annotation
-from utils import loop, timestamp
+from utils import loop, timestamp, monitors
 
 __all__ = ['start']
 
@@ -33,22 +33,6 @@ PRETEST_STATES = Enum(
     'PRETEST_STATES',
     'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE'
 )
-
-
-def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
-    messenger.maybe_send_message_event(
-        process_name,
-        message,
-        timestamp,
-        process_settings=process_settings,
-        output_info=output_info
-    )
-    messenger.send_chat_message(
-        process_name,
-        message,
-        process_settings=process_settings,
-        output_info=output_info
-    )
 
 
 def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
@@ -133,7 +117,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
-    valid_events = filter_events(
+    valid_events = loop.filter_events(
         event_list,
         latest_seen_index,
         index_mnemonic,
@@ -203,7 +187,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
-    valid_events = filter_events(
+    valid_events = loop.filter_events(
         event_list,
         latest_seen_index,
         index_mnemonic,
@@ -275,7 +259,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
     # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
-    valid_events = filter_events(
+    valid_events = loop.filter_events(
         event_list,
         latest_seen_index,
         index_mnemonic,
@@ -516,7 +500,7 @@ def start(process_name, process_settings, output_info, _settings):
             }
         ),
         'send_message': partial(
-            send_message,
+            messenger.send_message,
             process_settings=process_settings,
             output_info=output_info
         ),
