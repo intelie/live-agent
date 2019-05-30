@@ -5,9 +5,6 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 
-import numpy as np
-from sklearn.linear_model import LinearRegression
-
 from output_modules import messenger, annotation
 from utils import loop, timestamp, monitors
 
@@ -257,6 +254,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
 
     data = [
         {
+            timestamp: item.get('timestamp'),
             index_mnemonic: item.get(index_mnemonic),
             pressure_mnemonic: item.get(pressure_mnemonic),
             depth_mnemonic: item.get(depth_mnemonic),
@@ -264,100 +262,71 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         for item in valid_events
     ]
 
+    regression_results = monitors.find_slope(
+        process_name,
+        data,
+        index_mnemonic,
+        pressure_mnemonic,
+        targets=target_slopes,
+        target_r=0.5,
+        window_size=buildup_duration
+    )
+
+    segment_found = regression_results.get('segment')
     pretest_end_timestamp = None
     target_state = None
-    if data:
-        start_index = 0
-        measured_slopes = []
 
-        while True:
-            segment_start = data[start_index][index_mnemonic]
-            expected_end = segment_start + buildup_duration
+    if segment_found:
+        segment_slope = regression_results.get('segment_slope')
+        r_score = regression_results.get('r_score')
+        target_slope = regression_results.get('target_slope')
+        target_state = targets[target_slope]
 
-            segment_to_check = [
-                item for item in data[start_index:]
-                if item[index_mnemonic] <= expected_end
-            ]
-            segment_end = segment_to_check[-1][index_mnemonic]
+        # Use the last event of the segment as reference
+        reference_event = segment_found[-1]
+        etim = reference_event.get(index_mnemonic, -1)
+        pressure = reference_event.get(pressure_mnemonic, -1)
+        depth = reference_event.get(depth_mnemonic, -1)
+        pretest_end_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
 
-            if (segment_end - segment_start) < (buildup_duration * 0.9):
-                logging.debug("{}: Not enough data, {} s of data available, {} s are needed".format(
-                    process_name, (segment_end - segment_start), buildup_duration
-                ))
-                break
+        message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}, r²: {:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
+        message_sender(
+            process_name,
+            message.format(
+                probe_name,
+                depth,
+                target_slope,
+                segment_slope,
+                r_score,
+                etim,
+                pressure
+            ),
+            timestamp=pretest_end_timestamp
+        )
 
-            ##
-            # do detection
-            ##
-            x = np.array([
-                item.get(index_mnemonic) for item in segment_to_check
-            ]).reshape((-1, 1))
-            y = np.array([
-                item.get(pressure_mnemonic) for item in segment_to_check
-            ])
+        detected_state = target_state
+        latest_seen_index = etim
+        logging.debug("Probe {}: Pretest finished at {:.0f}".format(probe_name, pretest_end_timestamp))
 
-            model = LinearRegression().fit(x, y)
-            segment_slope = abs(model.coef_[0])
-            measured_slopes.append(segment_slope)
+    else:
+        measured_slopes = regression_results.get('measured_slopes', [])
+        logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
+            process_name, max(target_slopes), measured_slopes
+        ))
 
-            matching_slopes = [
-                item for item in target_slopes
-                if segment_slope <= item
-            ]
+        # If a stable buildup takes too long, give up
+        latest_event_index = data[-1].get(index_mnemonic)
+        wait_period = latest_event_index - latest_seen_index
+        if wait_period > buildup_wait_period:
+            message = "Probe {}@{:.0f} ft: Buildup did not stabilize within {} after {} s"  # NOQA
+            message_sender(
+                process_name,
+                message.format(probe_name, depth, target_slope, wait_period),
+                timestamp=reference_event.get('timestamp')
+            )
 
-            if matching_slopes:
-                r_score = model.score(x, y)
-
-                target_slope = matching_slopes[0]
-                target_state = targets[target_slope]
-
-                # Use the last event of the segment as reference
-                reference_event = segment_to_check[-1]
-                etim = reference_event.get(index_mnemonic, -1)
-                pressure = reference_event.get(pressure_mnemonic, -1)
-                depth = reference_event.get(depth_mnemonic, -1)
-                pretest_end_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
-
-                message = "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}, r²: {:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
-                message_sender(
-                    process_name,
-                    message.format(
-                        probe_name,
-                        depth,
-                        target_slope,
-                        segment_slope,
-                        r_score,
-                        etim,
-                        pressure
-                    ),
-                    timestamp=pretest_end_timestamp
-                )
-
-                detected_state = target_state
-                latest_seen_index = etim
-                logging.debug("Probe {}: Pretest finished at {:.0f}".format(probe_name, pretest_end_timestamp))
-                break
-            else:
-                start_index += 1
-
-        if detected_state is None:
-            logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
-                process_name, max(target_slopes), measured_slopes
-            ))
-
-            # If a stable buildup takes too long, give up
-            latest_event_index = data[-1].get(index_mnemonic)
-            wait_period = latest_event_index - latest_seen_index
-            if wait_period > buildup_wait_period:
-                message = "Probe {}@{:.0f} ft: Buildup did not stabilize within {} after {} s"  # NOQA
-                message_sender(
-                    process_name,
-                    message.format(probe_name, depth, target_slope, wait_period),
-                    timestamp=reference_event.get('timestamp')
-                )
-
-                detected_state = PRETEST_STATES.INACTIVE
-                latest_seen_index = latest_event_index
+            detected_state = PRETEST_STATES.INACTIVE
+            latest_seen_index = latest_event_index
 
     probe_data.update(
         latest_seen_index=latest_seen_index,
