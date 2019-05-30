@@ -81,7 +81,6 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
 
     # In order to avoid detecting the same event twice we must trim the set of events
-    # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = loop.filter_events(
@@ -151,7 +150,6 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
 
     # In order to avoid detecting the same event twice we must trim the set of events
-    # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = loop.filter_events(
@@ -223,7 +221,6 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
     detected_state = None
 
     # In order to avoid detecting the same event twice we must trim the set of events
-    # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = loop.filter_events(
@@ -329,7 +326,6 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
     pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
 
     # In order to avoid detecting the same event twice we must trim the set of events
-    # so we avoid looking into the same events twice
     # We also must ignore events without data
     latest_seen_index = probe_data.get('latest_seen_index', 0)
     valid_events = loop.filter_events(
@@ -376,7 +372,7 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
     return detected_state
 
 
-def find_pretest(process_name, probe_name, probe_data, event_list, functions_map):
+def run_monitor(process_name, probe_name, probe_data, event_list, functions_map):
     current_state = probe_data.get('process_state', PRETEST_STATES.INACTIVE)
     logging.debug("{}: Pretest monitor for probe {} at state {}".format(
         process_name, probe_name, current_state
@@ -481,7 +477,7 @@ def start(process_name, process_settings, output_info, _settings):
                         buildup_duration=buildup_duration,
                         buildup_wait_period=buildup_wait_period,
                     )
-                    find_pretest(
+                    run_monitor(
                         process_name,
                         probe_name,
                         probe_data,
