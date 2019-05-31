@@ -51,18 +51,19 @@
         "window_duration": 60,
         "buildup_duration": 30,
         "buildup_wait_period": 120,
+        "focused_flow_grace_period": 180,
         "probes": {
           "1": {
             "depth_mnemonic": "PQDVP1",
             "pressure_mnemonic": "QDPRESS_PQ1",
             "pumpout_flowrate_mnemonic": "POFR",
-            "pump_motor_speed": "POMS"
+            "pump_motor_speed_mnemonic": "POMS"
           },
           "2": {
             "depth_mnemonic": "PQDVP2",
             "pressure_mnemonic": "QDPRESS_PQ2",
             "pumpout_flowrate_mnemonic": "POFR2",
-            "pump_motor_speed": "POMS2"
+            "pump_motor_speed_mnemonic": "POMS2"
           }
         }
       },
