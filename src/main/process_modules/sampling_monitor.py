@@ -139,7 +139,7 @@ def maybe_create_annotation(process_name, current_state, context, annotation_fun
     return
 
 
-def find_rate_change(process_name, probe_name, probe_data, event_list, message_sender=None):
+def find_rate_change(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):
     index_mnemonic = probe_data['index_mnemonic']
     flow_rate_mnemonic = probe_data['pumpout_flowrate_mnemonic']
     probe_state = probe_data.get('process_state', PUMP_STATES.INACTIVE)
@@ -271,7 +271,25 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
     return detected_state
 
 
-def check_seal_health(process_name, probe_name, probe_data, event_list, message_sender=None):
+def find_stable_buildup(process_name, probe_name, probe_data, event_list, state, message_sender=None, targets=None, fallback_state=None):
+    # Ignore buildups while sampling
+    if state in (SAMPLING_STATES.FOCUSED_FLOW, SAMPLING_STATES.SAMPLING):
+        detected_state = PUMP_STATES.INACTIVE
+    else:
+        detected_state = monitors.find_stable_buildup(
+            process_name,
+            probe_name,
+            probe_data,
+            event_list,
+            message_sender=message_sender,
+            targets=targets,
+            fallback_state=fallback_state,
+        )
+
+    return detected_state
+
+
+def check_seal_health(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):
     index_mnemonic = probe_data['index_mnemonic']
     flow_rate_mnemonic = probe_data['pumpout_flowrate_mnemonic']
     motor_speed_mnemonic = probe_data['pump_motor_speed_mnemonic']
@@ -524,6 +542,9 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
     elif not idle_probes:
         detected_state = SAMPLING_STATES.FOCUSED_FLOW
 
+    elif not pumping_probes:
+        detected_state = SAMPLING_STATES.INACTIVE
+
     process_settings.update(
         latest_seen_index=sampling_start_index,
         sampling_start_index=sampling_start_index,
@@ -584,7 +605,7 @@ def find_sampling_end(process_name, process_settings, event_list, message_sender
     return detected_state
 
 
-def run_probe_monitor(process_name, probe_name, probe_data, event_list, functions_map):
+def run_probe_monitor(process_name, probe_name, probe_data, event_list, sampling_state, functions_map):
     pump_functions = functions_map['pump']
     message_func = functions_map['send_message']
     annotation_func = functions_map['create_annotation']
@@ -600,6 +621,7 @@ def run_probe_monitor(process_name, probe_name, probe_data, event_list, function
         probe_name,
         probe_data,
         event_list,
+        sampling_state,
         message_sender=message_func,
     )
     check_seal_health(
@@ -607,6 +629,7 @@ def run_probe_monitor(process_name, probe_name, probe_data, event_list, function
         probe_name,
         probe_data,
         event_list,
+        sampling_state,
         message_sender=message_func,
     )
 
@@ -666,6 +689,8 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     buildup_duration = monitor_settings['buildup_duration']
     buildup_wait_period = monitor_settings['buildup_wait_period']
 
+    sampling_state = process_settings.get('process_state', SAMPLING_STATES.INACTIVE)
+
     # Refresh the state for each probe
     probes = monitor_settings.get('probes', [])
     for probe_name, probe_data in probes.items():
@@ -675,7 +700,14 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
             buildup_wait_period=buildup_wait_period,
         )
         probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
-        run_probe_monitor(process_name, probe_name, probe_data, event_list, functions_map)
+        run_probe_monitor(
+            process_name,
+            probe_name,
+            probe_data,
+            event_list,
+            sampling_state,
+            functions_map,
+        )
 
     # Refresh the state for the sampling process
     probe_data = loop.maybe_reset_latest_index(process_settings, event_list)
@@ -692,7 +724,7 @@ def start(process_name, process_settings, output_info, _settings):
             PUMP_STATES.INACTIVE: find_rate_change,
             PUMP_STATES.PUMPING: find_rate_change,
             PUMP_STATES.BUILDUP_EXPECTED: partial(
-                monitors.find_stable_buildup,
+                find_stable_buildup,
                 targets={
                     0.01: PUMP_STATES.INACTIVE,
                     0.1: PUMP_STATES.BUILDUP_STABLE,
@@ -700,7 +732,7 @@ def start(process_name, process_settings, output_info, _settings):
                 fallback_state=PUMP_STATES.INACTIVE,
             ),
             PUMP_STATES.BUILDUP_STABLE: partial(
-                monitors.find_stable_buildup,
+                find_stable_buildup,
                 targets={
                     0.01: PUMP_STATES.INACTIVE,
                 },
