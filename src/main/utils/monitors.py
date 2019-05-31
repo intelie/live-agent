@@ -60,6 +60,9 @@ def find_slope(process_name, event_list, index_mnemonic, value_mnemonic, targets
             ])
 
             model = LinearRegression().fit(x, y)
+            if not model.coef_:
+                continue
+
             segment_slope = abs(model.coef_[0])
             measured_slopes.append(segment_slope)
 
@@ -192,7 +195,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         latest_seen_index = etim
         logging.debug(message)
 
-    else:
+    elif data:
         measured_slopes = regression_results.get('measured_slopes', [])
         logging.debug("{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
             process_name, max(target_slopes), measured_slopes
@@ -203,7 +206,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         wait_period = latest_event_index - latest_seen_index
         depth = data[-1].get(depth_mnemonic, -1)
         if wait_period > buildup_wait_period:
-            message = "Probe {}@{:.0f} ft: Buildup did not stabilize after {} s"  # NOQA
+            message = "Probe {}@{:.0f} ft: Buildup did not stabilize after {:.0f} s"  # NOQA
             message_sender(
                 process_name,
                 message.format(probe_name, depth, wait_period),
