@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import uuid
+from enum import Enum
 
 from output_modules import raw
 from utils.timestamp import get_timestamp
@@ -13,20 +14,29 @@ __all__ = [
 ]
 
 
-def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
-    maybe_send_message_event(
-        process_name,
-        message,
-        timestamp,
-        process_settings=process_settings,
-        output_info=output_info
-    )
-    maybe_send_chat_message(
-        process_name,
-        message,
-        process_settings=process_settings,
-        output_info=output_info
-    )
+MESSAGE_TYPES = Enum(
+    'MESSAGE_TYPES',
+    'EVENT, CHAT'
+)
+
+
+def send_message(process_name, message, timestamp, process_settings=None, output_info=None, message_type=None):
+    if (message_type is None) or (message_type == MESSAGE_TYPES.EVENT):
+        maybe_send_message_event(
+            process_name,
+            message,
+            timestamp,
+            process_settings=process_settings,
+            output_info=output_info
+        )
+
+    if (message_type is None) or (message_type == MESSAGE_TYPES.CHAT):
+        maybe_send_chat_message(
+            process_name,
+            message,
+            process_settings=process_settings,
+            output_info=output_info
+        )
 
 
 def maybe_send_message_event(process_name, message, timestamp, process_settings=None, output_info=None):
