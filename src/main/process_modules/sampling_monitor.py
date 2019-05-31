@@ -151,14 +151,8 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
         )
     )
 
-    # Check if the value was zero and has changed
-    if valid_events:
-        is_rate_change = len(valid_events) > 0
-    else:
-        is_rate_change = False
-
-    # There was a change.
-    if is_rate_change:
+    has_rate_change = len(valid_events) > 0
+    if has_rate_change:
         depth_mnemonic = probe_data['depth_mnemonic']
         pressure_mnemonic = probe_data['pressure_mnemonic']
         motor_speed_mnemonic = probe_data['pump_motor_speed']
@@ -177,6 +171,13 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
             )
         )
 
+        first_index = events_after_change[0].get(index_mnemonic)
+        last_index = events_after_change[-1].get(index_mnemonic)
+        new_pressure_is_stable = (last_index - first_index) > 15
+    else:
+        new_pressure_is_stable = False
+
+    if new_pressure_is_stable:
         # The rate stabilized on the first of these events
         reference_event = events_after_change[0]
         etim = reference_event.get(index_mnemonic, -1)
@@ -197,13 +198,13 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
             latest_motorspeed, motor_speed,
             pressure
         )
-
         message_sender(process_name, message, timestamp=pump_activation_timestamp)
 
-        if flow_rate > 0:
-            detected_state = PUMP_STATES.PUMPING
-        else:
+        if (flow_rate < 1):
             detected_state = PUMP_STATES.BUILDUP_EXPECTED
+
+        else:
+            detected_state = PUMP_STATES.PUMPING
 
         latest_flowrate = flow_rate
         latest_motorspeed = motor_speed
