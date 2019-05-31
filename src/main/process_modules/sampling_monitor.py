@@ -89,11 +89,31 @@ SAMPLING_STATES = Enum(
 )
 
 
-def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
-    begin = probe_data.get('sampling_begin_timestamp')
-    end = probe_data.get('sampling_end_timestamp')
+def maybe_create_annotation(process_name, current_state, context, annotation_func=None):
+    if 'probe' in context:
+        probe_name = context['probe']['probe_name']
+        probe_data = context['probe']['probe_data']
+        begin = probe_data.get('pump_activation_timestamp')
+        end = probe_data.get('pump_deactivation_timestamp')
+    else:
+        logging.error('Not implemented yet')
+        return
+
+    if end is None:
+        duration = 0
+    else:
+        duration = max((end - begin), 0) / 1000
 
     annotation_templates = {
+        PUMP_STATES.PUMPING: {
+            'message': "Probe {}: Pump started".format(probe_name),
+            '__color': '#E87919',
+        },
+        PUMP_STATES.BUILDUP_EXPECTED: {
+            'message': "Probe {}: Pump activated for {:.1f} seconds".format(probe_name, duration),
+            '__overwrite': ['uid'],
+            '__color': '#73E819',
+        },
     }
 
     annotation_data = annotation_templates.get(current_state)
@@ -122,6 +142,9 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
 def find_rate_change(process_name, probe_name, probe_data, event_list, message_sender=None):
     index_mnemonic = probe_data['index_mnemonic']
     flow_rate_mnemonic = probe_data['pumpout_flowrate_mnemonic']
+    probe_state = probe_data.get('process_state', PUMP_STATES.INACTIVE)
+    pump_activation_timestamp = probe_data.get('pump_activation_timestamp', 0)
+    pump_deactivation_timestamp = probe_data.get('pump_deactivation_timestamp', 0)
 
     # In order to avoid detecting the same event twice we must trim the set of events
     # We also must ignore events without data
@@ -185,7 +208,7 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
         depth = reference_event.get(depth_mnemonic, -1)
         motor_speed = reference_event.get(motor_speed_mnemonic, -1)
         flow_rate = reference_event.get(flow_rate_mnemonic, -1)
-        pump_activation_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+        event_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
 
         message = (
             "Probe {}@{:.0f} ft: Flow rate changed at {:.1f}s. "
@@ -198,7 +221,7 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
             latest_motorspeed, motor_speed,
             pressure
         )
-        message_sender(process_name, message, timestamp=pump_activation_timestamp)
+        message_sender(process_name, message, timestamp=event_timestamp)
 
         if (flow_rate < 1):
             detected_state = PUMP_STATES.BUILDUP_EXPECTED
@@ -208,9 +231,15 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
                 message = "*Alarm, probable seal loss!* \nMotor speed and flow rate diverging for probe {}@{:.2f} ft.".format(
                     probe_name, depth
                 )
-                message_sender(process_name, message, timestamp=pump_activation_timestamp)
+                message_sender(process_name, message, timestamp=event_timestamp)
         else:
             detected_state = PUMP_STATES.PUMPING
+
+        if probe_state != detected_state:
+            if detected_state == PUMP_STATES.PUMPING:
+                pump_activation_timestamp = event_timestamp
+            else:
+                pump_deactivation_timestamp = event_timestamp
 
         latest_flowrate = flow_rate
         latest_motorspeed = motor_speed
@@ -218,13 +247,13 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
         logging.debug(message)
     else:
         detected_state = None
-        pump_activation_timestamp = None
 
     probe_data.update(
         latest_seen_index=latest_seen_index,
         latest_flowrate=latest_flowrate,
         latest_motorspeed=latest_motorspeed,
         pump_activation_timestamp=pump_activation_timestamp,
+        pump_deactivation_timestamp=pump_deactivation_timestamp,
     )
     return detected_state
 
@@ -259,9 +288,8 @@ def run_probe_monitor(process_name, probe_name, probe_data, event_list, function
         probe_state = detected_state
         maybe_create_annotation(
             process_name,
-            probe_name,
-            probe_data,
             probe_state,
+            context={'probe': {'probe_name': probe_name, 'probe_data': probe_data}},
             annotation_func=annotation_func,
         )
 
@@ -294,6 +322,7 @@ def run_sampling_monitor(process_name, process_settings, event_list, functions_m
         maybe_create_annotation(
             process_name,
             sampling_state,
+            context=process_settings,
             annotation_func=annotation_func,
         )
 
