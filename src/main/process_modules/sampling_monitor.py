@@ -203,6 +203,12 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, message_s
         if (flow_rate < 1):
             detected_state = PUMP_STATES.BUILDUP_EXPECTED
 
+            if (motor_speed > 0):
+                # Flow is almost stopping, pumps should also be stopped
+                message = "*Alarm, probable seal loss!* \nMotor speed and flow rate diverging for probe {}@{:.2f} ft.".format(
+                    probe_name, depth
+                )
+                message_sender(process_name, message, timestamp=pump_activation_timestamp)
         else:
             detected_state = PUMP_STATES.PUMPING
 
