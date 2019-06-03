@@ -89,30 +89,44 @@ SAMPLING_STATES = Enum(
 )
 
 
-def maybe_create_annotation(process_name, current_state, context, annotation_func=None):
+def maybe_create_annotation(process_name, current_state, old_state, context, annotation_func=None):
     if 'probe' in context:
-        probe_name = context['probe']['probe_name']
-        probe_data = context['probe']['probe_data']
-        begin = probe_data.get('pump_activation_timestamp')
-        end = probe_data.get('pump_deactivation_timestamp')
+        real_func = maybe_create_pump_annotation
+        context = context['probe']
     else:
-        logging.error('Not implemented yet')
-        return
+        real_func = maybe_create_sampling_annotation
 
-    if end is None:
+    return real_func(process_name, current_state, old_state, context, annotation_func=annotation_func)
+
+
+def maybe_create_pump_annotation(process_name, current_state, old_state, context, annotation_func=None):
+    begin = end = None
+
+    probe_name = context['probe_name']
+    probe_data = context['probe_data']
+    begin = probe_data.get('pump_activation_timestamp')
+    end = probe_data.get('pump_deactivation_timestamp')
+
+    if not end:
         duration = 0
+        timestamp = begin
     else:
         duration = max((end - begin), 0) / 1000
+        timestamp = end
 
     annotation_templates = {
         PUMP_STATES.PUMPING: {
             'message': "Probe {}: Pump started".format(probe_name),
             '__color': '#E87919',
+            'createdAt': begin,
+            'begin': begin,
         },
         PUMP_STATES.BUILDUP_EXPECTED: {
-            'message': "Probe {}: Pump activated for {:.1f} seconds".format(probe_name, duration),
-            '__overwrite': ['uid'],
+            'message': "Probe {}: Pump activated for {:.0f} seconds".format(probe_name, duration),
             '__color': '#73E819',
+            'createdAt': end,
+            'begin': begin,
+            'end': end,
         },
     }
 
@@ -123,17 +137,77 @@ def maybe_create_annotation(process_name, current_state, context, annotation_fun
             uid='{}-{}-{:.0f}'.format(
                 process_name,
                 probe_name,
-                begin,
+                timestamp,
             ),
-            createdAt=begin,
-            begin=begin,
-            end=end,
         )
         annotation_func(probe_name, annotation_data)
 
     elif not begin:
         logging.error('{}, probe {}: Cannot create annotation without begin timestamp'.format(
             process_name, probe_name
+        ))
+
+    return
+
+
+def maybe_create_sampling_annotation(process_name, current_state, old_state, context, annotation_func=None):
+    process_settings = context
+
+    begin = end = None
+    if old_state == SAMPLING_STATES.SAMPLING and current_state == SAMPLING_STATES.FOCUSED_FLOW:
+        return
+    elif current_state == SAMPLING_STATES.COMMINGLED_FLOW:
+        begin = process_settings.get('commingled_flow_start_ts', 0)
+    elif current_state == SAMPLING_STATES.FOCUSED_FLOW:
+        begin = process_settings.get('focused_flow_start_ts', 0)
+    else:
+        begin = process_settings.get('focused_flow_start_ts', 0)
+        end = process_settings.get('focused_flow_start_ts', 0)
+
+    if not end:
+        duration = 0
+        timestamp = begin
+    else:
+        duration = max((end - begin), 0) / 1000
+        timestamp = end
+
+    annotation_templates = {
+        SAMPLING_STATES.COMMINGLED_FLOW: {
+            'message': "Commingled flow started",
+            '__color': '#FFCC33',
+            'createdAt': begin,
+            'begin': begin,
+        },
+        SAMPLING_STATES.FOCUSED_FLOW: {
+            'message': "Focused flow started",
+            '__color': '#99FF00',
+            'createdAt': begin,
+            'begin': begin,
+        },
+        SAMPLING_STATES.INACTIVE: {
+            'message': "Sampling finished. Operation took {:.0f} seconds".format(duration),
+            '__color': '#003399',
+            'createdAt': end,
+            'begin': begin,
+            'end': end,
+        },
+    }
+
+    annotation_data = annotation_templates.get(current_state)
+    if annotation_data and begin:
+        annotation_data.update(
+            __src='sampling_monitor',
+            uid='{}-{}-{:.0f}'.format(
+                process_name,
+                current_state,
+                timestamp,
+            ),
+        )
+        annotation_func(process_name, annotation_data)
+
+    elif not begin:
+        logging.error('{}: Cannot create annotation without begin timestamp'.format(
+            process_name
         ))
 
     return
@@ -218,7 +292,7 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, sampling_
         event_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
 
         message = (
-            "Probe {}@{:.0f} ft: Flow rate changed at {:.1f}s. "
+            "Probe {}@{:.0f} ft: Flow rate changed at {:.0f}s. "
             "\n   Flow rate: {:.2f} -> {:.2f} cm³/s "
             "\n   Motor speed: {:.2f} -> {:.2f} rpm "
             "\n   Pressure: {:.2f} psi "
@@ -367,7 +441,7 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
 def find_commingled_flow(process_name, process_settings, event_list, message_sender=None):
     # When both pumps are started we get to commingled flow
     commingled_flow_start_ts = process_settings.get('commingled_flow_start_ts', 0)
-    commingled_flow_end_ts = process_settings.get('commingled_flow_start_ts', 0)
+    commingled_flow_end_ts = process_settings.get('commingled_flow_end_ts', 0)
     monitor_settings = process_settings['monitor']
 
     probes = monitor_settings.get('probes', [])
@@ -454,7 +528,7 @@ def find_focused_flow(process_name, process_settings, event_list, message_sender
             detected_state = SAMPLING_STATES.FOCUSED_FLOW
 
             message = (
-                "Focused flow started at {:.1f}s."
+                "Focused flow started at {:.0f}s."
                 "\n   Flow rates: {:.2f} and {:.2f} cm³/s (ratio: {:.3f})"
                 "\n   Motor speeds: {:.2f} and {:.2f} rpm (ratio: {:.3f})"
             ).format(
@@ -477,6 +551,7 @@ def find_focused_flow(process_name, process_settings, event_list, message_sender
 
         last_activation_index = max(rate_changes_indexes)
         commingled_flow_end_ts = max(rate_changes_timestamps)
+        focused_flow_end_ts = max(rate_changes_timestamps)
 
         detected_state = SAMPLING_STATES.INACTIVE
 
@@ -494,8 +569,7 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
     monitor_settings = process_settings['monitor']
     sampling_start_index = process_settings.get('sampling_start_index', 0)
     sampling_start_ts = process_settings.get('sampling_start_ts', 0)
-    sampling_end_index = process_settings.get('sampling_end_index', 0)
-    sampling_end_ts = process_settings.get('sampling_end_ts', 0)
+    focused_flow_end_ts = process_settings.get('focused_flow_end_ts', 0)
 
     detected_state = None
     pumping_probes = []
@@ -539,7 +613,7 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
             sampling_start_ts = rate_change_timestamp
             sampling_start_index = rate_change_index
 
-            message = "Sample collection started at {:.1f}s.".format(
+            message = "Sample collection started at {:.0f}s.".format(
                 sampling_start_index,
             )
             message_sender(process_name, message, timestamp=sampling_start_ts)
@@ -550,14 +624,18 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
         detected_state = SAMPLING_STATES.FOCUSED_FLOW
 
     elif not pumping_probes:
+        rate_changes_timestamps = [
+            item.get('rate_change_timestamp', -1)
+            for item in probes.values()
+        ]
+        focused_flow_end_ts = max(rate_changes_timestamps)
         detected_state = SAMPLING_STATES.INACTIVE
 
     process_settings.update(
         latest_seen_index=sampling_start_index,
         sampling_start_index=sampling_start_index,
         sampling_start_ts=sampling_start_ts,
-        sampling_end_index=sampling_end_index,
-        sampling_end_ts=sampling_end_ts,
+        focused_flow_end_ts=focused_flow_end_ts,
     )
     return detected_state
 
@@ -595,8 +673,7 @@ def find_sampling_end(process_name, process_settings, event_list, message_sender
         detected_state = SAMPLING_STATES.FOCUSED_FLOW
 
         message = (
-            "Sample collection finished at {:.1f}s."
-            "\n  Sampling process took {:.1f}s"
+            "Sample collection finished at {:.0f}s, sampling took {:.0f}s"
         ).format(
             sampling_end_index, (sampling_end_index - sampling_start_index)
         )
@@ -644,13 +721,14 @@ def run_probe_monitor(process_name, probe_name, probe_data, event_list, sampling
         logging.info("{}: Sampling monitor, probe {}: {} -> {}".format(
             process_name, probe_name, probe_state, detected_state
         ))
-        probe_state = detected_state
         maybe_create_annotation(
             process_name,
+            detected_state,
             probe_state,
             context={'probe': {'probe_name': probe_name, 'probe_data': probe_data}},
             annotation_func=annotation_func,
         )
+        probe_state = detected_state
 
     probe_data.update(process_state=probe_state)
     return probe_state
@@ -678,13 +756,14 @@ def run_sampling_monitor(process_name, process_settings, event_list, functions_m
         logging.info("{}: Sampling monitor, {} -> {}".format(
             process_name, sampling_state, detected_state
         ))
-        sampling_state = detected_state
         maybe_create_annotation(
             process_name,
+            detected_state,
             sampling_state,
             context=process_settings,
             annotation_func=annotation_func,
         )
+        sampling_state = detected_state
 
     process_settings.update(process_state=sampling_state)
 

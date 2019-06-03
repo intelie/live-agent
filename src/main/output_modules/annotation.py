@@ -19,9 +19,6 @@ def create(process_name, annotation_data, process_settings=None, output_info=Non
         author=destination_settings['author'],
         dashboard=destination_settings.get('dashboard', {}),
     )
-    logging.info("{}: Creating annotation '{}'".format(
-        process_name, annotation_data.get('message', "<EMPTY MESSAGE>")
-    ))
     format_and_send(annotation_data, output_settings, connection_func=connection_func)
 
 
@@ -36,23 +33,35 @@ def format_event(timestamp, annotation_data, settings):
     room_data = settings['room']
     dashboard_data = settings['dashboard']
 
-    end = annotation_data.get('end')
-    end = end if (end is None) else int(end)
-
     message_event = annotation_data.copy()
-    message_event.update({
-        '__type': '__annotations',
-        '__src': message_event.get('__src', 'live_agent'),
-        'uid': message_event.get('uid', str(uuid.uuid4())),
-        'createdAt': int(message_event.get('createdAt', timestamp)),
-        'begin': int(message_event.get('begin', timestamp)),
-        'end': end,
-        'author': author_data.get('name'),
-        'room': room_data,
-        'dashboardId': dashboard_data.get('id'),
-        'dashboard': dashboard_data.get('name'),
-        'searchable': True,
-    })
-    logging.debug('Creating annotation {}'.format(message_event))
+    message_event.update(
+        __type='__annotations',
+        __src=message_event.get('__src', 'live_agent'),
+        uid=message_event.get('uid', str(uuid.uuid4())),
+        createdAt=int(message_event.get('createdAt', timestamp)),
+        begin=int(message_event.get('begin', timestamp)),
+        author=author_data.get('name'),
+        room=room_data,
+        dashboardId=dashboard_data.get('id'),
+        dashboard=dashboard_data.get('name'),
+        searchable=True,
+    )
+
+    end = message_event.pop('end', None)
+    if (end is not None) and end > 0:
+        message_event.update(
+            end=int(end),
+        )
+
+    def has_invalid_value(key):
+        return message_event.get(key, -1) in (0, None)
+
+    if any(map(has_invalid_value, ('begin', 'end', 'createdAt'))):
+        logging.warn(
+            "Invalid annotation: {}".format(message_event)
+        )
+        return
+
+    logging.info('Creating annotation {}'.format(message_event))
 
     return message_event
