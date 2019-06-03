@@ -2,44 +2,7 @@
   "DEBUG": false,
   "temp_dir": "./temp",
   "processes": {
-    "well0_pretest": {
-      "type": "sampling_monitor",
-      "enabled": false,
-      "request": {
-        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/sampling_monitor/query/well0?username=teste&password=teste",
-        "interval": 15
-      },
-      "monitor": {
-        "index_mnemonic": "ETIM",
-        "window_duration": 60,
-        "buildup_duration": 30,
-        "buildup_wait_period": 120,
-        "probes": {
-          "1": {
-            "depth_mnemonic": "DVP1",
-            "pressure_mnemonic": "BRD1",
-            "pretest_volume_mnemonic": "PTV1",
-            "pumpout_flowrate_mnemonic": "POTFR",
-            "pumpout_volume_mnemonic": "POTCV"
-          },
-          "2": {
-            "depth_mnemonic": "DVP2",
-            "pressure_mnemonic": "BRD2",
-            "pretest_volume_mnemonic": "PTV2",
-            "pumpout_flowrate_mnemonic": "POTFR",
-            "pumpout_volume_mnemonic": "POTCV"
-          }
-        }
-      },
-      "destination": {
-        "name": "tcp",
-        "author": {"id": 1, "name": "Sampling monitor"},
-        "room": {"id": "eia02b6rencfqrjfq5um06842o"},
-        "dashboard": {"id": 17, "name": "Well 0: Sampling"},
-        "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
-      }
-    },
-    "well3_pretest": {
+    "well3_sampling": {
       "type": "sampling_monitor",
       "enabled": true,
       "request": {
