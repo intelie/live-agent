@@ -441,6 +441,11 @@ def find_focused_flow(process_name, process_settings, event_list, message_sender
         last_activation_index = max(rate_changes_indexes)
         current_flow_duration = latest_index - last_activation_index
 
+        logging.debug("{}: {:.0f}s to {}".format(
+            process_name,
+            (focused_flow_grace_period - current_flow_duration),
+            SAMPLING_STATES.FOCUSED_FLOW
+        ))
         if current_flow_duration >= focused_flow_grace_period:
             last_activation_ts = max(rate_changes_timestamps)
             focused_flow_start_ts = last_activation_ts
@@ -503,6 +508,8 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
             pumping_probes.append(probe_name)
         else:
             idle_probes.append(probe_name)
+
+    logging.debug("{} \nIdle probes: {}\nRunning probes: {}".format(process_name, idle_probes, pumping_probes))
 
     # The guard probe should be active and the sampling probe should be idle
     if idle_probes and pumping_probes:
