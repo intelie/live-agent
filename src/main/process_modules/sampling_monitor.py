@@ -420,17 +420,18 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
                 flow_rate = reference_event.get(flow_rate_mnemonic, -1)
                 event_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
 
-                # Send a message about the seal loss
-                message = (
-                    "*Alarm, probable seal loss for probe {}@{:.0f} ft at {:.0f}!*"
-                    "\nMotor speed {:.2f} rpm and flow rate {:.2f} cm³/s!"
-                ).format(
-                    probe_name, depth, etim, motor_speed, flow_rate
-                )
-                message_sender(process_name, message, timestamp=event_timestamp)
+                if motor_speed > 0 or flow_rate > 0:
+                    # Send a message about the seal loss
+                    message = (
+                        "*Alarm, probable seal loss for probe {}@{:.0f} ft at {:.0f}!*"
+                        "\nMotor speed {:.2f} rpm and flow rate {:.2f} cm³/s!"
+                    ).format(
+                        probe_name, depth, etim, motor_speed, flow_rate
+                    )
+                    message_sender(process_name, message, timestamp=event_timestamp)
 
-                has_seal = False
-                latest_seen_index = etim
+                    has_seal = False
+                    latest_seen_index = etim
 
     probe_data.update(
         has_seal=has_seal,
