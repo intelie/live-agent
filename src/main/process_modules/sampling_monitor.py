@@ -162,7 +162,7 @@ def maybe_create_sampling_annotation(process_name, current_state, old_state, con
         begin = process_settings.get('focused_flow_start_ts', 0)
     else:
         begin = process_settings.get('focused_flow_start_ts', 0)
-        end = process_settings.get('focused_flow_start_ts', 0)
+        end = process_settings.get('focused_flow_end_ts', 0)
 
     if not end:
         duration = 0
