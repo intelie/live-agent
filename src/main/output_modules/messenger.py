@@ -87,7 +87,7 @@ def format_and_send(message, settings, connection_func=None):
     timestamp = get_timestamp()
     event = format_event(timestamp, message, settings)
 
-    logging.info('Sending message {}'.format(event))
+    logging.debug('Sending message {}'.format(event))
     connection_func(event, settings)
 
 

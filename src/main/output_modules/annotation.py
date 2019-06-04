@@ -25,6 +25,8 @@ def create(process_name, annotation_data, process_settings=None, output_info=Non
 def format_and_send(annotation_data, settings, connection_func=None):
     timestamp = get_timestamp()
     event = format_event(timestamp, annotation_data, settings)
+
+    logging.debug('Creating annotation {}'.format(event))
     connection_func(event, settings)
 
 
@@ -61,7 +63,5 @@ def format_event(timestamp, annotation_data, settings):
             "Invalid annotation: {}".format(message_event)
         )
         return
-
-    logging.info('Creating annotation {}'.format(message_event))
 
     return message_event
