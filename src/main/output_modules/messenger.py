@@ -57,13 +57,16 @@ def maybe_send_message_event(process_name, message, timestamp, process_settings=
         raw.format_and_send(event_type, event, output_settings, connection_func=connection_func)
 
 
-def maybe_send_chat_message(process_name, message, process_settings=None, output_info=None):
+def maybe_send_chat_message(process_name, message, author_name=None, process_settings=None, output_info=None):
     destination_settings = process_settings['destination']
     room = destination_settings.get('room')
     author = destination_settings.get('author')
 
     if (room and author):
         connection_func, output_settings = output_info
+
+        if author_name:
+            author.update(name=author_name)
 
         output_settings.update(
             room=room,
@@ -73,11 +76,18 @@ def maybe_send_chat_message(process_name, message, process_settings=None, output
             process_name, message
         ))
         format_and_send(message, output_settings, connection_func=connection_func)
+    else:
+        logging.warn(
+            "{}: Cannot send message, room ({}) and/or author ({}) missing. Message is '{}'",
+            process_name, room, author, message
+        )
 
 
 def format_and_send(message, settings, connection_func=None):
     timestamp = get_timestamp()
     event = format_event(timestamp, message, settings)
+
+    logging.info('Sending message {}'.format(event))
     connection_func(event, settings)
 
 

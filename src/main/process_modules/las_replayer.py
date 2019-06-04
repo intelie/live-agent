@@ -16,6 +16,34 @@ __all__ = [
 READ_MODES = Enum('READ_MODES', 'SINGLE_PASS, CONTINUOUS')
 
 
+def maybe_send_chat_message(event_type, chat_data, last_timestamp, next_timestamp, index_mnemonic, process_settings, output_info):
+    if not chat_data:
+        return
+
+    items_to_send = []
+    for item in chat_data:
+        item_index = int(item.get(index_mnemonic, -1))
+
+        if last_timestamp < item_index <= next_timestamp:
+            items_to_send.append(item)
+
+    logging.debug("{}: {} messages between {} and {}".format(
+        event_type, len(items_to_send), last_timestamp, next_timestamp
+    ))
+
+    for item in items_to_send:
+        message = item.get('MESSAGE')
+        source = item.get('SOURCE')
+        if message and source:
+            messenger.maybe_send_chat_message(
+                event_type,
+                message,
+                author_name=source,
+                process_settings=process_settings,
+                output_info=output_info
+            )
+
+
 def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
     messenger.maybe_send_message_event(
         process_name,
@@ -63,7 +91,7 @@ def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnem
     return success, output_frame
 
 
-def open_las(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
+def open_files(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
     path_list = process_settings['path_list']
     index_mnemonic = process_settings['index_mnemonic']
 
@@ -73,21 +101,30 @@ def open_las(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
         path_index = iterations
 
     try:
-        path = path_list[path_index]
-        with open(path, 'r') as las_file:
+        las_path, chat_path = path_list[path_index]
+        with open(las_path, 'r') as las_file:
             data = lasio.read(las_file)
 
+        if chat_path:
+            with open(chat_path, 'r') as chat_file:
+                chat_data = list(csv.DictReader(chat_file))
+
+            logging.debug("Success opening files {} and {}>".format(las_path, chat_path))
+        else:
+            chat_data = []
+            logging.debug("Success opening file {}>".format(las_path))
+
         success = True
-        logging.debug("Success opening file {}>".format(path))
     except Exception as e:
         data = e
+        chat_data = None
         success = False
-        logging.error("Error opening file {}, {}<{}>".format(path, e, type(e)))
+        logging.error("Error opening file {}, {}<{}>".format(las_path, e, type(e)))
 
-    return success, data, index_mnemonic
+    return success, data, chat_data, index_mnemonic
 
 
-def export_curves_data(event_type, las_data, index_mnemonic, process_settings, output_info, settings):
+def export_curves_data(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):
     logging.info("Exporting curves for {}".format(event_type))
     output_dir = settings.get('temp_dir', '/tmp')
 
@@ -109,7 +146,7 @@ def export_curves_data(event_type, las_data, index_mnemonic, process_settings, o
     logging.info('File {} created'.format(output_filename))
 
 
-def generate_events(event_type, las_data, index_mnemonic, process_settings, output_info, settings):
+def generate_events(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):
     logging.info("{}: Event generation started".format(event_type))
     connection_func, output_settings = output_info
 
@@ -144,6 +181,15 @@ def generate_events(event_type, las_data, index_mnemonic, process_settings, outp
                 )
 
             raw.format_and_send(event_type, statuses, output_settings, connection_func=connection_func)
+            maybe_send_chat_message(
+                event_type,
+                chat_data,
+                last_timestamp,
+                next_timestamp,
+                index_mnemonic,
+                process_settings,
+                output_info
+            )
             last_timestamp = next_timestamp
 
 
@@ -161,7 +207,7 @@ def start(process_name, process_settings, output_info, settings):
     iterations = 0
     while True:
         try:
-            success, las_data, index_mnemonic = open_las(
+            success, las_data, chat_data, index_mnemonic = open_files(
                 process_settings,
                 iterations,
                 mode=read_mode
@@ -171,6 +217,7 @@ def start(process_name, process_settings, output_info, settings):
                 handling_func(
                     event_type,
                     las_data,
+                    chat_data,
                     index_mnemonic,
                     process_settings,
                     output_info,

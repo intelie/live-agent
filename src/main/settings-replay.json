@@ -6,9 +6,9 @@
       "type": "las_file",
       "enabled": true,
       "path_list" : [
-        "./input_files/well0-MDT_OFA_CMR_103LTP.las",
-        "./input_files/well0-MDT_OFA_CMR_104LTP.las",
-        "./input_files/well0-MDT_OFA_CMR_106LTP.las"
+        ["./input_files/well0-MDT_OFA_CMR_103LTP.las", null],
+        ["./input_files/well0-MDT_OFA_CMR_104LTP.las", null],
+        ["./input_files/well0-MDT_OFA_CMR_106LTP.las", null]
       ],
       "index_mnemonic": "TIME",
       "destination": {
@@ -24,8 +24,8 @@
       "type": "las_file",
       "enabled": true,
       "path_list" : [
-        "./input_files/well3-MDT_OFA_029LTP_Sample1.txt",
-        "./input_files/well3-MDT_OFA_030LTP_Sample2.txt"
+        ["./input_files/well3-MDT_OFA_029LTP_Sample1.txt", "./input_files/well3-MDT_OFA_029LTP_Sample1-chat.csv"],
+        ["./input_files/well3-MDT_OFA_030LTP_Sample2.txt", null]
       ],
       "index_mnemonic": "TIME",
       "destination": {
