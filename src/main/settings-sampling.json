@@ -32,7 +32,7 @@
       },
       "destination": {
         "name": "rest",
-        "author": {"id": 1, "name": "Sampling monitor"},
+        "author": {"id": 1, "name": "🤖  Sampling monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
         "dashboard": {"id": 21, "name": "Well 3: Sampling"},
         "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
