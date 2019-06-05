@@ -23,10 +23,6 @@ Possible alarms:
 - The duration of a commingled flow is too short (< 3 mins?)
 - Motor speed steady, pumping rates dropped and pressure risen: probable seal loss
 
-Examples:
-- https://shellgamechanger.intelie.com/#/dashboard/54/?mode=view&span=2019-05-28%252009%253A54%253A21%2520to%25202019-05-28%252012%253A50%253A44  # NOQA
-- http://localhost:8080/#/dashboard/21/?mode=view&span=2019-05-28%252011%253A36%253A05%2520to%25202019-05-28%252013%253A07%253A28%2520%2520shifted%2520right%2520by%252025%2525  # NOQA
-
 
 Possible states:
 
@@ -397,9 +393,11 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
             if last_motor_speed > 0:
                 # When did the flow stop?
                 target_mnemonic = flow_rate_mnemonic
+                secondary_mnemonic = motor_speed_mnemonic
             else:
                 # When did the pump stop?
                 target_mnemonic = motor_speed_mnemonic
+                secondary_mnemonic = flow_rate_mnemonic
 
             # Drop all events where {target_mnemonic} > 0
             events_before_stopping = list(
@@ -409,18 +407,27 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
                 )
             )
 
-            # The inconsistency started in the first of these events
-            reference_event = events_before_stopping[0]
+            # There may be an interval where both values are zero. Drop that
+            # Drop all events where {target_mnemonic} > 0
+            events_before_stopping = list(
+                dropwhile(
+                    lambda event: (event.get(target_mnemonic) == 0) and (event.get(secondary_mnemonic) == 0),
+                    events_before_stopping
+                )
+            )
 
-            # If the inconsistency happened less than {buildup_duration} ago, ignore it
-            etim = reference_event.get(index_mnemonic, -1)
-            if (last_index - etim) >= buildup_duration:
-                depth = reference_event.get(depth_mnemonic, -1)
-                motor_speed = reference_event.get(motor_speed_mnemonic, -1)
-                flow_rate = reference_event.get(flow_rate_mnemonic, -1)
-                event_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+            if events_before_stopping:
+                # The inconsistency started in the first of these events
+                reference_event = events_before_stopping[0]
 
-                if motor_speed > 0 or flow_rate > 0:
+                # If the inconsistency happened less than {buildup_duration} ago, ignore it
+                etim = reference_event.get(index_mnemonic, -1)
+                if (last_index - etim) >= buildup_duration:
+                    depth = reference_event.get(depth_mnemonic, -1)
+                    motor_speed = reference_event.get(motor_speed_mnemonic, -1)
+                    flow_rate = reference_event.get(flow_rate_mnemonic, -1)
+                    event_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+
                     # Send a message about the seal loss
                     message = (
                         "*Alarm, probable seal loss for probe {}@{:.0f} ft at {:.0f}!*"
