@@ -612,7 +612,7 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
         if valid_events:
             last_motor_speed = valid_events[-1].get(motor_speed_mnemonic)
         else:
-            last_motor_speed = 0
+            last_motor_speed = -1
 
         if last_motor_speed == 0:
             rate_change_timestamp = sampling_probe_data.get('rate_change_timestamp', -1)
