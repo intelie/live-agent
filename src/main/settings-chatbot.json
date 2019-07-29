@@ -1,0 +1,33 @@
+{
+  "DEBUG": false,
+  "temp_dir": "./temp",
+  "processes": {
+    "chatbot": {
+      "type": "chatterbot",
+      "enabled": true,
+      "alias": "Shelly",
+      "live": {
+        "host": "http://localhost:8080",
+        "username": "admin",
+        "password": "admin"
+      },
+      "destination": {
+        "name": "rest",
+        "author": {"id": 1}
+      }
+    }
+  },
+  "output": {
+    "tcp": {
+      "type": "tcp",
+      "ip": "127.0.0.1",
+      "port": 17042
+    },
+    "rest": {
+      "type": "rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "admin",
+      "password": "admin"
+    }
+  }
+}

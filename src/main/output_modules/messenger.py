@@ -72,8 +72,8 @@ def maybe_send_chat_message(process_name, message, author_name=None, process_set
             room=room,
             author=author,
         )
-        logging.info("{}: Sending message '{}'".format(
-            process_name, message
+        logging.info("{}: Sending message '{}' from {} to {}".format(
+            process_name, message, author, room
         ))
         format_and_send(message, output_settings, connection_func=connection_func)
     else:
