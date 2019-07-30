@@ -96,7 +96,9 @@ def start_chatbot(process_name, process_settings, output_info, room_id):
     )
 
     trainer = ChatterBotCorpusTrainer(chatbot)
-    trainer.train('chatterbot.corpus.english')
+    trainer.train('chatterbot.corpus.english.conversations')
+    trainer.train('chatterbot.corpus.english.greetings')
+    trainer.train('chatterbot.corpus.english.humor')
 
     maybe_send_message(
         process_name,
