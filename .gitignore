@@ -3,3 +3,5 @@ temp*/
 *.pyo
 ~*
 .python-version
+*.sqlite3
+*.pickle
