@@ -5,6 +5,7 @@ import signal
 import json
 import logging
 from multiprocessing import Pool
+from setproctitle import setproctitle
 
 from runner.daemon import Daemon
 from process_modules import PROCESS_HANDLERS
@@ -23,6 +24,7 @@ DEFAULT_LOG = "/var/log/live-agent.log"
 class LiveAgent(Daemon):
 
     def __init__(self, pidfile, settings_file):
+        setproctitle('DDA:  Main process')
         logfile = get_logfile()
         Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
         self.settings_file = settings_file

@@ -2,6 +2,7 @@
 import logging
 from enum import Enum
 import csv
+from setproctitle import setproctitle
 
 import lasio
 
@@ -196,6 +197,7 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, process_set
 def start(process_name, process_settings, output_info, settings):
     debug_mode = settings.get('DEBUG', False)
     event_type = process_settings['destination']['event_type']
+    setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
     if debug_mode:
         read_mode = READ_MODES.SINGLE_PASS

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import requests
+from setproctitle import setproctitle
 
 from output_modules import messenger
 from utils import loop
@@ -68,6 +69,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
 
 def start(process_name, process_settings, output_info, settings):
     logging.info("{}: Flowrate monitor started".format(process_name))
+    setproctitle('DDA: Flowrate monitor')
     session = requests.Session()
     accumulator = []
 

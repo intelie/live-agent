@@ -3,6 +3,7 @@ import logging
 from multiprocessing import Process, Queue
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
+from setproctitle import setproctitle
 
 from live_client import query
 from output_modules import messenger
@@ -69,6 +70,7 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, mes
 
 
 def start_chatbot(process_name, process_settings, output_info, room_id):
+    setproctitle('DDA: Chatbot for room {}'.format(room_id))
     bot_alias = process_settings.get('alias', 'Intelie')
 
     chatbot = ChatBot(
@@ -169,6 +171,7 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
 
 def start(process_name, process_settings, output_info, _settings):
     logging.info("{}: Chatbot process started".format(process_name))
+    setproctitle('DDA: Chatbot main process')
     bots_registry = {}
 
     bot_alias = process_settings.get('alias', 'Intelie')

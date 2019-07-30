@@ -4,6 +4,7 @@ import requests
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
+from setproctitle import setproctitle
 
 from output_modules import messenger, annotation
 from utils import loop, timestamp, monitors
@@ -811,6 +812,7 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
 
 def start(process_name, process_settings, output_info, _settings):
     logging.info("{}: Sampling monitor started".format(process_name))
+    setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
     session = requests.Session()
 
     functions_map = {
