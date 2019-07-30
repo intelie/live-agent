@@ -40,15 +40,15 @@
     "chatbot": {
       "type": "chatterbot",
       "enabled": true,
-      "alias": "Shelly",
+      "alias": "Olive",
       "live": {
         "host": "http://localhost:8080",
         "username": "admin",
         "password": "admin"
       },
       "destination": {
-        "name": "rest",
-        "author": {"id": 1}
+        "name": "rest-agent",
+        "author": {"id": 2}
       }
     },
     "well0_pretest": {
@@ -211,6 +211,12 @@
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "admin",
       "password": "admin"
+    },
+    "rest-agent": {
+      "type": "rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "live-agent",
+      "password": "live-agent"
     }
   }
 }
