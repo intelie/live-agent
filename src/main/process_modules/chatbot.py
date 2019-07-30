@@ -160,13 +160,14 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
         if room_id is None:
             return
 
-        if room_id not in bots_registry:
+        if room_id in bots_registry and bots_registry[room_id].is_alive():
+            logging.info("{}: Bot for {} is already known".format(process_name, room_id))
+
+        else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
             bots_registry[room_id] = start_room_bot(
                 process_name, process_settings, output_info, room_id
             )
-        else:
-            logging.info("{}: Bot for {} is already known".format(process_name, room_id))
 
     return bots_registry.values()
 
