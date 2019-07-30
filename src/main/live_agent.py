@@ -4,7 +4,7 @@ import sys
 import signal
 import json
 import logging
-from multiprocessing import Pool
+from multiprocessing import Process
 from setproctitle import setproctitle
 
 from runner.daemon import Daemon
@@ -103,37 +103,19 @@ class LiveAgent(Daemon):
             num_processes, ', '.join(processes_to_run.keys())
         ))
 
-        if num_processes > 1:
-            results = []
-            pool = Pool(processes=num_processes, initializer=init_worker)
-            try:
-                for name, process_settings in processes_to_run.items():
-                    process_func = process_settings.pop('process_func')
-                    output_info = process_settings.pop('output')
+        running_processes = []
+        for name, process_settings in processes_to_run.items():
+            process_func = process_settings.pop('process_func')
+            output_info = process_settings.pop('output')
 
-                    results.append(
-                        pool.apply_async(
-                            process_func,
-                            (name, process_settings, output_info, settings)
-                        )
-                    )
-                pool.close()
-                pool.join()
-                result = [item.wait() for item in results]
+            process = Process(
+                target=process_func,
+                args=(name, process_settings, output_info, settings)
+            )
+            running_processes.append(process)
+            process.start()
 
-            except KeyboardInterrupt:
-                pool.terminate()
-                pool.join()
-                result = []
-
-        else:
-            for name, process_settings in processes_to_run.items():
-                process_func = process_settings.pop('process_func')
-                output_info = process_settings.pop('output')
-
-                result = process_func(name, process_settings, output_info, settings)
-
-        return result
+        return running_processes
 
     def run(self):
         try:
