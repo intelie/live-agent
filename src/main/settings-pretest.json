@@ -4,7 +4,7 @@
   "processes": {
     "well0_pretest": {
       "type": "pretest_monitor",
-      "enabled": true,
+      "enabled": false,
       "request": {
         "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well0?username=teste&password=teste",
         "interval": 15
