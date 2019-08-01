@@ -13,7 +13,7 @@
       },
       "destination": {
         "name": "rest-agent",
-        "author": {"id": 2}
+        "author": {"id": 2, "name": "Olive"}
       }
     }
   },

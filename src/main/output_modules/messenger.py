@@ -18,6 +18,92 @@ MESSAGE_TYPES = Enum(
     'MESSAGE_TYPES',
     'EVENT, CHAT'
 )
+CONTROL_ACTIONS = Enum(
+    'CONTROL_ACTIONS',
+    'ADD_USER, REMOVE_USER, JOIN, LEAVE'
+)
+EVENT_TYPES = {
+    'message': '__message',
+    'control': '__messenger_control',
+}
+
+
+__all__ = [
+    'join_room', 'add_to_room', 'remove_from_room',
+    'send_message', 'maybe_send_chat_message', 'maybe_send_message_event'
+]
+
+
+def join_room(process_name, process_settings, output_info):
+    connection_func, output_settings = output_info
+
+    bot_data = process_settings['destination']['author']
+    control_data = {
+        'broadcast': True,
+        '__skipstorage': True,
+        'action': 'user_joined_messenger',
+        'user': bot_data,
+    }
+
+    event = format_event(
+        EVENT_TYPES['control'],
+        get_timestamp(),
+        control_data,
+        output_settings
+    )
+    connection_func(event, output_settings)
+
+
+def add_to_room(process_name, process_settings, output_info, room_id, sender):
+    return add_or_remove_from_room(
+        process_name,
+        process_settings,
+        output_info,
+        room_id,
+        sender,
+        action=CONTROL_ACTIONS.ADD_USER
+    )
+
+
+def remove_from_room(process_name, process_settings, output_info, room_id, sender):
+    return add_or_remove_from_room(
+        room_id,
+        sender,
+        process_name,
+        process_settings,
+        output_info,
+        action=CONTROL_ACTIONS.REMOVE_USER
+    )
+
+
+def add_or_remove_from_room(process_name, process_settings, output_info, room_id, sender, action):
+    connection_func, output_settings = output_info
+
+    control_data = {
+        'action': 'room_users_updated',
+        'sender': sender,
+        'addedOrUpdatedUsers': [],
+        'removedUsers': [],
+        'room': {'id': room_id},
+    }
+
+    bot_data = process_settings['destination']['author']
+
+    if action == CONTROL_ACTIONS.ADD_USER:
+        control_key = 'addedOrUpdatedUsers'
+        bot_data.update(isNewUser=True, isAdmin=False)
+    elif action == CONTROL_ACTIONS.REMOVE_USER:
+        control_key = 'removedUsers'
+
+    control_data[control_key].append(bot_data)
+
+    event = format_event(
+        EVENT_TYPES['control'],
+        get_timestamp(),
+        control_data,
+        output_settings
+    )
+    connection_func(event, output_settings)
 
 
 def send_message(process_name, message, timestamp, process_settings=None, output_info=None, message_type=None):
@@ -85,21 +171,36 @@ def maybe_send_chat_message(process_name, message, author_name=None, process_set
 
 def format_and_send(message, settings, connection_func=None):
     timestamp = get_timestamp()
-    event = format_event(timestamp, message, settings)
+    event = format_message_event(timestamp, message, settings)
 
     logging.debug('Sending message {}'.format(event))
     connection_func(event, settings)
 
 
-def format_event(timestamp, message, settings):
+def format_message_event(timestamp, message, settings):
     room_data = settings['room']
     author_data = settings['author']
 
-    return {
-        '__type': '__message',
-        'uid': str(uuid.uuid4()),
-        'createdAt': timestamp,
+    message_data = {
         'message': message,
         'room': room_data,
         'author': author_data,
     }
+
+    return format_event(
+        EVENT_TYPES['message'],
+        timestamp,
+        message_data,
+        settings
+    )
+
+
+def format_event(event_type, timestamp, event_data, settings):
+
+    base_event = {
+        '__type': event_type,
+        'uid': str(uuid.uuid4()),
+        'createdAt': timestamp,
+    }
+    base_event.update(event_data)
+    return base_event

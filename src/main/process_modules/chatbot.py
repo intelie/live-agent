@@ -69,12 +69,12 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, mes
     )
 
 
-def start_chatbot(process_name, process_settings, output_info, room_id):
-    setproctitle('DDA: Chatbot for room {}'.format(room_id))
+def join_room(process_name, process_settings, output_info, room_id, sender):
     bot_alias = process_settings.get('alias', 'Intelie')
 
     chatbot = ChatBot(
         bot_alias,
+        filters=[],
         preprocessors=[
             'chatterbot.preprocessors.clean_whitespace'
         ],
@@ -87,6 +87,8 @@ def start_chatbot(process_name, process_settings, output_info, room_id):
             }
         ]
     )
+
+    messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
     maybe_send_message(
         process_name,
         process_settings,
@@ -100,6 +102,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id):
     trainer.train('chatterbot.corpus.english.greetings')
     trainer.train('chatterbot.corpus.english.humor')
 
+    messenger.join_room(process_name, process_settings, output_info)
     maybe_send_message(
         process_name,
         process_settings,
@@ -108,8 +111,15 @@ def start_chatbot(process_name, process_settings, output_info, room_id):
         'How can I help you?'
     )
 
+    return chatbot, bot_alias
+
+
+def start_chatbot(process_name, process_settings, output_info, room_id, sender):
+    setproctitle('DDA: Chatbot for room {}'.format(room_id))
+
+    chatbot, alias = join_room(process_name, process_settings, output_info, room_id, sender)
     room_query_template = '(__message|__annotations) => @filter room->id=="{}" && author->name!="{}"'
-    room_query = room_query_template.format(room_id, bot_alias)
+    room_query = room_query_template.format(room_id, alias)
 
     channels = make_query(
         process_name,
@@ -141,10 +151,10 @@ def start_chatbot(process_name, process_settings, output_info, room_id):
     return chatbot
 
 
-def start_room_bot(process_name, process_settings, output_info, room_id):
+def start_room_bot(process_name, process_settings, output_info, room_id, sender):
     bot_process = Process(
         target=start_chatbot,
-        args=(process_name, process_settings, output_info, room_id)
+        args=(process_name, process_settings, output_info, room_id, sender)
     )
     bot_process.start()
     return bot_process
@@ -156,6 +166,7 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
     messages = maybe_extract_messages(event)
     for message in messages:
         room_id = message.get('room', {}).get('id')
+        sender = message.get('author', {})
 
         if room_id is None:
             return
@@ -166,7 +177,7 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
         else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
             bots_registry[room_id] = start_room_bot(
-                process_name, process_settings, output_info, room_id
+                process_name, process_settings, output_info, room_id, sender
             )
 
     return bots_registry.values()
