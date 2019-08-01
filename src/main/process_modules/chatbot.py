@@ -148,6 +148,8 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender):
                     response.text
                 )
 
+        messenger.join_room(process_name, process_settings, output_info)
+
     return chatbot
 
 
