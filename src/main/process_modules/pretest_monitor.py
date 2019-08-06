@@ -6,8 +6,9 @@ from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
 
-from output_modules import messenger, annotation
-from utils import loop, timestamp, monitors
+from live_client.events import messenger, annotation
+from live_client.utils import timestamp
+from utils import loop, monitors
 
 __all__ = ['start']
 

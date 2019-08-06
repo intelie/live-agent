@@ -2,7 +2,7 @@
 import logging
 import uuid
 
-from utils.timestamp import get_timestamp
+from live_client.utils.timestamp import get_timestamp
 
 __all__ = [
     'create',

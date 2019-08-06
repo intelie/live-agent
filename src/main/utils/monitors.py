@@ -4,7 +4,8 @@ import logging
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from utils import loop, timestamp
+from live_client.utils import timestamp
+from utils import loop
 
 __all__ = [
     'find_slope',

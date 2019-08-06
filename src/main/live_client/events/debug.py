@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 
-from utils.timestamp import get_timestamp
+from live_client.utils.timestamp import get_timestamp
 
 __all__ = ['format_and_send']
 

@@ -3,8 +3,8 @@ import logging
 import uuid
 from enum import Enum
 
-from output_modules import raw
-from utils.timestamp import get_timestamp
+from . import raw
+from live_client.utils.timestamp import get_timestamp
 
 __all__ = [
     'send_message',
@@ -143,12 +143,22 @@ def maybe_send_message_event(process_name, message, timestamp, process_settings=
         raw.format_and_send(event_type, event, output_settings, connection_func=connection_func)
 
 
-def maybe_send_chat_message(process_name, message, author_name=None, process_settings=None, output_info=None):
+def maybe_send_chat_message(process_name, message, **kwargs):
+    author_name = kwargs.pop('author_name', None)
+    process_settings = kwargs.pop('process_settings', {})
+    output_info = kwargs.pop('output_info', None)
+
     destination_settings = process_settings['destination']
     room = destination_settings.get('room')
     author = destination_settings.get('author')
 
-    if (room and author):
+    if (room is None) or (author is None):
+        logging.warn(
+            "{}: Cannot send message, room ({}) and/or author ({}) missing. Message is '{}'",
+            process_name, room, author, message
+        )
+
+    else:
         connection_func, output_settings = output_info
 
         if author_name:
@@ -162,11 +172,6 @@ def maybe_send_chat_message(process_name, message, author_name=None, process_set
             process_name, message, author, room
         ))
         format_and_send(message, output_settings, connection_func=connection_func)
-    else:
-        logging.warn(
-            "{}: Cannot send message, room ({}) and/or author ({}) missing. Message is '{}'",
-            process_name, room, author, message
-        )
 
 
 def format_and_send(message, settings, connection_func=None):

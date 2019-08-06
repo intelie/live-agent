@@ -6,8 +6,8 @@ from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
 from live_client import query
-from output_modules import messenger
-from utils.timestamp import get_timestamp
+from live_client.events import messenger
+from live_client.utils.timestamp import get_timestamp
 
 
 __all__ = ['start']

@@ -3,7 +3,7 @@ import logging
 import requests
 from setproctitle import setproctitle
 
-from output_modules import messenger
+from live_client.events import messenger
 from utils import loop
 
 
