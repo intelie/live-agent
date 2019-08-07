@@ -48,6 +48,7 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
     default_state = {}
     positive_examples = LIST_EXAMPLES
     negative_examples = [
+        "what's up",
         'what is the value',
         'hey what value does it',
         'do you know the value',
@@ -120,6 +121,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     default_state = {}
     positive_examples = SELECTION_EXAMPLES
     negative_examples = [
+        "what's up",
         'what is the value',
         'hey what value does it',
         'do you know the value',
