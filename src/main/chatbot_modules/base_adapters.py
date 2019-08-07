@@ -9,10 +9,6 @@ class BaseBayesAdapter(LogicAdapter):
     """
     Superclass for adapters using naive bayes
     """
-
-    state_key = None
-    required_state = []
-    default_state = {}
     positive_examples = []
     negative_examples = []
     confidence_threshold = 0.75
@@ -95,7 +91,39 @@ class WithStateAdapter(LogicAdapter):
 
     state_key = None
     required_state = []
-    __state = {}
+    default_state = {}
+
+    def __init__(self, chatbot, **kwargs):
+        functions = kwargs.get('functions', {})
+        if ('load_state' not in functions) or ('share_state' not in functions):
+            raise ValueError('Cannot keep state without a reference to state management functions')
+
+        self.__state = None
+        self.__shared_state = None
+        self._load_state = functions['load_state']
+        self._share_state = functions['share_state']
+
+        super().__init__(chatbot, **kwargs)
+
+    def load_state(self):
+        self.__shared_state = self._load_state(
+            state_key=self.state_key,
+            default=self.default_state
+        )
+        self.__state = self.__shared_state[self.state_key]
+
+    def share_state(self):
+        self._share_state(
+            state_key=self.state_key,
+            state_data=self.state
+        )
+
+    @property
+    def shared_state(self):
+        if not self.__shared_state:
+            self.load_state()
+
+        return self.__shared_state
 
     @property
     def state(self):
@@ -104,19 +132,3 @@ class WithStateAdapter(LogicAdapter):
     @state.setter
     def state(self, new_state):
         self.__state = new_state
-
-    def load_state(self, additional_response_selection_parameters):
-        if additional_response_selection_parameters is None:
-            state_data = self.default_state
-        else:
-            state_data = additional_response_selection_parameters
-
-        self.state = {
-            self.state_key: state_data
-        }
-
-    def share_state(self, additional_response_selection_parameters):
-        if additional_response_selection_parameters is None:
-            return
-
-        additional_response_selection_parameters[self.state_key] = self.state

@@ -17,6 +17,27 @@ __all__ = ['start']
 
 
 ##
+# Misc functions
+def load_state(container, state_key=None, default=None):
+    state = container.get('state', {})
+
+    if state_key and (state_key not in state):
+        if default is None:
+            default = {}
+
+        share_state(container, state_key=state_key, state_data=default)
+
+    return state
+
+
+def share_state(container, state_key=None, state_data=None):
+    if 'state' not in container:
+        container.update(state={})
+
+    container['state'].update(**{state_key: state_data})
+
+
+##
 # Chat message handling
 def maybe_extract_messages(event):
     event_content = event.get('data', {}).get('content', [])
@@ -26,16 +47,22 @@ def maybe_extract_messages(event):
     )
 
 
+def maybe_mention(process_settings, message):
+    bot_alias = process_settings.get('alias', 'Intelie')
+    message_text = message.get('message')
+    is_mention = bot_alias in message_text
+    if is_mention:
+        message_text = message_text.replace(bot_alias, '')
+
+    return is_mention, message_text
+
+
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
     for message in messages:
         with start_action(action_type=u"process_message"):
             is_mention, message_text = maybe_mention(process_settings, message)
 
-            shared_state = process_settings.get('state', {})
-            response = chatbot.get_response(
-                message_text,
-                additional_response_selection_parameters=shared_state
-            )
+            response = chatbot.get_response(message_text)
 
             if response and (is_mention or response.confidence >= 0.75):
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
@@ -46,7 +73,6 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
                     room_id,
                     response
                 )
-                process_settings.update(state=shared_state)
 
     messenger.join_room(process_name, process_settings, output_info)
 
@@ -67,16 +93,6 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
     )
 
 
-def maybe_mention(process_settings, message):
-    bot_alias = process_settings.get('alias', 'Intelie')
-    message_text = message.get('message')
-    is_mention = bot_alias in message_text
-    if is_mention:
-        message_text = message_text.replace(bot_alias, '')
-
-    return is_mention, message_text
-
-
 ##
 # Room Bot initialization
 def train_bot(process_name, chatbot):
@@ -90,7 +106,12 @@ def train_bot(process_name, chatbot):
 
 def start_chatbot(process_name, process_settings, output_info, room_id, sender, first_message):
     setproctitle('DDA: Chatbot for room {}'.format(room_id))
+
     run_query_func = partial(query.run, process_name, process_settings)
+
+    process_settings.update(state={})
+    load_state_func = partial(load_state, process_settings)
+    share_state_func = partial(share_state, process_settings)
 
     bot_alias = process_settings.get('alias', 'Intelie')
     messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
@@ -113,13 +134,13 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
         read_only=True,
         functions={
             'run_query': run_query_func,
+            'load_state': load_state_func,
+            'share_state': share_state_func,
         },
-        env={
-            'process_name': process_name,
-            'process_settings': process_settings,
-            'output_info': output_info,
-            'room_id': room_id,
-        }
+        process_name=process_name,
+        process_settings=process_settings,
+        output_info=output_info,
+        room_id=room_id,
     )
     train_bot(process_name, chatbot)
 

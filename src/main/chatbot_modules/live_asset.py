@@ -61,21 +61,21 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
     ] + SELECTION_EXAMPLES
 
     def __init__(self, chatbot, **kwargs):
-        self.env = kwargs.pop('env', {})
         super().__init__(chatbot, **kwargs)
 
         available_assets = list_assets(
-            self.env['process_name'],
-            self.env['process_settings'],
-            self.env['output_info'],
+            kwargs['process_name'],
+            kwargs['process_settings'],
+            kwargs['output_info'],
         )
 
         if not available_assets:
             logging.warn(
                 '{}: No assets available. Check permissions for this user!',
-                self.env['process_name']
+                kwargs['process_name']
             )
 
+        self.load_state()
         self.state = {
             'assets': available_assets,
             'asset_names': [
@@ -84,15 +84,12 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
                 if 'name' in item
             ]
         }
+        self.share_state()
 
     def process(self, statement, additional_response_selection_parameters=None):
-        default_response = super().process(
-            statement,
-            additional_response_selection_parameters=additional_response_selection_parameters
-        )
+        self.confidence = self.get_confidence(statement)
 
         if self.confidence > self.confidence_threshold:
-
             response = Statement(
                 text='The known assets are:{}{}'.format(
                     ITEM_PREFIX,
@@ -100,9 +97,9 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
             )
             response.confidence = self.confidence
-            self.share_state(additional_response_selection_parameters)
+
         else:
-            response = default_response
+            response = None
 
         return response
 
@@ -135,25 +132,15 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         'what is it'
     ] + LIST_EXAMPLES
 
-    def __init__(self, chatbot, **kwargs):
-        self.env = kwargs.pop('env', {})
-        super().__init__(chatbot, **kwargs)
-
     def process(self, statement, additional_response_selection_parameters=None):
-        self.load_state(additional_response_selection_parameters)
+        self.load_state()
+        self.confidence = self.get_confidence(statement)
 
-        default_response = super().process(
-            statement,
-            additional_response_selection_parameters=additional_response_selection_parameters
-        )
-        response = default_response
+        def asset_was_mentioned(asset):
+            return asset.get('name', 'INVALID ASSET NAME').lower() in statement.text.lower()
 
         if self.confidence > self.confidence_threshold:
-
-            def asset_was_mentioned(asset):
-                return asset.get('name', 'INVALID ASSET NAME').lower() in statement.text.lower()
-
-            asset_list = self.state.get('asset-list', {})
+            asset_list = self.shared_state.get('asset-list', {})
             selected_assets = list(
                 filter(
                     asset_was_mentioned,
@@ -178,5 +165,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             response = Statement(text=response_text)
             response.confidence = self.confidence
+        else:
+            response = None
 
         return response
