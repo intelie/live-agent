@@ -177,7 +177,8 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
                 asset_name = selected_asset.get('name')
                 asset_id = selected_asset.get('id', 0)
-                asset_config = self.asset_fetcher(asset_id)
+                asset_type = selected_asset.get('asset_type', 'rig')
+                asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
 
                 self.state = {
                     'asset_id': asset_id,
