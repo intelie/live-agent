@@ -113,7 +113,7 @@ class LiveAgent(Daemon):
             process_func = process_settings.pop('process_func')
             output_info = process_settings.pop('output')
 
-            with start_action(action_type=u"name"):
+            with start_action(action_type=name):
                 process = Process(
                     target=process_func,
                     args=(name, process_settings, output_info, settings)
