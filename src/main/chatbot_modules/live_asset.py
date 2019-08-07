@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import logging  # NOQA
 from chatterbot.conversation import Statement  # NOQA
 
 from live_client.assets import list_assets
+from utils import logging
+
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
 
 

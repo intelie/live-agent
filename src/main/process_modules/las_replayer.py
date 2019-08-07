@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
 from enum import Enum
 import csv
 from setproctitle import setproctitle
@@ -9,6 +8,7 @@ import lasio
 from live_client.events import raw, messenger
 from live_client.utils import timestamp
 from utils import loop
+from utils import logging
 
 __all__ = [
     'start'

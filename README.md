@@ -1,9 +1,9 @@
 Live Agent
 ----------
 
-### Project setup:
+## Project setup:
 
-Requires python 2.7, 3.4 or newer
+Requires python 3.6 or newer
 
 ```shell
 # 1- Create a virtualenv
@@ -32,7 +32,24 @@ The project includes the following sample settings:
 - `src/main/settings.json` : Replay and monitor
 
 
-### Building
+## Reading logs
+
+This project uses `eliot` for logging. Eliot generates log messages as json objects,
+which can be parsed by tools like `eliot-tree` and `eliot-prettyprint` or sent to Intelie Live.
+
+The log file is stored at `/var/log/live-agent.log` by default. When starting this tool from the
+console the log is stored at `/tmp/live-agent.log`.
+
+```shell
+# Reading the log with eliot-prettyprint
+$ tail -f /tmp/live-agent.log | eliot-prettyprint
+
+# Reading the log with eliot-tree (extra dependency, already on requirements.txt)
+$ eliot-tree -l 0 /tmp/live-agent.log
+```
+
+
+## Building
 
 Requires packages `fabric` and `virtualenv`, will generate a rpm file for installation on the target system
 
@@ -43,12 +60,6 @@ $ tools/package.sh [c6|c7]
 - `c6`: Build for centos6 and derivates (red hat 6, amazon linux, etc)
 - `c7`: Build for centos7 and derivates (redhat 7, amazon linux 2, etc)
 
-
-### Installing on the target system
-
-```shell
-$ rpm -Uvh <rpmfile>
-```
 
 ### Testing the built packages
 
@@ -86,4 +97,11 @@ $ `vagrant ssh`
 
 $ vagrant halt    # Stop
 $ vagrant destroy # Completely erase the machine
+```
+
+
+## Installing on the target system
+
+```shell
+$ rpm -Uvh <rpmfile>
 ```

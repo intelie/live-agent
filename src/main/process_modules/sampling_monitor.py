@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
 import requests
 from functools import partial
 from itertools import dropwhile
@@ -9,6 +8,7 @@ from setproctitle import setproctitle
 from live_client.events import messenger, annotation
 from live_client.utils import timestamp
 from utils import loop, monitors
+from utils import logging
 
 __all__ = ['start']
 

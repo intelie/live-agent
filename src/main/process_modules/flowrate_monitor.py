@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import logging
 import requests
 from setproctitle import setproctitle
 
 from live_client.events import messenger
 from utils import loop
+from utils import logging
 
 
 __all__ = [

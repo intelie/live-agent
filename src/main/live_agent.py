@@ -3,13 +3,15 @@ import os
 import sys
 import signal
 import json
-import logging
 from multiprocessing import Process
+
+from eliot import start_action, to_file
 from setproctitle import setproctitle
 
 from runner.daemon import Daemon
 from process_modules import PROCESS_HANDLERS
 from live_client.connection import CONNECTION_HANDLERS
+from utils import logging
 from utils.filter import filter_dict
 
 __all__ = []
@@ -19,6 +21,7 @@ DEFAULT_PIDFILE = "/var/run/live-agent.pid"
 
 LOGFILE_ENVVAR = 'LOG_FILE'
 DEFAULT_LOG = "/var/log/live-agent.log"
+CONSOLE_LOG = "/tmp/live-agent.log"
 
 
 class LiveAgent(Daemon):
@@ -26,7 +29,9 @@ class LiveAgent(Daemon):
     def __init__(self, pidfile, settings_file):
         setproctitle('DDA:  Main process')
         logfile = get_logfile()
-        Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
+        with start_action(action_type=u"init_daemon"):
+            Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
+
         self.settings_file = settings_file
 
     def resolve_process_handler(self, process_type):
@@ -108,12 +113,13 @@ class LiveAgent(Daemon):
             process_func = process_settings.pop('process_func')
             output_info = process_settings.pop('output')
 
-            process = Process(
-                target=process_func,
-                args=(name, process_settings, output_info, settings)
-            )
-            running_processes.append(process)
-            process.start()
+            with start_action(action_type=u"name"):
+                process = Process(
+                    target=process_func,
+                    args=(name, process_settings, output_info, settings)
+                )
+                running_processes.append(process)
+                process.start()
 
         return running_processes
 
@@ -134,9 +140,11 @@ def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
-def get_logfile():
+def get_logfile(console=False):
     if LOGFILE_ENVVAR in os.environ:
         logfile = os.environ[LOGFILE_ENVVAR]
+    elif console:
+        logfile = CONSOLE_LOG
     else:
         logfile = DEFAULT_LOG
 
@@ -144,32 +152,8 @@ def get_logfile():
 
 
 def configure_log(console=False):
-    python_version = sys.version_info.major
-
-    log_level = logging.INFO
-    log_file = get_logfile()
-    log_format = '%(asctime)-15s %(levelname)8s [%(module)s] %(message)s'
-
-    if python_version == 3:
-        if console:
-            handlers = [logging.StreamHandler()]
-        else:
-            handlers = [logging.FileHandler(log_file)]
-
-        logging.basicConfig(
-            level=log_level,
-            format=log_format,
-            handlers=handlers,
-        )
-    else:
-        if console:
-            log_file = '/dev/stdout'
-
-        logging.basicConfig(
-            level=log_level,
-            format=log_format,
-            filename=log_file,
-        )
+    log_file = get_logfile(console)
+    to_file(open(log_file, "ab"))
 
 
 if __name__ == '__main__':

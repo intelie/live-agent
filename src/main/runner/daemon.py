@@ -1,21 +1,11 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import time
 import atexit
 from signal import SIGTERM
-import logging
 
-
-class LoggerWrapper:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message is not None and message != '\n':
-            self.level("_%s_" % message.strip())
-
-    def flush(self):
-        pass
+from utils import logging
 
 
 class Daemon:
@@ -106,10 +96,6 @@ class Daemon:
 
         # Start the daemon
         self.daemonize()
-
-        # Redirect standard outputs to log
-        sys.stdout = LoggerWrapper(logging.info)
-        sys.stderr = LoggerWrapper(logging.warn)
 
         self.run()
 

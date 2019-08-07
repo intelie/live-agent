@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import logging
 from chatterbot.conversation import Statement
+
+from utils import logging
 
 from .base_adapters import BaseBayesAdapter
 

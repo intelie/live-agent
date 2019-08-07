@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-import logging
 from multiprocessing import Process
 from functools import partial
+
+from eliot import start_action
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
+from utils import logging
 from live_client import query
 from live_client.events import messenger
 from live_client.utils.timestamp import get_timestamp
@@ -26,24 +28,25 @@ def maybe_extract_messages(event):
 
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
     for message in messages:
-        is_mention, message_text = maybe_mention(process_settings, message)
+        with start_action(action_type=u"process_message"):
+            is_mention, message_text = maybe_mention(process_settings, message)
 
-        shared_state = process_settings.get('state', {})
-        response = chatbot.get_response(
-            message_text,
-            additional_response_selection_parameters=shared_state
-        )
-
-        if response and (is_mention or response.confidence >= 0.75):
-            logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-            maybe_send_message(
-                process_name,
-                process_settings,
-                output_info,
-                room_id,
-                response
+            shared_state = process_settings.get('state', {})
+            response = chatbot.get_response(
+                message_text,
+                additional_response_selection_parameters=shared_state
             )
-            process_settings.update(state=shared_state)
+
+            if response and (is_mention or response.confidence >= 0.75):
+                logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
+                maybe_send_message(
+                    process_name,
+                    process_settings,
+                    output_info,
+                    room_id,
+                    response
+                )
+                process_settings.update(state=shared_state)
 
     messenger.join_room(process_name, process_settings, output_info)
 
@@ -170,10 +173,13 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
 
         else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
-            bot_process = Process(
-                target=start_chatbot,
-                args=(process_name, process_settings, output_info, room_id, sender, message)
-            )
+
+            with start_action(action_type=u"start_chatbot"):
+                bot_process = Process(
+                    target=start_chatbot,
+                    args=(process_name, process_settings, output_info, room_id, sender, message)
+                )
+
             bot_process.start()
             bots_registry[room_id] = bot_process
 
