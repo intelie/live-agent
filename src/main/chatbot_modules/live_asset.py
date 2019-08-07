@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from functools import partial
+
 from chatterbot.conversation import Statement  # NOQA
 
-from live_client.assets import list_assets
+from live_client.assets import list_assets, fetch_asset_settings
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
@@ -132,6 +134,28 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         'what is it'
     ] + LIST_EXAMPLES
 
+    def __init__(self, chatbot, **kwargs):
+        super().__init__(chatbot, **kwargs)
+
+        process_name = kwargs['process_name']
+        process_settings = kwargs['process_settings']
+        output_info = kwargs['output_info']
+
+        self.asset_fetcher = partial(
+            fetch_asset_settings,
+            process_name,
+            process_settings,
+            output_info
+        )
+
+    def only_enabled_curves(self, curves):
+        idle_curve = [{}]
+
+        return dict(
+            (name, value) for (name, value) in curves.items()
+            if value.get('options', idle_curve) != idle_curve
+        )
+
     def process(self, statement, additional_response_selection_parameters=None):
         self.load_state()
         self.confidence = self.get_confidence(statement)
@@ -150,8 +174,26 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             if len(selected_assets) == 1:
                 selected_asset = selected_assets[0]
-                response_text = 'Ok, the asset {} was selected'.format(
-                    selected_asset.get('name')
+
+                asset_name = selected_asset.get('name')
+                asset_id = selected_asset.get('id', 0)
+                asset_config = self.asset_fetcher(asset_id)
+
+                self.state = {
+                    'asset_id': asset_id,
+                    'asset_name': asset_name,
+                    'asset_config': asset_config,
+                }
+                self.share_state()
+
+                event_type = asset_config.get('event_type', None)
+                asset_curves = self.only_enabled_curves(asset_config.get('curves', {}))
+
+                text_templ = 'Ok, the asset {} was selected. \nIt uses the event_type "{}" and has {} curves'
+                response_text = text_templ.format(
+                    selected_asset.get('name'),
+                    event_type,
+                    len(asset_curves.keys()),
                 )
 
             elif len(selected_assets) > 1:
