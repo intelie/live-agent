@@ -7,6 +7,12 @@ from live_client.assets import list_assets, fetch_asset_settings
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
+from .constants import (
+    ASSET_LIST_EXAMPLES,
+    ASSET_SELECTION_EXAMPLES,
+    NEGATIVE_EXAMPLES,
+    AUTO_ANALYSIS_EXAMPLES,
+)
 
 
 __all__ = [
@@ -14,28 +20,6 @@ __all__ = [
     'AssetSelectionAdapter',
 ]
 
-
-LIST_EXAMPLES = [
-    "which assets exist",
-    "list the assets",
-    "list which assets exist",
-    "show the assets",
-    "show the asset list",
-    "show which assets exist",
-    "display the assets",
-    "display the asset list",
-    "display which assets exist",
-]
-SELECTION_EXAMPLES = [
-    "set as the active asset",
-    "set as the current asset",
-    "set this room's asset to",
-    "update this room's asset to",
-    "the current asset is",
-    "the new asset is",
-    "update the asset is",
-    "change the asset to",
-]
 ITEM_PREFIX = '\n  '
 
 
@@ -46,22 +30,8 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
 
     state_key = 'asset-list'
     default_state = {}
-    positive_examples = LIST_EXAMPLES
-    negative_examples = [
-        "what's up",
-        'what is the value',
-        'hey what value does it',
-        'do you know the value',
-        'do you know what is the value',
-        'it is time to go to sleep',
-        'what is your favorite color',
-        'what the color of the sky',
-        'i had a great time',
-        'thyme is my favorite herb',
-        'do you have time to look at my essay',
-        'how do you have the time to do all this'
-        'what is it'
-    ] + SELECTION_EXAMPLES
+    positive_examples = ASSET_LIST_EXAMPLES
+    negative_examples = NEGATIVE_EXAMPLES + ASSET_SELECTION_EXAMPLES + AUTO_ANALYSIS_EXAMPLES
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
@@ -119,22 +89,8 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         'asset_config',
     ]
     default_state = {}
-    positive_examples = SELECTION_EXAMPLES
-    negative_examples = [
-        "what's up",
-        'what is the value',
-        'hey what value does it',
-        'do you know the value',
-        'do you know what is the value',
-        'it is time to go to sleep',
-        'what is your favorite color',
-        'what the color of the sky',
-        'i had a great time',
-        'thyme is my favorite herb',
-        'do you have time to look at my essay',
-        'how do you have the time to do all this'
-        'what is it'
-    ] + LIST_EXAMPLES
+    positive_examples = ASSET_SELECTION_EXAMPLES
+    negative_examples = NEGATIVE_EXAMPLES + ASSET_LIST_EXAMPLES + AUTO_ANALYSIS_EXAMPLES
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
