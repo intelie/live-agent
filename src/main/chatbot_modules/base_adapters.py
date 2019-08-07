@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from chatterbot.logic import LogicAdapter
+from chatterbot.conversation import Statement
 
 __all__ = ['BaseBayesAdapter']
 
@@ -14,6 +15,7 @@ class BaseBayesAdapter(LogicAdapter):
     default_state = {}
     positive_examples = []
     negative_examples = []
+    confidence_threshold = 0.75
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
@@ -64,3 +66,57 @@ class BaseBayesAdapter(LogicAdapter):
             features['has({})'.format(letter)] = (letter in text.lower())
 
         return features
+
+    def get_confidence(self, statement):
+        my_features = self.analyze_features(statement.text.lower())
+        return self.classifier.classify(my_features)
+
+    def process(self, statement, additional_response_selection_parameters=None):
+        confidence = self.get_confidence(statement)
+
+        response = Statement(
+            text="{}: {}, confidence={}".format(
+                self.__class__.__name__, statement.search_text, confidence
+            )
+        )
+
+        self.confidence = response.confidence = confidence
+        return response
+
+    def can_process(self, statement):
+        confidence = self.get_confidence(statement)
+        return confidence > self.confidence_threshold
+
+
+class WithStateAdapter(LogicAdapter):
+    """
+    Superclass for adapters requiring an internal state per conversation
+    """
+
+    state_key = None
+    required_state = []
+    __state = {}
+
+    @property
+    def state(self):
+        return self.__state
+
+    @state.setter
+    def state(self, new_state):
+        self.__state = new_state
+
+    def load_state(self, additional_response_selection_parameters):
+        if additional_response_selection_parameters is None:
+            state_data = self.default_state
+        else:
+            state_data = additional_response_selection_parameters
+
+        self.state = {
+            self.state_key: state_data
+        }
+
+    def share_state(self, additional_response_selection_parameters):
+        if additional_response_selection_parameters is None:
+            return
+
+        additional_response_selection_parameters[self.state_key] = self.state
