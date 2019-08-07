@@ -20,7 +20,7 @@ class StateDebugAdapter(WithStateAdapter):
 
     def process(self, statement, additional_response_selection_parameters=None):
         response = Statement(
-            text=pformat(self.shared_state)
+            text=pformat(self.shared_state, depth=3)
         )
         response.confidence = 1
 

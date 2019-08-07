@@ -12,6 +12,7 @@ ASSET_LIST_EXAMPLES = [
     "display which assets exist",
 ]
 ASSET_SELECTION_EXAMPLES = [
+    "select the asset",
     "set as the active asset",
     "set as the current asset",
     "set this room's asset to",
