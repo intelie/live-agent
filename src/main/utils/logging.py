@@ -2,7 +2,9 @@
 import sys
 from functools import partial
 
-from eliot import Message, write_traceback
+from eliot import Message, write_traceback, add_destinations
+
+from live_client.connection.rest_input import send_event
 
 __all__ = [
     'debug',
@@ -10,6 +12,7 @@ __all__ = [
     'warn',
     'error',
     'exception',
+    'log_to_live',
 ]
 
 
@@ -26,3 +29,34 @@ debug = partial(log_message, severity='debug')
 info = partial(log_message, severity='info')
 warn = partial(log_message, severity='warn')
 error = partial(log_message, severity='error')
+
+
+def log_to_live(message, event_type=None, username=None, password=None, url=None):
+    log_output_settings = {
+        'url': url,
+        'username': username,
+        'password': password
+    }
+
+    message.update(__type=event_type)
+    send_event(message, log_output_settings)
+
+
+def setup_live_logging(settings):
+    log_settings = settings.get('output', {}).get('rest-log', {})
+
+    event_type = log_settings.get('event_type', 'dda_log')
+    url = log_settings.get('url')
+    username = log_settings.get('username')
+    password = log_settings.get('password')
+
+    if event_type and url and username and password:
+        add_destinations(
+            partial(
+                log_to_live,
+                event_type=event_type,
+                username=username,
+                password=password,
+                url=url
+            )
+        )

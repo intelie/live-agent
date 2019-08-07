@@ -33,7 +33,7 @@
       },
       "destination": {
         "name": "tcp",
-        "author": {"id": 1, "name": "🤖  Pretest monitor"},
+        "author": {"id": 2, "name": "🤖  Pretest monitor"},
         "room": {"id": "eia02b6rencfqrjfq5um06842o"},
         "dashboard": {"id": 17, "name": "Well 0: Pretest"},
         "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
@@ -70,7 +70,7 @@
       },
       "destination": {
         "name": "rest",
-        "author": {"id": 1, "name": "🤖  Pretest monitor"},
+        "author": {"id": 2, "name": "🤖  Pretest monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
         "dashboard": {"id": 18, "name": "Well 3: Pretest"},
         "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
@@ -106,7 +106,7 @@
       },
       "destination": {
         "name": "rest",
-        "author": {"id": 1, "name": "🤖  Sampling monitor"},
+        "author": {"id": 2, "name": "🤖  Sampling monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
         "dashboard": {"id": 21, "name": "Well 3: Sampling"},
         "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
@@ -127,7 +127,7 @@
       },
       "destination": {
         "name": "tcp",
-        "author": {"id": 1, "name": "🤖  Flowrate monitor"},
+        "author": {"id": 2, "name": "🤖  Flowrate monitor"},
         "room": {"id": "eia02b6rencfqrjfq5um06842o"}
       }
     },
@@ -146,7 +146,7 @@
       },
       "destination": {
         "name": "rest",
-        "author": {"id": 1, "name": "🤖  Flowrate monitor"},
+        "author": {"id": 2, "name": "🤖  Flowrate monitor"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
       }
     }
@@ -162,6 +162,12 @@
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "admin",
       "password": "admin"
+    },
+    "rest-log": {
+      "type": "rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "live-agent",
+      "password": "live-agent"
     }
   }
 }

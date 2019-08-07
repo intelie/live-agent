@@ -88,6 +88,12 @@
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "admin",
       "password": "admin"
+    },
+    "rest-log": {
+      "type": "rest",
+      "url": "http://localhost:8080/services/plugin-restinput/shell/",
+      "username": "live-agent",
+      "password": "live-agent"
     }
   }
 }

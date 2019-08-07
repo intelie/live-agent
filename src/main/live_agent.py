@@ -127,7 +127,9 @@ class LiveAgent(Daemon):
         try:
             with open(self.settings_file, 'r') as fd:
                 settings = json.load(fd)
-                self.start_processes(settings)
+
+            logging.setup_live_logging(settings)
+            self.start_processes(settings)
         except KeyboardInterrupt:
             logging.info('Execution interrupted')
             raise
