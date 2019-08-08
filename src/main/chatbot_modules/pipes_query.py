@@ -4,6 +4,7 @@ from chatterbot.conversation import Statement
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter
+from .constants import get_positive_examples, get_negative_examples
 
 
 __all__ = ['CurrentValueAdapter']
@@ -14,28 +15,14 @@ class CurrentValueAdapter(BaseBayesAdapter):
     Returns the current value for a mnemonic
     """
 
-    state_key = 'pipes_query'
+    state_key = 'pipes-current-value'
     required_state = [
         'event_type',
         'mnemonic'
     ]
     default_state = {}
-    positive_examples = [
-        'what is the value',
-        'hey what value does it',
-        'do you know the value',
-        'do you know what is the value',
-    ]
-    negative_examples = [
-        'it is time to go to sleep',
-        'what is your favorite color',
-        'what the color of the sky',
-        'i had a great time',
-        'thyme is my favorite herb',
-        'do you have time to look at my essay',
-        'how do you have the time to do all this'
-        'what is it'
-    ]
+    positive_examples = get_positive_examples(state_key)
+    negative_examples = get_negative_examples(state_key)
 
     def process(self, statement, additional_response_selection_parameters=None):
         logging.info('Search text for "{}": "{}"'.format(statement, statement.search_text))

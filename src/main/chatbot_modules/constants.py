@@ -50,15 +50,26 @@ FEATURES = {
     'auto-analysis': {
         'description': 'Run an analysis on a curve',
         'examples': [
-            'analyse a mnemonic',
-            'analyse a curve',
-            'run an analysis',
-            'execute an analysis',
-            'can you analyse a mnemonic',
-            'can you analyse a curve',
-            'can you run an analysis',
-            'can you execute an analysis',
+            'analyse the mnemonic',
+            'analyse the curve',
+            'analyse mnemonic',
+            'analyse curve',
+            'run an analysis on',
+            'execute an analysis on',
+            'can you analyse the mnemonic',
+            'can you analyse the curve',
+            'can you run an analysis on',
+            'can you execute an analysis on',
         ],
+    },
+    'pipes-current-value': {
+        'description': 'Returns the current value for a mnemonic',
+        'examples': [
+            'what is the value for',
+            'hey what value does it',
+            'do you know the value',
+            'do you know what is the value',
+        ]
     },
     'bot-features': {
         'examples': [
