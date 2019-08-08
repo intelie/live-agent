@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+from pprint import pformat
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
+
+from utils import logging
 
 __all__ = ['BaseBayesAdapter']
 
@@ -81,7 +84,17 @@ class BaseBayesAdapter(LogicAdapter):
 
     def can_process(self, statement):
         confidence = self.get_confidence(statement)
-        return confidence > self.confidence_threshold
+        can_process = confidence > self.confidence_threshold
+
+        logging.debug("{}: The 10 most informative features are: {}".format(
+            self.__class__.__name__,
+            ", ".join(
+                pformat(item)
+                for item in self.classifier.most_informative_features(n=10)
+            )
+        ))
+
+        return can_process
 
 
 class WithStateAdapter(LogicAdapter):

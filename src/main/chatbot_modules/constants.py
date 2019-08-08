@@ -65,10 +65,13 @@ FEATURES = {
     'pipes-current-value': {
         'description': 'Returns the current value for a mnemonic',
         'examples': [
-            'what is the value for',
-            'hey what value does it',
-            'do you know the value',
-            'do you know what is the value',
+            'curve',
+            'mnemonic',
+            'current value',
+            'what the value',
+            'what value does habe',
+            'you know the value',
+            'you know what is the value',
         ]
     },
     'bot-features': {
@@ -78,15 +81,15 @@ FEATURES = {
             '/commands',
             '!commands',
             'list your features',
-            'which features do you have',
-            'which tasks can you perform',
+            'which features  have',
+            'which tasks can perform',
             'how can you help me',
             'how can you help us',
             'what can you do',
-            'what can be done by you',
+            'what can be done you',
             'what is your job',
             'how can you help me',
-            'what are you capable of',
+            'what are you capable',
             'which capabilities do you have',
             'which powers do you have',
             'what is your superpower',
@@ -116,8 +119,7 @@ NEGATIVE_EXAMPLES = [
 ]
 
 
-FEATURES_DESCRIPTION_TEMPLATE = """
-My features are:
+FEATURES_DESCRIPTION_TEMPLATE = """My features are:
 {% for feature_data in features %}
   *{{ feature_data.description }}*
   Try saying: _{{ bot_name }}: {{ feature_data.examples|random }}_
