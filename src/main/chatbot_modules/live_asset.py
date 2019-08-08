@@ -7,12 +7,7 @@ from live_client.assets import list_assets, fetch_asset_settings
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
-from .constants import (
-    ASSET_LIST_EXAMPLES,
-    ASSET_SELECTION_EXAMPLES,
-    NEGATIVE_EXAMPLES,
-    AUTO_ANALYSIS_EXAMPLES,
-)
+from .constants import get_positive_examples, get_negative_examples
 
 
 __all__ = [
@@ -30,8 +25,8 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
 
     state_key = 'asset-list'
     default_state = {}
-    positive_examples = ASSET_LIST_EXAMPLES
-    negative_examples = NEGATIVE_EXAMPLES + ASSET_SELECTION_EXAMPLES + AUTO_ANALYSIS_EXAMPLES
+    positive_examples = get_positive_examples(state_key)
+    negative_examples = get_negative_examples(state_key)
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
@@ -82,15 +77,15 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     Interacts with the user to associate the chatbot to an asset
     """
 
-    state_key = 'live-asset'
+    state_key = 'selected-asset'
     required_state = [
         'asset_id',
         'asset_name',
         'asset_config',
     ]
     default_state = {}
-    positive_examples = ASSET_SELECTION_EXAMPLES
-    negative_examples = NEGATIVE_EXAMPLES + ASSET_LIST_EXAMPLES + AUTO_ANALYSIS_EXAMPLES
+    positive_examples = get_positive_examples(state_key)
+    negative_examples = get_negative_examples(state_key)
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)

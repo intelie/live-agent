@@ -5,12 +5,7 @@ from chatterbot.conversation import Statement
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter
-from .constants import (
-    AUTO_ANALYSIS_EXAMPLES,
-    NEGATIVE_EXAMPLES,
-    ASSET_LIST_EXAMPLES,
-    ASSET_SELECTION_EXAMPLES
-)
+from .constants import get_positive_examples, get_negative_examples
 
 """
   curl 'http://localhost:8080/services/plugin-liverig-vis/auto-analysis/analyse?asset=ReplayRig3&assetId=rig%2F19&channel=QDPRESS_PQ2%20-%20MRPQ%202%20Quartzdyne%20Pressure&qualifier=QDPRESS_PQ2&begin=1564586600270&end=1564586797098&computeFields=min&computeFields=max&computeFields=avg&computeFields=stdev&computeFields=linreg&computeFields=derivatives' \
@@ -69,8 +64,8 @@ class AutoAnalysisAdapter(BaseBayesAdapter):
     default_state = {
         'computeFields': ['min', 'max', 'avg', 'stdev', 'linreg', 'derivatives']
     }
-    positive_examples = AUTO_ANALYSIS_EXAMPLES
-    negative_examples = NEGATIVE_EXAMPLES + ASSET_LIST_EXAMPLES + ASSET_SELECTION_EXAMPLES
+    positive_examples = get_positive_examples(state_key)
+    negative_examples = get_negative_examples(state_key)
 
     def process(self, statement, additional_response_selection_parameters=None):
         state = additional_response_selection_parameters.get(
