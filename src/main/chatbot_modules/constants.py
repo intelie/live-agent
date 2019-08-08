@@ -60,6 +60,29 @@ FEATURES = {
             'can you execute an analysis',
         ],
     },
+    'bot-features': {
+        'examples': [
+            '/help',
+            '!help',
+            '/commands',
+            '!commands',
+            'list your features',
+            'which features do you have',
+            'which tasks can you perform',
+            'how can you help me',
+            'how can you help us',
+            'what can you do',
+            'what can be done by you',
+            'what is your job',
+            'how can you help me',
+            'what are you capable of',
+            'which capabilities do you have',
+            'which powers do you have',
+            'what is your superpower',
+            'which are your superpowers'
+            'which superpowers do you have',
+        ],
+    },
 }
 
 NEGATIVE_EXAMPLES = [
@@ -80,3 +103,12 @@ NEGATIVE_EXAMPLES = [
     'how do you have the time to do all this'
     'what is it',
 ]
+
+
+FEATURES_DESCRIPTION_TEMPLATE = """
+My features are:
+{% for feature_data in features %}
+  *{{ feature_data.description }}*
+  Try saying: _{{ bot_name }}: {{ feature_data.examples|random }}_
+{% endfor %}
+"""
