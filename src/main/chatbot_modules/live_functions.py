@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from functools import partial
 from chatterbot.conversation import Statement
 
-from utils import logging
+from live_client.assets import run_analysis
+from live_client.assets.utils import only_enabled_curves
 
-from .base_adapters import BaseBayesAdapter
+from .base_adapters import BaseBayesAdapter, WithStateAdapter
 from .constants import get_positive_examples, get_negative_examples
 
 """
@@ -46,8 +47,10 @@ from .constants import get_positive_examples, get_negative_examples
 
 __all__ = ['AutoAnalysisAdapter']
 
+ITEM_PREFIX = '\n  '
 
-class AutoAnalysisAdapter(BaseBayesAdapter):
+
+class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
     """
     Analyze a curve on live
     """
@@ -56,7 +59,6 @@ class AutoAnalysisAdapter(BaseBayesAdapter):
     required_state = [
         'assetId',
         'channel',
-        'qualifier',
         'begin',
         'end',
         'computeFields',
@@ -67,18 +69,64 @@ class AutoAnalysisAdapter(BaseBayesAdapter):
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
 
-    def process(self, statement, additional_response_selection_parameters=None):
-        state = additional_response_selection_parameters.get(
-            self.state_key, self.default_state
+    def __init__(self, chatbot, **kwargs):
+        super().__init__(chatbot, **kwargs)
+
+        process_name = kwargs['process_name']
+        process_settings = kwargs['process_settings']
+        output_info = kwargs['output_info']
+
+        self.analyzer = partial(
+            run_analysis,
+            process_name,
+            process_settings,
+            output_info
         )
 
-        logging.info('Search text for {}: {}'.format(statement, statement.search_text))
-        now = datetime.now()
+    def get_selected_asset(self):
+        return self.shared_state.get('selected-asset')
 
-        time_features = self.analyze_features(statement.text.lower())
-        confidence = self.classifier.classify(time_features)
-        response = Statement(text='The current time is ' + now.strftime('%I:%M %p'))
+    def get_asset_curves(self, asset):
+        all_curves = asset.get('asset_config', {}).get('curves', {})
+        return only_enabled_curves(all_curves)
 
-        response.confidence = confidence
-        response.state = state
+    def process(self, statement, additional_response_selection_parameters=None):
+        self.confidence = self.get_confidence(statement)
+
+        def curve_was_mentioned(curve):
+            return curve in statement.text
+
+        if self.confidence > self.confidence_threshold:
+            self.load_state()
+            selected_asset = self.get_selected_asset()
+            if selected_asset is None:
+                response_text = "No asset selected. Please select an asset first."
+            else:
+                curves = self.get_asset_curves(selected_asset)
+                selected_curves = list(
+                    filter(curve_was_mentioned, curves)
+                )
+
+                if len(selected_curves) == 1:
+                    selected_curve = selected_curves[0]
+                    response_text = "Ok, analysing curve {}".format(selected_curve)
+
+                    ##
+                    # Iniciar analise
+                    # Gerar annotation
+
+                elif len(selected_curves) > 1:
+                    response_text = "I didn't understand, which of the curves you chose?{}{}".format(
+                        ITEM_PREFIX,
+                        ITEM_PREFIX.join(selected_curves)
+                    )
+
+                else:
+                    response_text = "I didn't get the curve name. Can you repeat please?"
+
+            response = Statement(text=response_text)
+            response.confidence = self.confidence
+        else:
+            response = None
+
         return response

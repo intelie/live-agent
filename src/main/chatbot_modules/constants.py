@@ -36,6 +36,8 @@ FEATURES = {
     'selected-asset': {
         'description': 'Select an asset for this room',
         'examples': [
+            "activate asset",
+            "active asset"
             "select the asset",
             "set as the active asset",
             "set as the current asset",
@@ -50,6 +52,7 @@ FEATURES = {
     'auto-analysis': {
         'description': 'Run an analysis on a curve',
         'examples': [
+            'analyse',
             'analyse the mnemonic',
             'analyse the curve',
             'analyse mnemonic',

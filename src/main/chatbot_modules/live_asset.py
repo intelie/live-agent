@@ -4,6 +4,7 @@ from functools import partial
 from chatterbot.conversation import Statement  # NOQA
 
 from live_client.assets import list_assets, fetch_asset_settings
+from live_client.assets.utils import only_enabled_curves
 from utils import logging
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
@@ -101,14 +102,6 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             output_info
         )
 
-    def only_enabled_curves(self, curves):
-        idle_curve = [{}]
-
-        return dict(
-            (name, value) for (name, value) in curves.items()
-            if value.get('options', idle_curve) != idle_curve
-        )
-
     def process(self, statement, additional_response_selection_parameters=None):
         self.load_state()
         self.confidence = self.get_confidence(statement)
@@ -141,7 +134,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 self.share_state()
 
                 event_type = asset_config.get('event_type', None)
-                asset_curves = self.only_enabled_curves(asset_config.get('curves', {}))
+                asset_curves = only_enabled_curves(asset_config.get('curves', {}))
 
                 text_templ = 'Ok, the asset {} was selected. \nIt uses the event_type "{}" and has {} curves'
                 response_text = text_templ.format(
@@ -151,7 +144,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
 
             elif len(selected_assets) > 1:
-                response_text = "I didn't understand, which of there assets you chose?{}{}".format(
+                response_text = "I didn't understand, which of the assets you chose?{}{}".format(
                     ITEM_PREFIX,
                     ITEM_PREFIX.join(item.get('name') for item in selected_assets)
                 )
