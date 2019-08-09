@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+from uuid import uuid4
+
 from chatterbot.conversation import Statement
+from eliot import start_action
 
 from live_client.assets import run_analysis
 from live_client.assets.utils import only_enabled_curves
+from live_client.events import annotation
+from live_client.utils.timestamp import get_timestamp
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
 from .constants import get_positive_examples, get_negative_examples
+
 
 """
   curl 'http://localhost:8080/services/plugin-liverig-vis/auto-analysis/analyse?asset=ReplayRig3&assetId=rig%2F19&channel=QDPRESS_PQ2%20-%20MRPQ%202%20Quartzdyne%20Pressure&qualifier=QDPRESS_PQ2&begin=1564586600270&end=1564586797098&computeFields=min&computeFields=max&computeFields=avg&computeFields=stdev&computeFields=linreg&computeFields=derivatives' \
@@ -76,11 +82,17 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
         process_settings = kwargs['process_settings']
         output_info = kwargs['output_info']
 
+        self.room_id = kwargs['room_id']
         self.analyzer = partial(
             run_analysis,
             process_name,
             process_settings,
             output_info
+        )
+        self.annotator = partial(
+            annotation.create,
+            process_settings=process_settings,
+            output_info=output_info,
         )
 
     def get_selected_asset(self):
@@ -89,6 +101,35 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
     def get_asset_curves(self, asset):
         all_curves = asset.get('asset_config', {}).get('curves', {})
         return only_enabled_curves(all_curves)
+
+    def run_analysis(self, selected_asset, selected_curve):
+        analysis_results = self.analyzer(
+            assetId="{0[asset_type]}/{0[asset_id]}".format(selected_asset),
+            channel=selected_curve,
+            qualifier=selected_curve,
+            computeFields=self.default_state.get('computeFields'),
+            begin=get_timestamp() - 30000,
+            end=get_timestamp(),
+        )
+        success = False
+
+        if analysis_results:
+            # Gerar annotation
+            analysis_results.update(
+                __src=self.state_key,
+                uid=str(uuid4()),
+                createdAt=get_timestamp(),
+                room={'id': self.room_id}
+            )
+            with start_action(action_type='create annotation', curve=selected_curve):
+                self.annotator(
+                    '{} for {}'.format(self.state_key, selected_curve),
+                    analysis_results,
+                )
+
+            success = True
+
+        return success
 
     def process(self, statement, additional_response_selection_parameters=None):
         self.confidence = self.get_confidence(statement)
@@ -109,11 +150,15 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
 
                 if len(selected_curves) == 1:
                     selected_curve = selected_curves[0]
-                    response_text = "Ok, analysing curve {}".format(selected_curve)
 
                     ##
                     # Iniciar analise
-                    # Gerar annotation
+                    with start_action(action_type=self.state_key, curve=selected_curve):
+                        success = self.run_analysis(selected_asset, selected_curve)
+                        if success:
+                            response_text = "Analysis of curve {} finished".format(selected_curve)
+                        else:
+                            response_text = "Analysis of curve {} returned no data".format(selected_curve)
 
                 elif len(selected_curves) > 1:
                     response_text = "I didn't understand, which of the curves you chose?{}{}".format(

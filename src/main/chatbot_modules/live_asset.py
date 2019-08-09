@@ -81,6 +81,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     state_key = 'selected-asset'
     required_state = [
         'asset_id',
+        'asset_type',
         'asset_name',
         'asset_config',
     ]
@@ -128,6 +129,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
                 self.state = {
                     'asset_id': asset_id,
+                    'asset_type': asset_type,
                     'asset_name': asset_name,
                     'asset_config': asset_config,
                 }
