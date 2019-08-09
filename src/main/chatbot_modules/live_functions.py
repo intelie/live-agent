@@ -134,19 +134,41 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
     def process(self, statement, additional_response_selection_parameters=None):
         self.confidence = self.get_confidence(statement)
 
-        def curve_was_mentioned(curve):
-            return curve in statement.text
+        text_words = statement.text.split()
+
+        def curve_was_mentioned(curve, exact=True):
+            if exact:
+                result = any(
+                    filter(lambda word: curve == word, text_words)
+                )
+            else:
+                result = any(
+                    filter(lambda word: curve in word, text_words)
+                )
+
+            return result
 
         if self.confidence > self.confidence_threshold:
             self.load_state()
             selected_asset = self.get_selected_asset()
+
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
                 curves = self.get_asset_curves(selected_asset)
-                selected_curves = list(
-                    filter(curve_was_mentioned, curves)
-                )
+
+                # Try to find an exact mention to a curve
+                selected_curves = [
+                    item for item in curves
+                    if curve_was_mentioned(item, exact=True)
+                ]
+
+                # Failing that, try a more lenient search
+                if not selected_curves:
+                    selected_curves = [
+                        item for item in curves
+                        if curve_was_mentioned(item, exact=False)
+                    ]
 
                 if len(selected_curves) == 1:
                     selected_curve = selected_curves[0]
