@@ -12,7 +12,7 @@
         "password": "admin"
       },
       "destination": {
-        "name": "rest-agent",
+        "name": "tcp",
         "author": {"id": 2, "name": "Olive"}
       }
     }

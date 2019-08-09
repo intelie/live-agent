@@ -116,7 +116,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
         if analysis_results:
             # Gerar annotation
             analysis_results.update(
-                __src=self.state_key,
+                __src='auto-analysis',
                 uid=str(uuid4()),
                 createdAt=get_timestamp(),
                 room={'id': self.room_id}
