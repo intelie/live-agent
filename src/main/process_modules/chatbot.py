@@ -61,10 +61,9 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
     for message in messages:
         with start_action(action_type=u"process_message"):
             is_mention, message_text = maybe_mention(process_settings, message)
-
             response = chatbot.get_response(message_text)
 
-            if response and (is_mention or response.confidence >= 0.75):
+            if response and is_mention:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
                 maybe_send_message(
                     process_name,
