@@ -21,7 +21,6 @@ def log_message(message, severity=None):
 
 
 def exception(message):
-    log_message(message, severity='exception')
     write_traceback(exc_info=sys.exc_info())
 
 
