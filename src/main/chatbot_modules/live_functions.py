@@ -179,6 +179,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
                         success = self.run_analysis(selected_asset, selected_curve)
                         if success:
                             response_text = "Analysis of curve {} finished".format(selected_curve)
+                            self.confidence = 1  # Otherwise another answer might be chosen
                         else:
                             response_text = "Analysis of curve {} returned no data".format(selected_curve)
 
