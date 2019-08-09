@@ -20,7 +20,9 @@ def get_negative_examples(key):
 
 FEATURES = {
     'asset-list': {
+        'enabled': True,
         'description': 'List the assets available',
+        'usage_example': 'show me the list of assets',
         'examples': [
             "which assets exist",
             "list the assets",
@@ -34,7 +36,9 @@ FEATURES = {
         ],
     },
     'selected-asset': {
+        'enabled': True,
         'description': 'Select an asset for this room',
+        'usage_example': 'activate the asset {asset name}',
         'examples': [
             "activate asset",
             "active asset"
@@ -50,7 +54,9 @@ FEATURES = {
         ],
     },
     'auto-analysis': {
+        'enabled': True,
         'description': 'Run an analysis on a curve',
+        'usage_example': 'run an analysis on {curve name}',
         'examples': [
             'analyse',
             'analyse the mnemonic',
@@ -66,7 +72,9 @@ FEATURES = {
         ],
     },
     'pipes-current-value': {
+        'enabled': False,
         'description': 'Returns the current value for a mnemonic',
+        'usage_example': 'what is the current value for {curve name}',
         'examples': [
             'curve',
             'mnemonic',
@@ -125,6 +133,6 @@ NEGATIVE_EXAMPLES = [
 FEATURES_DESCRIPTION_TEMPLATE = """My features are:
 {% for feature_data in features %}
   *{{ feature_data.description }}*
-  Try saying: _{{ bot_name }}: {{ feature_data.examples|random }}_
+  Try: _"{{ bot_name }}, {{ feature_data.usage_example }}"_
 {% endfor %}
 """

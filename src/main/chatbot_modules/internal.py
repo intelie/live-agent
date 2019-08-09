@@ -29,7 +29,12 @@ class BotFeaturesAdapter(BaseBayesAdapter):
         template = Template(FEATURES_DESCRIPTION_TEMPLATE)
         response_text = template.render(
             bot_name=self.chatbot.name,
-            features=[item for item in FEATURES.values() if 'description' in item]
+            features=[
+                item for item in FEATURES.values()
+                if item.get('enabled') and (
+                    'description' in item and 'usage_example' in item
+                )
+            ]
         )
         return response_text
 
