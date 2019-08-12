@@ -29,6 +29,9 @@ def maybe_send_chat_message(event_type, chat_data, last_timestamp, next_timestam
         if last_timestamp < item_index <= next_timestamp:
             items_to_send.append(item)
 
+    logging.debug("{}: {} messages between {} and {}".format(
+        event_type, len(items_to_send), last_timestamp, next_timestamp
+    ))
 
     for item in items_to_send:
         message = item.get('MESSAGE')

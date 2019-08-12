@@ -33,7 +33,9 @@
       "type": "rest",
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "live-agent",
-      "password": "live-agent"
+      "password": "live-agent",
+      "level": "debug",
+      "event_type": "dda_log"
     }
   }
 }

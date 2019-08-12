@@ -15,6 +15,14 @@ __all__ = [
     'log_to_live',
 ]
 
+LOG_LEVELS = [
+    'DEBUG',
+    'INFO',
+    'WARN',
+    'ERROR',
+    'EXCEPTION',
+]
+
 
 def log_message(message, severity=None):
     return Message.log(message_type=severity, message=message)
@@ -30,15 +38,25 @@ warn = partial(log_message, severity='warn')
 error = partial(log_message, severity='error')
 
 
-def log_to_live(message, event_type=None, username=None, password=None, url=None):
-    log_output_settings = {
-        'url': url,
-        'username': username,
-        'password': password
-    }
+def log_to_live(message, event_type=None, username=None, password=None, url=None, min_level=None):
+    if (min_level is None) or (min_level.upper() not in LOG_LEVELS):
+        min_level = 'INFO'
+    else:
+        min_level = min_level.upper()
 
-    message.update(__type=event_type)
-    send_event(message, log_output_settings)
+    min_level_idx = LOG_LEVELS.index(min_level)
+    message_severity = message.get('message_type', min_level)
+    message_severity_idx = LOG_LEVELS.index(message_severity.upper())
+
+    if message_severity_idx >= min_level_idx:
+        log_output_settings = {
+            'url': url,
+            'username': username,
+            'password': password
+        }
+
+        message.update(__type=event_type)
+        send_event(message, log_output_settings)
 
 
 def setup_live_logging(settings):
@@ -48,6 +66,7 @@ def setup_live_logging(settings):
     url = log_settings.get('url')
     username = log_settings.get('username')
     password = log_settings.get('password')
+    level = log_settings.get('level')
 
     if event_type and url and username and password:
         add_destinations(
@@ -56,6 +75,7 @@ def setup_live_logging(settings):
                 event_type=event_type,
                 username=username,
                 password=password,
-                url=url
+                url=url,
+                min_level=level
             )
         )
