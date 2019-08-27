@@ -10,6 +10,7 @@ from setproctitle import setproctitle
 from utils import logging
 from live_client import query
 from live_client.events import messenger
+from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
 
 
@@ -41,27 +42,28 @@ def share_state(container, state_key=None, state_data=None):
 # Chat message handling
 def maybe_extract_messages(event):
     event_content = event.get('data', {}).get('content', [])
-    return filter(
-        lambda item: (item.get('__type') == '__message') and (item.get('message') is not None),
-        event_content
-    )
+
+    return [
+        Message(item)
+        for item in event_content
+        if (item.get('__type') == '__message') and (item.get('message') is not None)
+    ]
 
 
 def maybe_mention(process_settings, message):
     bot_alias = process_settings.get('alias', 'Intelie')
-    message_text = message.get('message')
-    is_mention = bot_alias in message_text
+    is_mention = message.has_mention(bot_alias)
     if is_mention:
-        message_text = message_text.replace(bot_alias, '')
+        message = message.remove_mentions(bot_alias)
 
-    return is_mention, message_text
+    return is_mention, message
 
 
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
     for message in messages:
         with start_action(action_type=u"process_message"):
-            is_mention, message_text = maybe_mention(process_settings, message)
-            response = chatbot.get_response(message_text)
+            is_mention, message = maybe_mention(process_settings, message)
+            response = chatbot.get_response(message)
 
             if response and is_mention:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
