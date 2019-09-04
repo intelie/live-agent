@@ -71,6 +71,15 @@ FEATURES = {
             'can you execute an analysis on',
         ],
     },
+    'etim-query': {
+        'enabled': True,
+        'description': 'Query the value for a curve at an specific ETIM value',
+        'usage_example': 'what is the value for {curve name} at ETIM 1500?',
+        'examples': [
+            'value at ETIM',
+            'what value for when ETIM',
+        ],
+    },
     'pipes-current-value': {
         'enabled': False,
         'description': 'Returns the current value for a mnemonic',
@@ -80,7 +89,7 @@ FEATURES = {
             'mnemonic',
             'current value',
             'what the value',
-            'what value does habe',
+            'what value does have',
             'you know the value',
             'you know what is the value',
         ]

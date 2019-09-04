@@ -133,7 +133,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
             'chatbot_modules.live_asset.AssetListAdapter',
             'chatbot_modules.live_asset.AssetSelectionAdapter',
             'chatbot_modules.live_functions.AutoAnalysisAdapter',
-            'chatbot_modules.pipes_query.CurrentValueAdapter',
+            'chatbot_modules.pipes_query.EtimQueryAdapter',
         ],
         read_only=True,
         functions={

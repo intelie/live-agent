@@ -3,6 +3,7 @@ from pprint import pformat
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
 
+from live_client.assets.utils import only_enabled_curves
 from utils import logging
 
 __all__ = ['BaseBayesAdapter']
@@ -145,3 +146,51 @@ class WithStateAdapter(LogicAdapter):
     @state.setter
     def state(self, new_state):
         self.__state = new_state
+
+
+class WithAssetAdapter(WithStateAdapter):
+
+    def get_selected_asset(self):
+        return self.shared_state.get('selected-asset', {})
+
+    def get_asset_curves(self, asset):
+        all_curves = asset.get('asset_config', {}).get('curves', {})
+        return only_enabled_curves(all_curves)
+
+    def curve_was_mentioned(self, curve, statement, exact=True, match_case=True):
+        statement_text = statement.text
+
+        if match_case is False:
+            statement_text = statement_text.upper()
+            curve = curve.upper()
+
+        text_words = statement_text.split()
+        if exact:
+            result = any(
+                filter(lambda word: curve == word, text_words)
+            )
+        else:
+            result = curve in statement_text
+
+        return result
+
+    def list_mentioned_curves(self, statement):
+        selected_asset = self.get_selected_asset()
+        curves = self.get_asset_curves(selected_asset)
+
+        # First, try a more lenient search
+        mentions = dict(
+            (item, {'exact': False})
+            for item in curves
+            if self.curve_was_mentioned(item, statement, exact=False, match_case=False)
+        )
+
+        # Then try to find an exact mention of the curves
+        mentions.update(
+            dict(
+                (item, {'exact': True})
+                for item in curves
+                if self.curve_was_mentioned(item, statement, exact=True)
+            )
+        )
+        return mentions

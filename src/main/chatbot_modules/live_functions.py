@@ -6,11 +6,10 @@ from chatterbot.conversation import Statement
 from eliot import start_action
 
 from live_client.assets import run_analysis
-from live_client.assets.utils import only_enabled_curves
 from live_client.events import annotation
 from live_client.utils.timestamp import get_timestamp
 
-from .base_adapters import BaseBayesAdapter, WithStateAdapter
+from .base_adapters import BaseBayesAdapter, WithAssetAdapter
 from .constants import get_positive_examples, get_negative_examples
 
 
@@ -56,7 +55,7 @@ __all__ = ['AutoAnalysisAdapter']
 ITEM_PREFIX = '\n  '
 
 
-class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
+class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
     """
     Analyze a curve on live
     """
@@ -95,13 +94,6 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
             output_info=output_info,
         )
 
-    def get_selected_asset(self):
-        return self.shared_state.get('selected-asset')
-
-    def get_asset_curves(self, asset):
-        all_curves = asset.get('asset_config', {}).get('curves', {})
-        return only_enabled_curves(all_curves)
-
     def run_analysis(self, selected_asset, selected_curve):
         analysis_results = self.analyzer(
             assetId="{0[asset_type]}/{0[asset_id]}".format(selected_asset),
@@ -134,20 +126,6 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
     def process(self, statement, additional_response_selection_parameters=None):
         self.confidence = self.get_confidence(statement)
 
-        text_words = statement.text.split()
-
-        def curve_was_mentioned(curve, exact=True):
-            if exact:
-                result = any(
-                    filter(lambda word: curve == word, text_words)
-                )
-            else:
-                result = any(
-                    filter(lambda word: curve in word, text_words)
-                )
-
-            return result
-
         if self.confidence > self.confidence_threshold:
             self.load_state()
             selected_asset = self.get_selected_asset()
@@ -155,20 +133,17 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithStateAdapter):
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
-                curves = self.get_asset_curves(selected_asset)
+                mentioned_curves = self.list_mentioned_curves(statement)
 
                 # Try to find an exact mention to a curve
                 selected_curves = [
-                    item for item in curves
-                    if curve_was_mentioned(item, exact=True)
+                    name for name, match_data in mentioned_curves.items()
+                    if match_data.get('exact') is True
                 ]
 
-                # Failing that, try a more lenient search
+                # Failing that, use all matches
                 if not selected_curves:
-                    selected_curves = [
-                        item for item in curves
-                        if curve_was_mentioned(item, exact=False)
-                    ]
+                    selected_curves = list(mentioned_curves.keys())
 
                 if len(selected_curves) == 1:
                     selected_curve = selected_curves[0]
