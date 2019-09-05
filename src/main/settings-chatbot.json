@@ -5,15 +5,15 @@
     "chatbot": {
       "type": "chatterbot",
       "enabled": true,
-      "alias": "Olive",
+      "alias": "Oliver",
       "live": {
         "host": "http://localhost:8080",
         "username": "admin",
         "password": "admin"
       },
       "destination": {
-        "name": "tcp",
-        "author": {"id": 2, "name": "Olive"}
+        "name": "rest-agent",
+        "author": {"id": 2, "name": "Oliver"}
       }
     }
   },

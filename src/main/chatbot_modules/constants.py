@@ -18,6 +18,7 @@ def get_negative_examples(key):
 
     return examples
 
+
 FEATURES = {
     'asset-list': {
         'enabled': True,

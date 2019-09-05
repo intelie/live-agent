@@ -119,7 +119,13 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
             )
 
-            if len(selected_assets) == 1:
+            num_selected_assets = len(selected_assets)
+
+            if num_selected_assets == 0:
+                self.confidence_threshold *= 0.7
+                response_text = "I didn't get the asset name. Can you repeat please?"
+
+            elif num_selected_assets == 1:
                 selected_asset = selected_assets[0]
 
                 asset_name = selected_asset.get('name')
@@ -138,21 +144,21 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 event_type = asset_config.get('event_type', None)
                 asset_curves = only_enabled_curves(asset_config.get('curves', {}))
 
-                text_templ = 'Ok, the asset {} was selected. \nIt uses the event_type "{}" and has {} curves'
+                text_templ = (
+                    'Ok, the asset {} was selected.'
+                    '\nIt uses the event_type "{}" and has {} curves'
+                )
                 response_text = text_templ.format(
                     selected_asset.get('name'),
                     event_type,
                     len(asset_curves.keys()),
                 )
 
-            elif len(selected_assets) > 1:
+            elif num_selected_assets > 1:
                 response_text = "I didn't understand, which of the assets you chose?{}{}".format(
                     ITEM_PREFIX,
                     ITEM_PREFIX.join(item.get('name') for item in selected_assets)
                 )
-
-            else:
-                response_text = "I didn't get the asset name. Can you repeat please?"
 
             response = Statement(text=response_text)
             response.confidence = self.confidence

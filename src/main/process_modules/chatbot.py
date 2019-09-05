@@ -96,13 +96,11 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
 
 ##
 # Room Bot initialization
-def train_bot(process_name, chatbot):
+def train_bot(process_name, chatbot, language='english'):
     trainer = ChatterBotCorpusTrainer(chatbot)
-    trainer.train('chatterbot.corpus.english.conversations')
-    trainer.train('chatterbot.corpus.english.greetings')
-    trainer.train('chatterbot.corpus.english.humor')
-    # trainer.train('chatterbot.corpus.portuguese.conversations')
-    # trainer.train('chatterbot.corpus.portuguese.greetings')
+    trainer.train(f'chatterbot.corpus.{language}.conversations')
+    trainer.train(f'chatterbot.corpus.{language}.greetings')
+    trainer.train(f'chatterbot.corpus.{language}.humor')
 
 
 def start_chatbot(process_name, process_settings, output_info, room_id, sender, first_message):
@@ -146,9 +144,9 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
         output_info=output_info,
         room_id=room_id,
     )
-    train_bot(process_name, chatbot)
+    # train_bot(process_name, chatbot)
 
-    room_query_template = '(__message|__annotations) => @filter room->id=="{}" && author->name!="{}"'
+    room_query_template = '__message => @filter room->id=="{}" && author->name!="{}"'
     room_query = room_query_template.format(room_id, bot_alias)
 
     results_process, results_queue = run_query_func(

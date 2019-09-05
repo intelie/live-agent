@@ -133,19 +133,13 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
-                mentioned_curves = self.list_mentioned_curves(statement)
+                selected_curves = self.find_selected_curves(statement)
+                num_selected_curves = len(selected_curves)
 
-                # Try to find an exact mention to a curve
-                selected_curves = [
-                    name for name, match_data in mentioned_curves.items()
-                    if match_data.get('exact') is True
-                ]
+                if num_selected_curves == 0:
+                    response_text = "I didn't get the curve name. Can you repeat please?"
 
-                # Failing that, use all matches
-                if not selected_curves:
-                    selected_curves = list(mentioned_curves.keys())
-
-                if len(selected_curves) == 1:
+                elif num_selected_curves == 1:
                     selected_curve = selected_curves[0]
 
                     ##
@@ -156,16 +150,15 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
                             response_text = "Analysis of curve {} finished".format(selected_curve)
                             self.confidence = 1  # Otherwise another answer might be chosen
                         else:
-                            response_text = "Analysis of curve {} returned no data".format(selected_curve)
+                            response_text = "Analysis of curve {} returned no data".format(
+                                selected_curve
+                            )
 
-                elif len(selected_curves) > 1:
-                    response_text = "I didn't understand, which of the curves you chose?{}{}".format(
+                else:
+                    response_text = "I'm sorry, which of the curves you chose?{}{}".format(
                         ITEM_PREFIX,
                         ITEM_PREFIX.join(selected_curves)
                     )
-
-                else:
-                    response_text = "I didn't get the curve name. Can you repeat please?"
 
             response = Statement(text=response_text)
             response.confidence = self.confidence

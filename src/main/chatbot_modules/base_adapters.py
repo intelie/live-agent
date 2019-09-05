@@ -2,11 +2,13 @@
 from pprint import pformat
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
+from eliot import start_action
+import nltk
 
 from live_client.assets.utils import only_enabled_curves
 from utils import logging
 
-__all__ = ['BaseBayesAdapter']
+__all__ = []
 
 
 class BaseBayesAdapter(LogicAdapter):
@@ -100,6 +102,21 @@ class BaseBayesAdapter(LogicAdapter):
         return can_process
 
 
+class NLPAdapter(LogicAdapter):
+
+    def __init__(self, chatbot, **kwargs):
+        super().__init__(chatbot, **kwargs)
+        nltk.download('maxent_ne_chunker')
+        nltk.download('words')
+
+    def tokenize(self, statement):
+        return nltk.word_tokenize(statement.text)
+
+    def pos_tag(self, statement):
+        tokens = self.tokenize(statement)
+        return nltk.pos_tag(tokens)
+
+
 class WithStateAdapter(LogicAdapter):
     """
     Superclass for adapters requiring an internal state per conversation
@@ -152,6 +169,10 @@ class WithStateAdapter(LogicAdapter):
 
 class WithAssetAdapter(WithStateAdapter):
 
+    def __init__(self, chatbot, **kwargs):
+        super().__init__(chatbot, **kwargs)
+        self.query_runner = kwargs.get('functions', {})['run_query']
+
     def get_selected_asset(self):
         return self.shared_state.get('selected-asset', {})
 
@@ -196,3 +217,47 @@ class WithAssetAdapter(WithStateAdapter):
             )
         )
         return mentions
+
+    def find_selected_curves(self, statement):
+        index_curve = getattr(self, 'index_curve', None)
+
+        if index_curve is None:
+            mentioned_curves = self.list_mentioned_curves(statement)
+        else:
+            mentioned_curves = dict(
+                (name, data)
+                for name, data in self.list_mentioned_curves(statement).items()
+                if name != index_curve
+            )
+
+        # Try to find an exact mention to a curve
+        selected_curves = [
+            name for name, match_data in mentioned_curves.items()
+            if match_data.get('exact') is True
+        ]
+
+        # Failing that, use all matches
+        if not selected_curves:
+            selected_curves = list(mentioned_curves.keys())
+
+        return selected_curves
+
+    def run_query(self, query_str, realtime=False, span=None, callback=None):
+        with start_action(action_type=self.state_key, query=query_str):
+            results_process, results_queue = self.query_runner(
+                query_str,
+                realtime=realtime,
+                span=span,
+            )
+
+            result = []
+            while True:
+                event = results_queue.get()
+                event_data = event.get('data', {})
+                event_type = event_data.get('type')
+                if event_type == 'event':
+                    result = event_data.get('content', [])
+                elif event_type != 'stop':
+                    continue
+
+                return callback(result)
