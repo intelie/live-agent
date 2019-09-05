@@ -116,47 +116,53 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
     def can_process(self, statement):
         mentioned_curves = self.list_mentioned_curves(statement)
-        return (
-            (len(mentioned_curves) > 1) and
-            self.index_curve in mentioned_curves and
-            super().can_process(statement)
-        )
+        is_valid_query = (len(mentioned_curves) > 1) and (self.index_curve in mentioned_curves)
+        return is_valid_query and super().can_process(statement)
+
+    def process_indexed_query(self, statement, selected_asset, confidence=0):
+        selected_curves = self.find_selected_curves(statement)
+        num_selected_curves = len(selected_curves)
+        selected_value = self.find_index_value(statement)
+
+        if selected_value is None:
+            response_text = "I didn't get which ETIM value you want me to use as reference."
+
+        elif num_selected_curves == 0:
+            response_text = "I didn't get the curve name. Can you repeat please?"
+
+        elif num_selected_curves == 1:
+            selected_curve = selected_curves[0]
+
+            with start_action(action_type=self.state_key, curve=selected_curve):
+                response_text = self.run_query(selected_curve, selected_value)
+                confidence = 1
+
+        else:
+            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+                ITEM_PREFIX,
+                ITEM_PREFIX.join(selected_curves)
+            )
+
+        return response_text, confidence
 
     def process(self, statement, additional_response_selection_parameters=None):
-        self.confidence = self.get_confidence(statement)
+        confidence = self.get_confidence(statement)
         response = None
 
-        if self.confidence > self.confidence_threshold:
+        if confidence > self.confidence_threshold:
             self.load_state()
             selected_asset = self.get_selected_asset()
 
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
-                selected_curves = self.find_selected_curves(statement)
-                num_selected_curves = len(selected_curves)
-                selected_value = self.find_index_value(statement)
-
-                if selected_value is None:
-                    response_text = "I didn't get which ETIM value you want me to use as reference."
-
-                elif num_selected_curves == 0:
-                    response_text = "I didn't get the curve name. Can you repeat please?"
-
-                elif num_selected_curves == 1:
-                    selected_curve = selected_curves[0]
-
-                    with start_action(action_type=self.state_key, curve=selected_curve):
-                        response_text = self.run_query(selected_curve, selected_value)
-                        self.confidence = 1
-
-                else:
-                    response_text = "I'm sorry, which of the curves you chose?{}{}".format(
-                        ITEM_PREFIX,
-                        ITEM_PREFIX.join(selected_curves)
-                    )
+                response_text, confidence = self.process_indexed_query(
+                    statement,
+                    selected_asset,
+                    confidence=confidence,
+                )
 
             response = Statement(text=response_text)
-            response.confidence = self.confidence
+            response.confidence = confidence
 
         return response

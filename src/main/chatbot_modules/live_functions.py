@@ -9,8 +9,8 @@ from live_client.assets import run_analysis
 from live_client.events import annotation
 from live_client.utils.timestamp import get_timestamp
 
-from .base_adapters import BaseBayesAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples
+from .base_adapters import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
+from .constants import get_positive_examples, get_negative_examples, TIMESTAMP_KEY
 
 
 """
@@ -55,12 +55,13 @@ __all__ = ['AutoAnalysisAdapter']
 ITEM_PREFIX = '\n  '
 
 
-class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
+class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
     """
     Analyze a curve on live
     """
 
     state_key = 'auto-analysis'
+    index_curve = 'ETIM'
     required_state = [
         'assetId',
         'channel',
@@ -94,16 +95,37 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
             output_info=output_info,
         )
 
-    def run_analysis(self, selected_asset, selected_curve):
+    def find_index_value(self, statement):
+        tagged_words = self.pos_tag(statement)
+
+        # Find out where the {index_curve} was mentioned
+        # and look for a number after the mention
+        value = None
+        index_mentioned = False
+        for word, tag in tagged_words:
+            if word == self.index_curve:
+                index_mentioned = True
+
+            if index_mentioned and (tag == 'CD'):  # CD: Cardinal number
+                value = word
+                break
+
+        return value
+
+    def run_analysis(self, asset, curve, begin=None, duration=30000, confidence=0):
+        if begin is None:
+            begin = get_timestamp() - duration
+
+        end = begin + duration
+
         analysis_results = self.analyzer(
-            assetId="{0[asset_type]}/{0[asset_id]}".format(selected_asset),
-            channel=selected_curve,
-            qualifier=selected_curve,
+            assetId="{0[asset_type]}/{0[asset_id]}".format(asset),
+            channel=curve,
+            qualifier=curve,
             computeFields=self.default_state.get('computeFields'),
-            begin=get_timestamp() - 30000,
-            end=get_timestamp(),
+            begin=begin,
+            end=end,
         )
-        success = False
 
         if analysis_results:
             # Gerar annotation
@@ -113,55 +135,159 @@ class AutoAnalysisAdapter(BaseBayesAdapter, WithAssetAdapter):
                 createdAt=get_timestamp(),
                 room={'id': self.room_id}
             )
-            with start_action(action_type='create annotation', curve=selected_curve):
+            with start_action(action_type='create annotation', curve=curve):
                 self.annotator(
-                    '{} for {}'.format(self.state_key, selected_curve),
+                    '{} for {}'.format(self.state_key, curve),
                     analysis_results,
                 )
 
-            success = True
+            response_text = "Analysis of curve {} finished".format(curve)
+            confidence = 1  # Otherwise another answer might be chosen
 
-        return success
+        else:
+            response_text = "Analysis of curve {} returned no data".format(curve)
+
+        return response_text, confidence
+
+    def run_query(self, asset, curve, target_value, confidence=0):
+        selected_asset = self.get_selected_asset()
+        if selected_asset:
+            asset_config = selected_asset.get('asset_config', {})
+
+            value_query = '''
+            {event_type} .flags:nocount
+            => {target_curve}:map():json() as {target_curve}, {index_curve}->value as {index_curve}
+            => @filter({index_curve}#:round() == {target_value})
+            '''.format(
+                event_type=asset_config['filter'],
+                target_curve=curve,
+                index_curve=self.index_curve,
+                target_value=target_value,
+            )
+
+            return super().run_query(
+                value_query,
+                realtime=False,
+                span="since ts 0 #partial='1'",
+                callback=partial(
+                    self.prepare_analysis,
+                    asset=asset,
+                    curve=curve,
+                    target_value=target_value,
+                    confidence=confidence,
+                )
+            )
+
+    def prepare_analysis(self, content, asset=None, curve=None, target_value=None, confidence=0):
+        if not content:
+            response_text = 'No information about {curve} at {index_curve} {target_value}'.format(
+                curve=curve,
+                index_curve=self.index_curve,
+                target_value=target_value,
+            )
+
+        else:
+            for item in content:
+                timestamp = int(item.get(TIMESTAMP_KEY, 0)) or None
+
+                with start_action(action_type=self.state_key, curve=curve, begin=timestamp):
+                    response_text, confidence = self.run_analysis(
+                        asset,
+                        curve,
+                        begin=timestamp,
+                        confidence=confidence
+                    )
+
+        return response_text, confidence
+
+    def process_direct_analysis(self, statement, selected_asset, confidence=0, begin=None):
+        selected_curves = self.find_selected_curves(statement)
+        num_selected_curves = len(selected_curves)
+
+        if num_selected_curves == 1:
+            selected_curve = selected_curves[0]
+
+            ##
+            # Iniciar analise
+            with start_action(action_type=self.state_key, curve=selected_curve):
+                response_text, confidence = self.run_analysis(
+                    selected_asset,
+                    selected_curve,
+                    confidence=confidence
+                )
+
+        elif num_selected_curves == 0:
+            response_text = "I didn't get the curve name. Can you repeat please?"
+
+        else:
+            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+                ITEM_PREFIX,
+                ITEM_PREFIX.join(selected_curves)
+            )
+
+        return response_text, confidence
+
+    def process_indexed_analysis(self, statement, selected_asset, confidence=0):
+        selected_curves = self.find_selected_curves(statement)
+        num_selected_curves = len(selected_curves)
+        selected_value = self.find_index_value(statement)
+
+        if selected_value is None:
+            response_text = "I didn't get which ETIM value you want me to use as reference."
+
+        elif num_selected_curves == 0:
+            response_text = "I didn't get the curve name. Can you repeat please?"
+
+        elif num_selected_curves == 1:
+            selected_curve = selected_curves[0]
+
+            with start_action(action_type=self.state_key, curve=selected_curve):
+                response_text, confidence = self.run_query(
+                    selected_asset,
+                    selected_curve,
+                    selected_value,
+                    confidence=confidence,
+                )
+
+        else:
+            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+                ITEM_PREFIX,
+                ITEM_PREFIX.join(selected_curves)
+            )
+
+        return response_text, confidence
 
     def process(self, statement, additional_response_selection_parameters=None):
-        self.confidence = self.get_confidence(statement)
+        confidence = self.get_confidence(statement)
 
-        if self.confidence > self.confidence_threshold:
+        if confidence > self.confidence_threshold:
             self.load_state()
             selected_asset = self.get_selected_asset()
 
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
-                selected_curves = self.find_selected_curves(statement)
-                num_selected_curves = len(selected_curves)
+                mentioned_curves = self.list_mentioned_curves(statement)
+                has_index_mention = (
+                    (len(mentioned_curves) > 1) and (self.index_curve in mentioned_curves)
+                )
 
-                if num_selected_curves == 0:
-                    response_text = "I didn't get the curve name. Can you repeat please?"
-
-                elif num_selected_curves == 1:
-                    selected_curve = selected_curves[0]
-
-                    ##
-                    # Iniciar analise
-                    with start_action(action_type=self.state_key, curve=selected_curve):
-                        success = self.run_analysis(selected_asset, selected_curve)
-                        if success:
-                            response_text = "Analysis of curve {} finished".format(selected_curve)
-                            self.confidence = 1  # Otherwise another answer might be chosen
-                        else:
-                            response_text = "Analysis of curve {} returned no data".format(
-                                selected_curve
-                            )
+                if has_index_mention:
+                    response_text, confidence = self.process_indexed_analysis(
+                        statement,
+                        selected_asset,
+                        confidence=confidence
+                    )
 
                 else:
-                    response_text = "I'm sorry, which of the curves you chose?{}{}".format(
-                        ITEM_PREFIX,
-                        ITEM_PREFIX.join(selected_curves)
+                    response_text, confidence = self.process_direct_analysis(
+                        statement,
+                        selected_asset,
+                        confidence=confidence
                     )
 
             response = Statement(text=response_text)
-            response.confidence = self.confidence
+            response.confidence = confidence
         else:
             response = None
 

@@ -8,6 +8,7 @@ __all__ = [
 ITEM_PREFIX = '\n  '
 UOM_KEY = 'uom'
 VALUE_KEY = 'value'
+TIMESTAMP_KEY = 'timestamp'
 
 
 def get_positive_examples(key):
