@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import json
+
 from chatterbot.conversation import Statement
 from eliot import start_action
 
+from utils import logging
 from .base_adapters import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples
+from .constants import (
+    ITEM_PREFIX,
+    UOM_KEY, VALUE_KEY,
+    get_positive_examples, get_negative_examples
+)
 
 
 __all__ = [
     'EtimQueryAdapter',
 ]
-
-ITEM_PREFIX = '\n  '
 
 
 class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
@@ -47,9 +52,10 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         if selected_asset:
             asset_config = selected_asset.get('asset_config', {})
 
-            value_query = '''{event_type} .flags:nocount
-                => {target_curve}, {index_curve}->value as {index_curve}
-                => @filter({index_curve}#:round() == {target_value})
+            value_query = '''
+            {event_type} .flags:nocount
+            => {target_curve}:map():json() as {target_curve}, {index_curve}->value as {index_curve}
+            => @filter({index_curve}#:round() == {target_value})
             '''.format(
                 event_type=asset_config['filter'],
                 target_curve=target_curve,
@@ -78,17 +84,31 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         else:
             results = []
             for item in response_content:
-                index_value = item.get(self.index_curve)
-                query_result = item.get(target_curve)
+                index_value = float(item.get(self.index_curve, 0))
+                query_result = json.loads(item.get(target_curve, '{}'))
 
-                results.append(
-                    "At {index_curve} {index_value}, {target_curve} was {query_result}".format(
-                        target_curve=target_curve,
-                        query_result=query_result,
-                        index_curve=self.index_curve,
-                        index_value=index_value
-                    )
+                try:
+                    if (VALUE_KEY in query_result) and (UOM_KEY in query_result):
+                        query_result = "{0:.2f} ({1})".format(
+                            query_result[VALUE_KEY],
+                            query_result[UOM_KEY],
+                        )
+                except Exception as e:
+                    logging.error("{}: {} ({})".format(
+                        self.__class__.__name__,
+                        e,
+                        type(e)
+                    ))
+
+                templ = (
+                    "{target_curve} was {query_result} at {index_curve} {index_value:.0f}."
                 )
+                results.append(templ.format(
+                    target_curve=target_curve,
+                    query_result=query_result,
+                    index_curve=self.index_curve,
+                    index_value=index_value
+                ))
 
             result = ITEM_PREFIX.join(results)
 

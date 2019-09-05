@@ -106,8 +106,12 @@ class NLPAdapter(LogicAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        nltk.download('maxent_ne_chunker')
-        nltk.download('words')
+        self.download_and_log('maxent_ne_chunker')
+        self.download_and_log('words')
+
+    def download_and_log(self, name):
+        logging.info(f"Downloading {name}")
+        nltk.download(name)
 
     def tokenize(self, statement):
         return nltk.word_tokenize(statement.text)

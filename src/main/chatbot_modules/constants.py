@@ -5,6 +5,10 @@ __all__ = [
     'get_negative_examples',
 ]
 
+ITEM_PREFIX = '\n  '
+UOM_KEY = 'uom'
+VALUE_KEY = 'value'
+
 
 def get_positive_examples(key):
     return FEATURES[key]['examples']
