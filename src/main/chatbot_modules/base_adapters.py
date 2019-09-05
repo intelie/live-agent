@@ -16,6 +16,7 @@ class BaseBayesAdapter(LogicAdapter):
     positive_examples = []
     negative_examples = []
     confidence_threshold = 0.75
+    confidence_damping_thresold = 0.9
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
@@ -69,7 +70,7 @@ class BaseBayesAdapter(LogicAdapter):
 
     def get_confidence(self, statement):
         my_features = self.analyze_features(statement.text.lower())
-        return self.classifier.classify(my_features)
+        return self.classifier.classify(my_features) * self.confidence_damping_thresold
 
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
@@ -87,8 +88,9 @@ class BaseBayesAdapter(LogicAdapter):
         confidence = self.get_confidence(statement)
         can_process = confidence > self.confidence_threshold
 
-        logging.debug("{}: The 10 most informative features are: {}".format(
+        logging.debug("{} (confidence {}): The 10 most informative features are: {}".format(
             self.__class__.__name__,
+            confidence,
             ", ".join(
                 pformat(item)
                 for item in self.classifier.most_informative_features(n=10)
