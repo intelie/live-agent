@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
+import importlib
 from pprint import pformat
+
 from chatterbot.conversation import Statement  # NOQA
+from chatterbot.utils import validate_adapter_class, initialize_class
+from chatterbot.logic import LogicAdapter
+from chatterbot.adapters import Adapter
+
 from jinja2 import Template
 
 from .base_adapters import WithStateAdapter, BaseBayesAdapter
@@ -13,6 +19,7 @@ from .constants import (
 __all__ = [
     'BotFeaturesAdapter',
     'StateDebugAdapter',
+    'AdapterReloaderAdapter',
 ]
 
 
@@ -59,6 +66,63 @@ class StateDebugAdapter(WithStateAdapter):
     def process(self, statement, additional_response_selection_parameters=None):
         response = Statement(
             text=pformat(self.shared_state, depth=3)
+        )
+        response.confidence = 1
+
+        return response
+
+    def can_process(self, statement):
+        return self.keyphrase in statement.text.lower()
+
+
+class AdapterReloaderAdapter(WithStateAdapter):
+    """
+    Reloads the code for all the logic adapters
+    """
+
+    keyphrase = 'reinvent yourself'
+    state_key = 'adapter-reloader'
+
+    def __init__(self, chatbot, **kwargs):
+        super().__init__(chatbot, **kwargs)
+        self.bot_kwargs = kwargs
+        self.logic_adapters = kwargs.get('logic_adapters', [])
+
+    def validate_adapter(self, adapter):
+        try:
+            validate_adapter_class(adapter, LogicAdapter)
+            is_valid = True
+        except Adapter.InvalidAdapterTypeException:
+            is_valid = False
+
+        return is_valid
+
+    def initialize_class(self, adapter):
+        if isinstance(adapter, dict):
+            adapter.pop('logic_adapters', None)
+            adapter_path = adapter.get('import_path')
+        else:
+            adapter_path = adapter
+
+        module_parts = adapter_path.split('.')
+        module_path = '.'.join(module_parts[:-1])
+        module = importlib.import_module(module_path)
+        module = importlib.reload(module)
+
+        return initialize_class(adapter, self.chatbot, **self.bot_kwargs)
+
+    def process(self, statement, additional_response_selection_parameters=None):
+        for adapter_instance in self.chatbot.logic_adapters:
+            del(adapter_instance)
+
+        self.chatbot.logic_adapters = [
+            self.initialize_class(adapter)
+            for adapter in self.logic_adapters
+            if self.validate_adapter(adapter)
+        ]
+
+        response = Statement(
+            text="{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
         )
         response.confidence = 1
 

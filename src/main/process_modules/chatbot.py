@@ -127,6 +127,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
                 'maximum_similarity_threshold': 0.90
             },
             'chatbot_modules.internal.StateDebugAdapter',
+            'chatbot_modules.internal.AdapterReloaderAdapter',
             'chatbot_modules.internal.BotFeaturesAdapter',
             'chatbot_modules.live_asset.AssetListAdapter',
             'chatbot_modules.live_asset.AssetSelectionAdapter',

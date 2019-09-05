@@ -62,7 +62,7 @@ FEATURES = {
     'auto-analysis': {
         'enabled': True,
         'description': 'Run an analysis on a curve',
-        'usage_example': 'run an analysis on {curve name}',
+        'usage_example': 'run an analysis on {curve name} [after ETIM 1500]',
         'examples': [
             'analyse',
             'analyse the mnemonic',
