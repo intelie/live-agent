@@ -110,6 +110,7 @@ class NLPAdapter(LogicAdapter):
         super().__init__(chatbot, **kwargs)
         self.download_and_log('maxent_ne_chunker')
         self.download_and_log('words')
+        self.download_and_log('punkt')
 
     def download_and_log(self, name):
         logging.info(f"Downloading {name}")

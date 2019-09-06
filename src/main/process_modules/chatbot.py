@@ -146,7 +146,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
         output_info=output_info,
         room_id=room_id,
     )
-    # train_bot(process_name, chatbot)
+    train_bot(process_name, chatbot)
 
     room_query_template = '__message => @filter room->id=="{}" && author->name!="{}"'
     room_query = room_query_template.format(room_id, bot_alias)
