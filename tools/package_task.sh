@@ -71,20 +71,10 @@ assert_ok $?
 
 # Copy python files from the src root and up to une level of subdir
 # This is enough for simple projects
-cp -v ${PROJECT_ROOT}/src/main/*.py ${RELEASE_DIR}/lib/
+cp -R ${PROJECT_ROOT}/src/main/* ${RELEASE_DIR}/lib/
 assert_ok $?
 
-for f in ${PROJECT_ROOT}/src/main/*/*.py
-do
-    dir=$(dirname $f)
-    dir=$(basename $dir)
-    if [ ! -d ${RELEASE_DIR}/lib/${dir} ]
-    then
-        mkdir ${RELEASE_DIR}/lib/${dir}
-        assert_ok $?
-    fi
-    cp -v $f ${RELEASE_DIR}/lib/${dir}/
-done
+find ${RELEASE_DIR}/lib/ -name \*.pyc | xargs rm
 
 cp -v ${PROJECT_ROOT}/tools/launcher.sh ${RELEASE_DIR}/${LAUNCHER_SCRIPT_NAME}
 assert_ok $?
