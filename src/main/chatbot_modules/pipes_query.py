@@ -47,20 +47,21 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
         return value
 
-    def run_query(self, target_curve, target_value):
+    def run_query(self, target_curve, index_value):
         selected_asset = self.get_selected_asset()
         if selected_asset:
             asset_config = selected_asset.get('asset_config', {})
 
             value_query = '''
             {event_type} .flags:nocount
-            => {target_curve}:map():json() as {target_curve}, {index_curve}->value as {index_curve}
-            => @filter({index_curve}#:round() == {target_value})
+            => {{{target_curve}}}:map():json() as {{{target_curve}}},
+               {{{index_curve}}}->value as {{{index_curve}}}
+            => @filter({{{index_curve}}}#:round() == {index_value})
             '''.format(
                 event_type=asset_config['filter'],
                 target_curve=target_curve,
                 index_curve=self.index_curve,
-                target_value=target_value,
+                index_value=index_value,
             )
 
             return super().run_query(
@@ -70,16 +71,16 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 callback=partial(
                     self.format_response,
                     target_curve=target_curve,
-                    target_value=target_value
+                    index_value=index_value
                 )
             )
 
-    def format_response(self, response_content, target_curve=None, target_value=None):
+    def format_response(self, response_content, target_curve=None, index_value=None):
         if not response_content:
-            result = 'No information about {target_curve} at {index_curve} {target_value}'.format(
+            result = 'No information about {target_curve} at {index_curve} {index_value}'.format(
                 target_curve=target_curve,
                 index_curve=self.index_curve,
-                target_value=target_value,
+                index_value=index_value,
             )
         else:
             results = []
