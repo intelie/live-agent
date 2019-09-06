@@ -55,6 +55,9 @@ fi
 if [ "${COMMAND}" == "status" ]
 then
     check_status
+elif [ "${COMMAND}" == "stop" ]
+then
+    ps -ef | grep "DDA:" | awk '{print $2}' | xargs kill
 fi
 
 if [ ! -f "${SETTINGS_FILE}" ]
