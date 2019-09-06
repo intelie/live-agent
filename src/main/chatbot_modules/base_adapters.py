@@ -8,6 +8,8 @@ import nltk
 from live_client.assets.utils import only_enabled_curves
 from utils import logging
 
+from .constants import EVENT_TYPE_EVENT, EVENT_TYPE_STOP
+
 __all__ = []
 
 
@@ -259,9 +261,9 @@ class WithAssetAdapter(WithStateAdapter):
                 event = results_queue.get()
                 event_data = event.get('data', {})
                 event_type = event_data.get('type')
-                if event_type == 'event':
+                if event_type == EVENT_TYPE_EVENT:
                     result = event_data.get('content', [])
-                elif event_type != 'stop':
+                elif event_type != EVENT_TYPE_STOP:
                     continue
 
                 return callback(result)

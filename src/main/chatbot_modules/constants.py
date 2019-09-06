@@ -10,6 +10,10 @@ UOM_KEY = 'uom'
 VALUE_KEY = 'value'
 TIMESTAMP_KEY = 'timestamp'
 
+EVENT_TYPE_EVENT = 'event'
+EVENT_TYPE_SPAN = 'span'
+EVENT_TYPE_STOP = 'stop'
+
 
 def get_positive_examples(key):
     return FEATURES[key]['examples']

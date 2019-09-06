@@ -12,6 +12,7 @@ from live_client import query
 from live_client.events import messenger
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
+from chatbot_modules.constants import EVENT_TYPE_EVENT
 
 
 __all__ = ['start']
@@ -231,6 +232,10 @@ def start(process_name, process_settings, output_info, _settings):
 
     while True:
         event = results_queue.get()
+        event_type = event.get('data', {}).get('type')
+        if event_type != EVENT_TYPE_EVENT:
+            continue
+
         bot_processes = process_bootstrap_message(
             process_name,
             process_settings,
