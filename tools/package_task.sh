@@ -1,7 +1,6 @@
 #!bin/bash
 # This is the actual package task, to be invoked from the container.
 
-
 PROJECT_ROOT=/build
 BUILD_TEMP=${PROJECT_ROOT}/temp
 VIRTUALENV_PATH=/opt/intelie/live-agent/pyenv
@@ -33,16 +32,12 @@ then
     exit 1
 fi
 
-if [ "$RELEASE" == "c6" ]
+if [ "$RELEASE" == "c7" ]
 then
-    REQUIRED_PYTHON=intelie-python27
-    VIRTUALENV_CMD=/opt/intelie/runtime/python27/bin/virtualenv
-elif [ "$RELEASE" == "c7" ]
-then
-    REQUIRED_PYTHON="python >= 2.7.0, python <= 2.7.99999"
-    VIRTUALENV_CMD="virtualenv -p python2.7"
+    REQUIRED_PYTHON="python3 >= 3.6.0, python <= 4.0"
+    VIRTUALENV_CMD="/usr/bin/python3.7 -m venv"
 else
-    echo "Invalid release [ ${RELEASE} ]. Must be one of [c6, c7]"
+    echo "Invalid release [ ${RELEASE} ]. Must be one of [c7]"
     exit 1
 fi
 
@@ -52,7 +47,7 @@ echo "[STEP 1] PREPARE VIRTUALENV"
 test -d ${BUILD_TEMP}
 assert_ok $?
 
-${VIRTUALENV_CMD} --no-site-packages --unzip-setuptools ${VIRTUALENV_PATH}
+${VIRTUALENV_CMD} ${VIRTUALENV_PATH}
 assert_ok $?
 
 ${VIRTUALENV_PATH}/bin/pip install -U pip

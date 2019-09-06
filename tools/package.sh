@@ -1,11 +1,9 @@
 #!/bin/bash
 
 # Change the version when there are changes in the image or build entry point
-DOCKER_IMAGE_c6=intelie/live-agent-build-c6:20181116
-DOCKER_IMAGE_c7=intelie/live-agent-build-c7:20181116
+DOCKER_IMAGE_c7=intelie/live-agent-build-c7:20190906
 
 DOCKER_DIR=tools/builder
-DOCKERFILE_c6=tools/builder/Dockerfile-c6
 DOCKERFILE_c7=tools/builder/Dockerfile-c7
 
 RELEASE="$1"
@@ -32,16 +30,12 @@ then
     exit 1
 fi
 
-if [ "$RELEASE" == "c6" ]
-then
-    BUILDER_IMAGE_TAG=${DOCKER_IMAGE_c6}
-    DOCKERFILE=${DOCKERFILE_c6}
-elif [ "$RELEASE" == "c7" ]
+if [ "$RELEASE" == "c7" ]
 then
     BUILDER_IMAGE_TAG=${DOCKER_IMAGE_c7}
     DOCKERFILE=${DOCKERFILE_c7}
 else
-    echo "Invalid release [ ${RELEASE} ]. Must be one of [c6, c7]"
+    echo "Invalid release [ ${RELEASE} ]. Must be one of [c7]"
     exit 1
 fi
 

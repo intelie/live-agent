@@ -27,9 +27,12 @@ $ ./run  # then select the settings file from the list
 
 The project includes the following sample settings:
 
-- `src/main/settings-monitor.json` : Generates notifications on messenger whenever the values for some defined metrics are updated too frequently
 - `src/main/settings-replay.json` : Continuously replays MDT job files for two wells
-- `src/main/settings.json` : Replay and monitor
+- `src/main/settings-pretest.json` : Pretest monitor
+- `src/main/settings-sampling.json` : Focused sampling monitor
+- `src/main/settings-monitor.json` : Pretest, sampling and flowrate monitors
+- `src/main/settings-chatbot.json` : Chatbot
+- `src/main/settings.json` : All features enabled
 
 
 ## Reading logs
@@ -39,6 +42,7 @@ which can be parsed by tools like `eliot-tree` and `eliot-prettyprint` or sent t
 
 The log file is stored at `/var/log/live-agent.log` by default. When starting this tool from the
 console the log is stored at `/tmp/live-agent.log`.
+The log messages are also sent to live, using the event_type `dda_log` by default.
 
 ```shell
 # Reading the log with eliot-prettyprint
@@ -54,10 +58,9 @@ $ eliot-tree -l 0 /tmp/live-agent.log
 Requires packages `fabric` and `virtualenv`, will generate a rpm file for installation on the target system
 
 ```shell
-$ tools/package.sh [c6|c7]
+$ tools/package.sh c7
 ```
 
-- `c6`: Build for centos6 and derivates (red hat 6, amazon linux, etc)
 - `c7`: Build for centos7 and derivates (redhat 7, amazon linux 2, etc)
 
 
