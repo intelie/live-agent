@@ -89,11 +89,14 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 query_result = json.loads(item.get(target_curve, '{}'))
 
                 try:
-                    if (VALUE_KEY in query_result) and (UOM_KEY in query_result):
-                        query_result = "{0:.2f} ({1})".format(
-                            query_result[VALUE_KEY],
-                            query_result[UOM_KEY],
-                        )
+                    value = query_result.get(VALUE_KEY)
+                    uom = query_result.get(UOM_KEY)
+
+                    if uom:
+                        query_result = "{0:.2f} {1}".format(value, uom)
+                    else:
+                        query_result = "{0:.2f}".format(value)
+
                 except Exception as e:
                     logging.error("{}: {} ({})".format(
                         self.__class__.__name__,

@@ -221,7 +221,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             response_text = "I didn't get the curve name. Can you repeat please?"
 
         else:
-            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+            response_text = "I'm sorry, which of the curves you want to analyse?{}{}".format(
                 ITEM_PREFIX,
                 ITEM_PREFIX.join(selected_curves)
             )
