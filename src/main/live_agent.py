@@ -5,7 +5,7 @@ import signal
 import json
 from multiprocessing import Process
 
-from eliot import start_action, to_file
+from eliot import start_action, to_file, Action
 from setproctitle import setproctitle
 
 from runner.daemon import Daemon
@@ -29,8 +29,9 @@ class LiveAgent(Daemon):
     def __init__(self, pidfile, settings_file):
         setproctitle('DDA:  Main process')
         logfile = get_logfile()
-        with start_action(action_type=u"init_daemon"):
-            Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile)
+        with start_action(action_type=u"init_daemon") as action:
+            task_id = action.serialize_task_id()
+            Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile, task_id=task_id)
 
         self.settings_file = settings_file
 
@@ -65,7 +66,7 @@ class LiveAgent(Daemon):
         invalid_processes = filter_dict(
             processes,
             lambda _k, v: (
-                (v.get('type') not in PROCESS_HANDLERS) or
+                (v.get('type') not in PROCESS_HANDLERS) or  # NOQA
                 (v.get('destination', {}).get('name') not in output_options)
             )
         )
@@ -113,10 +114,11 @@ class LiveAgent(Daemon):
             process_func = process_settings.pop('process_func')
             output_info = process_settings.pop('output')
 
-            with start_action(action_type=name):
+            with start_action(action_type=name) as action:
+                task_id = action.serialize_task_id()
                 process = Process(
                     target=process_func,
-                    args=(name, process_settings, output_info, settings)
+                    args=(name, process_settings, output_info, settings, task_id)
                 )
                 running_processes.append(process)
                 process.start()
@@ -124,18 +126,19 @@ class LiveAgent(Daemon):
         return running_processes
 
     def run(self):
-        try:
-            with open(self.settings_file, 'r') as fd:
-                settings = json.load(fd)
+        with Action.continue_task(task_id=self.task_id):
+            try:
+                with open(self.settings_file, 'r') as fd:
+                    settings = json.load(fd)
 
-            logging.setup_live_logging(settings)
-            self.start_processes(settings)
-        except KeyboardInterrupt:
-            logging.info('Execution interrupted')
-            raise
-        except:
-            logging.exception('Error processing inputs')
-            raise
+                logging.setup_live_logging(settings)
+                self.start_processes(settings)
+            except KeyboardInterrupt:
+                logging.info('Execution interrupted')
+                raise
+            except Exception:
+                logging.exception('Error processing inputs')
+                raise
 
 
 def init_worker():

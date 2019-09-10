@@ -4,6 +4,7 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
+from eliot import Action
 
 from live_client.events import messenger, annotation
 from live_client.utils import timestamp
@@ -137,7 +138,10 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
-        logging.debug("Probe {}: Pretest began at {:.0f}".format(probe_name, pretest_begin_timestamp))
+        logging.debug("Probe {}: Pretest began at {:.0f}".format(
+            probe_name,
+            pretest_begin_timestamp
+        ))
     else:
         detected_state = None
         pretest_begin_timestamp = None
@@ -307,104 +311,105 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(process_name, process_settings, output_info, _settings):
-    logging.info("{}: Pretest monitor started".format(process_name))
-    setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
-    session = requests.Session()
+def start(process_name, process_settings, output_info, _settings, task_id):
+    with Action.continue_task(task_id=task_id):
+        logging.info("{}: Pretest monitor started".format(process_name))
+        setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
+        session = requests.Session()
 
-    functions_map = {
-        PRETEST_STATES.INACTIVE: find_drawdown,
-        PRETEST_STATES.DRAWDOWN_START: find_buildup,
-        PRETEST_STATES.DRAWDOWN_END: partial(
-            monitors.find_stable_buildup,
-            targets={
-                0.01: PRETEST_STATES.INACTIVE,
-                0.1: PRETEST_STATES.BUILDUP_STABLE,
-            },
-            fallback_state=PRETEST_STATES.INACTIVE,
-        ),
-        PRETEST_STATES.BUILDUP_STABLE: partial(
-            monitors.find_stable_buildup,
-            targets={
-                0.01: PRETEST_STATES.INACTIVE,
-            },
-            fallback_state=PRETEST_STATES.INACTIVE,
-        ),
-        'send_message': partial(
-            messenger.send_message,
-            process_settings=process_settings,
-            output_info=output_info
-        ),
-        'create_annotation': partial(
-            annotation.create,
-            process_settings=process_settings,
-            output_info=output_info
-        ),
-    }
+        functions_map = {
+            PRETEST_STATES.INACTIVE: find_drawdown,
+            PRETEST_STATES.DRAWDOWN_START: find_buildup,
+            PRETEST_STATES.DRAWDOWN_END: partial(
+                monitors.find_stable_buildup,
+                targets={
+                    0.01: PRETEST_STATES.INACTIVE,
+                    0.1: PRETEST_STATES.BUILDUP_STABLE,
+                },
+                fallback_state=PRETEST_STATES.INACTIVE,
+            ),
+            PRETEST_STATES.BUILDUP_STABLE: partial(
+                monitors.find_stable_buildup,
+                targets={
+                    0.01: PRETEST_STATES.INACTIVE,
+                },
+                fallback_state=PRETEST_STATES.INACTIVE,
+            ),
+            'send_message': partial(
+                messenger.send_message,
+                process_settings=process_settings,
+                output_info=output_info
+            ),
+            'create_annotation': partial(
+                annotation.create,
+                process_settings=process_settings,
+                output_info=output_info
+            ),
+        }
 
-    url = process_settings['request']['url']
-    interval = process_settings['request']['interval']
+        url = process_settings['request']['url']
+        interval = process_settings['request']['interval']
 
-    monitor_settings = process_settings.get('monitor', {})
-    index_mnemonic = monitor_settings['index_mnemonic']
-    window_duration = monitor_settings['window_duration']
-    buildup_duration = monitor_settings['buildup_duration']
-    buildup_wait_period = monitor_settings['buildup_wait_period']
-    probes = monitor_settings['probes']
+        monitor_settings = process_settings.get('monitor', {})
+        index_mnemonic = monitor_settings['index_mnemonic']
+        window_duration = monitor_settings['window_duration']
+        buildup_duration = monitor_settings['buildup_duration']
+        buildup_wait_period = monitor_settings['buildup_wait_period']
+        probes = monitor_settings['probes']
 
-    iterations = 0
-    latest_index = 0
-    accumulator = []
-    while True:
-        try:
-            r = session.get(url)
-            r.raise_for_status()
+        iterations = 0
+        latest_index = 0
+        accumulator = []
+        while True:
+            try:
+                r = session.get(url)
+                r.raise_for_status()
 
-            latest_events = r.json()
-            accumulator, start, end = loop.refresh_accumulator(
-                latest_events, accumulator, index_mnemonic, window_duration
-            )
+                latest_events = r.json()
+                accumulator, start, end = loop.refresh_accumulator(
+                    latest_events, accumulator, index_mnemonic, window_duration
+                )
 
-            if accumulator:
-                for probe_name, probe_data in probes.items():
-                    probe_data.update(
-                        index_mnemonic=index_mnemonic,
-                        buildup_duration=buildup_duration,
-                        buildup_wait_period=buildup_wait_period,
-                    )
-                    run_monitor(
-                        process_name,
-                        probe_name,
-                        probe_data,
-                        accumulator,
-                        functions_map,
-                    )
-            else:
-                logging.warning("{}: No events received after index {}".format(
-                    process_name, latest_index
+                if accumulator:
+                    for probe_name, probe_data in probes.items():
+                        probe_data.update(
+                            index_mnemonic=index_mnemonic,
+                            buildup_duration=buildup_duration,
+                            buildup_wait_period=buildup_wait_period,
+                        )
+                        run_monitor(
+                            process_name,
+                            probe_name,
+                            probe_data,
+                            accumulator,
+                            functions_map,
+                        )
+                else:
+                    logging.warning("{}: No events received after index {}".format(
+                        process_name, latest_index
+                    ))
+
+                logging.debug("{}: Request {} successful".format(
+                    process_name, iterations
                 ))
 
-            logging.debug("{}: Request {} successful".format(
-                process_name, iterations
-            ))
-
-        except KeyboardInterrupt:
-            logging.info(
-                "{}: Stopping after {} iterations".format(
-                    process_name, iterations
+            except KeyboardInterrupt:
+                logging.info(
+                    "{}: Stopping after {} iterations".format(
+                        process_name, iterations
+                    )
                 )
-            )
-            raise
+                raise
 
-        except Exception as e:
-            logging.error(
-                "{}: Error processing events during request {}, {}<{}>".format(
-                    process_name, iterations, e, type(e)
+            except Exception as e:
+                logging.error(
+                    "{}: Error processing events during request {}, {}<{}>".format(
+                        process_name, iterations, e, type(e)
+                    )
                 )
-            )
-            raise
+                raise
 
-        loop.await_next_cycle(interval, process_name)
-        iterations += 1
+            loop.await_next_cycle(interval, process_name)
+            iterations += 1
 
     return

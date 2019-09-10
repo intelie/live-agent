@@ -2,7 +2,7 @@
 from multiprocessing import Process
 from functools import partial
 
-from eliot import start_action
+from eliot import start_action, Action
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
@@ -64,7 +64,7 @@ def maybe_mention(process_settings, message):
 
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
     for message in messages:
-        with start_action(action_type=u"process_message"):
+        with start_action(action_type=u"process_message", message=message.get('text')):
             is_mention, message = maybe_mention(process_settings, message)
 
             if is_mention:
@@ -195,7 +195,7 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
         else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
 
-            with start_action(action_type=u"start_chatbot"):
+            with start_action(action_type=u"start_chatbot", room_id=room_id):
                 bot_process = Process(
                     target=start_chatbot,
                     args=(process_name, process_settings, output_info, room_id, sender, message)
@@ -209,39 +209,40 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
 
 ##
 # Global process initialization
-def start(process_name, process_settings, output_info, _settings):
-    logging.info("{}: Chatbot process started".format(process_name))
-    setproctitle('DDA: Chatbot main process')
-    bots_registry = {}
+def start(process_name, process_settings, output_info, _settings, task_id):
+    with Action.continue_task(task_id=task_id):
+        logging.info("{}: Chatbot process started".format(process_name))
+        setproctitle('DDA: Chatbot main process')
+        bots_registry = {}
 
-    bot_alias = process_settings.get('alias', 'Intelie')
+        bot_alias = process_settings.get('alias', 'Intelie')
 
-    bootstrap_query_template = '__message => @filter message:lower():contains("{}")'
-    bootstrap_query = bootstrap_query_template.format(bot_alias.lower())
+        bootstrap_query_template = '__message => @filter message:lower():contains("{}")'
+        bootstrap_query = bootstrap_query_template.format(bot_alias.lower())
 
-    results_process, results_queue = query.run(
-        process_name,
-        process_settings,
-        bootstrap_query,
-        realtime=True,
-    )
-
-    while True:
-        event = results_queue.get()
-        event_type = event.get('data', {}).get('type')
-        if event_type != EVENT_TYPE_EVENT:
-            continue
-
-        bot_processes = process_bootstrap_message(
+        results_process, results_queue = query.run(
             process_name,
             process_settings,
-            output_info,
-            bots_registry,
-            event
+            bootstrap_query,
+            realtime=True,
         )
 
-    results_process.join()
-    for bot in bot_processes:
-        bot.join()
+        while True:
+            event = results_queue.get()
+            event_type = event.get('data', {}).get('type')
+            if event_type != EVENT_TYPE_EVENT:
+                continue
+
+            bot_processes = process_bootstrap_message(
+                process_name,
+                process_settings,
+                output_info,
+                bots_registry,
+                event
+            )
+
+        results_process.join()
+        for bot in bot_processes:
+            bot.join()
 
     return

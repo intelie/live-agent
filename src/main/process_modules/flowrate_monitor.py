@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import requests
 from setproctitle import setproctitle
+from eliot import Action
 
 from live_client.events import messenger
 from utils import loop
@@ -67,43 +68,44 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
     return accumulator
 
 
-def start(process_name, process_settings, output_info, settings):
-    logging.info("{}: Flowrate monitor started".format(process_name))
-    setproctitle('DDA: Flowrate monitor')
-    session = requests.Session()
-    accumulator = []
+def start(process_name, process_settings, output_info, settings, task_id):
+    with Action.continue_task(task_id=task_id):
+        logging.info("{}: Flowrate monitor started".format(process_name))
+        setproctitle('DDA: Flowrate monitor')
+        session = requests.Session()
+        accumulator = []
 
-    url = process_settings['request']['url']
-    interval = process_settings['request']['interval']
+        url = process_settings['request']['url']
+        interval = process_settings['request']['interval']
 
-    iterations = 0
-    while True:
-        try:
-            r = session.get(url)
-            r.raise_for_status()
+        iterations = 0
+        while True:
+            try:
+                r = session.get(url)
+                r.raise_for_status()
 
-            flowrate_data = r.json()
+                flowrate_data = r.json()
 
-            accumulator = check_rate(
-                process_name,
-                flowrate_data,
-                accumulator,
-                process_settings,
-                output_info,
-                settings
-            )
-            logging.debug("{}: Request {} successful".format(
-                process_name, iterations
-            ))
-
-        except Exception as e:
-            logging.error(
-                "{}: Error processing events during request {}, {}<{}>".format(
-                    process_name, iterations, e, type(e)
+                accumulator = check_rate(
+                    process_name,
+                    flowrate_data,
+                    accumulator,
+                    process_settings,
+                    output_info,
+                    settings
                 )
-            )
+                logging.debug("{}: Request {} successful".format(
+                    process_name, iterations
+                ))
 
-        loop.await_next_cycle(interval, process_name)
-        iterations += 1
+            except Exception as e:
+                logging.error(
+                    "{}: Error processing events during request {}, {}<{}>".format(
+                        process_name, iterations, e, type(e)
+                    )
+                )
+
+            loop.await_next_cycle(interval, process_name)
+            iterations += 1
 
     return

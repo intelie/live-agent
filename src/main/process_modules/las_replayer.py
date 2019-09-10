@@ -2,6 +2,7 @@
 from enum import Enum
 import csv
 from setproctitle import setproctitle
+from eliot import Action
 
 import lasio
 
@@ -18,7 +19,7 @@ __all__ = [
 READ_MODES = Enum('READ_MODES', 'SINGLE_PASS, CONTINUOUS')
 
 
-def maybe_send_chat_message(event_type, chat_data, last_timestamp, next_timestamp, index_mnemonic, process_settings, output_info):
+def maybe_send_chat_message(event_type, chat_data, last_timestamp, next_timestamp, index_mnemonic, process_settings, output_info):  # NOQA
     if not chat_data:
         return
 
@@ -126,7 +127,7 @@ def open_files(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, chat_data, index_mnemonic
 
 
-def export_curves_data(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):
+def export_curves_data(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):  # NOQA
     logging.info("Exporting curves for {}".format(event_type))
     output_dir = settings.get('temp_dir', '/tmp')
 
@@ -148,7 +149,7 @@ def export_curves_data(event_type, las_data, chat_data, index_mnemonic, process_
     logging.info('File {} created'.format(output_filename))
 
 
-def generate_events(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):
+def generate_events(event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings):  # NOQA
     logging.info("{}: Event generation started".format(event_type))
     connection_func, output_settings = output_info
 
@@ -182,7 +183,12 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, process_set
                     output_info=output_info
                 )
 
-            raw.format_and_send(event_type, statuses, output_settings, connection_func=connection_func)
+            raw.format_and_send(
+                event_type,
+                statuses,
+                output_settings,
+                connection_func=connection_func
+            )
             maybe_send_chat_message(
                 event_type,
                 chat_data,
@@ -195,69 +201,70 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, process_set
             last_timestamp = next_timestamp
 
 
-def start(process_name, process_settings, output_info, settings):
-    debug_mode = settings.get('DEBUG', False)
-    event_type = process_settings['destination']['event_type']
-    setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
+def start(process_name, process_settings, output_info, settings, task_id):
+    with Action.continue_task(task_id=task_id):
+        debug_mode = settings.get('DEBUG', False)
+        event_type = process_settings['destination']['event_type']
+        setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
-    if debug_mode:
-        read_mode = READ_MODES.SINGLE_PASS
-        handling_func = export_curves_data
-    else:
-        read_mode = READ_MODES.CONTINUOUS
-        handling_func = generate_events
+        if debug_mode:
+            read_mode = READ_MODES.SINGLE_PASS
+            handling_func = export_curves_data
+        else:
+            read_mode = READ_MODES.CONTINUOUS
+            handling_func = generate_events
 
-    iterations = 0
-    while True:
-        try:
-            success, las_data, chat_data, index_mnemonic = open_files(
-                process_settings,
-                iterations,
-                mode=read_mode
-            )
-
-            if success:
-                handling_func(
-                    event_type,
-                    las_data,
-                    chat_data,
-                    index_mnemonic,
+        iterations = 0
+        while True:
+            try:
+                success, las_data, chat_data, index_mnemonic = open_files(
                     process_settings,
-                    output_info,
-                    settings,
+                    iterations,
+                    mode=read_mode
                 )
-                logging.info("{}: Iteration {} successful".format(
-                    event_type, iterations
-                ))
 
-            elif read_mode == READ_MODES.SINGLE_PASS:
-                logging.info("{}: Single pass mode, exiting".format(event_type))
-                break
-            else:
-                raise las_data
+                if success:
+                    handling_func(
+                        event_type,
+                        las_data,
+                        chat_data,
+                        index_mnemonic,
+                        process_settings,
+                        output_info,
+                        settings,
+                    )
+                    logging.info("{}: Iteration {} successful".format(
+                        event_type, iterations
+                    ))
 
-            loop.await_next_cycle(
-                60 * 5,
-                event_type,
-                message="Sleeping for 5 minutes between runs",
-                log_func=logging.info
-            )
+                elif read_mode == READ_MODES.SINGLE_PASS:
+                    logging.info("{}: Single pass mode, exiting".format(event_type))
+                    break
+                else:
+                    raise las_data
 
-        except KeyboardInterrupt:
-            logging.info(
-                "{}: Stopping after {} iterations".format(
-                    event_type, iterations
+                loop.await_next_cycle(
+                    60 * 5,
+                    event_type,
+                    message="Sleeping for 5 minutes between runs",
+                    log_func=logging.info
                 )
-            )
-            raise
 
-        except Exception as e:
-            logging.error(
-                "{}: Error processing events during iteration {}, {}<{}>".format(
-                    event_type, iterations, e, type(e)
+            except KeyboardInterrupt:
+                logging.info(
+                    "{}: Stopping after {} iterations".format(
+                        event_type, iterations
+                    )
                 )
-            )
+                raise
 
-        iterations += 1
+            except Exception as e:
+                logging.error(
+                    "{}: Error processing events during iteration {}, {}<{}>".format(
+                        event_type, iterations, e, type(e)
+                    )
+                )
+
+            iterations += 1
 
     return

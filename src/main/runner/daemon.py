@@ -14,11 +14,12 @@ class Daemon:
 
     Usage: subclass the Daemon class and override the run() method
     """
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
-        self.stdin = stdin
-        self.stdout = stdout
-        self.stderr = stderr
+    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', **kwargs):
         self.pidfile = pidfile
+        self.stdin = kwargs.get('stdin', '/dev/null')
+        self.stdout = kwargs.get('stdout', '/dev/null')
+        self.stderr = kwargs.get('stderr', '/dev/null')
+        self.task_id = kwargs.get('task_id')
 
     def daemonize(self):
         """
@@ -135,6 +136,6 @@ class Daemon:
 
     def run(self):
         """
-        You should override this method when you subclass Daemon. It will be called after the process has been
-        daemonized by start() or restart().
+        You should override this method when you subclass Daemon. It will be called after the
+        process has been daemonized by start() or restart().
         """

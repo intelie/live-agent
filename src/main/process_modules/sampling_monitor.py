@@ -4,6 +4,7 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
+from eliot import Action
 
 from live_client.events import messenger, annotation
 from live_client.utils import timestamp
@@ -811,108 +812,109 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     return sampling_state
 
 
-def start(process_name, process_settings, output_info, _settings):
-    logging.info("{}: Sampling monitor started".format(process_name))
-    setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
-    session = requests.Session()
+def start(process_name, process_settings, output_info, _settings, task_id):
+    with Action.continue_task(task_id=task_id):
+        logging.info("{}: Sampling monitor started".format(process_name))
+        setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
+        session = requests.Session()
 
-    functions_map = {
-        'pump': {
-            PUMP_STATES.INACTIVE: find_rate_change,
-            PUMP_STATES.PUMPING: find_rate_change,
-            PUMP_STATES.BUILDUP_EXPECTED: partial(
-                find_stable_buildup,
-                targets={
-                    0.01: PUMP_STATES.INACTIVE,
-                    0.1: PUMP_STATES.BUILDUP_STABLE,
-                },
-                fallback_state=PUMP_STATES.INACTIVE,
+        functions_map = {
+            'pump': {
+                PUMP_STATES.INACTIVE: find_rate_change,
+                PUMP_STATES.PUMPING: find_rate_change,
+                PUMP_STATES.BUILDUP_EXPECTED: partial(
+                    find_stable_buildup,
+                    targets={
+                        0.01: PUMP_STATES.INACTIVE,
+                        0.1: PUMP_STATES.BUILDUP_STABLE,
+                    },
+                    fallback_state=PUMP_STATES.INACTIVE,
+                ),
+                PUMP_STATES.BUILDUP_STABLE: partial(
+                    find_stable_buildup,
+                    targets={
+                        0.01: PUMP_STATES.INACTIVE,
+                    },
+                    fallback_state=PUMP_STATES.INACTIVE,
+                ),
+            },
+            'sampling': {
+                SAMPLING_STATES.INACTIVE: find_commingled_flow,
+                SAMPLING_STATES.COMMINGLED_FLOW: find_focused_flow,
+                SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
+                SAMPLING_STATES.SAMPLING: find_sampling_end,
+            },
+            'send_message': partial(
+                messenger.send_message,
+                process_settings=process_settings,
+                output_info=output_info
             ),
-            PUMP_STATES.BUILDUP_STABLE: partial(
-                find_stable_buildup,
-                targets={
-                    0.01: PUMP_STATES.INACTIVE,
-                },
-                fallback_state=PUMP_STATES.INACTIVE,
+            'create_annotation': partial(
+                annotation.create,
+                process_settings=process_settings,
+                output_info=output_info
             ),
-        },
-        'sampling': {
-            SAMPLING_STATES.INACTIVE: find_commingled_flow,
-            SAMPLING_STATES.COMMINGLED_FLOW: find_focused_flow,
-            SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
-            SAMPLING_STATES.SAMPLING: find_sampling_end,
-        },
-        'send_message': partial(
-            messenger.send_message,
-            process_settings=process_settings,
-            output_info=output_info
-        ),
-        'create_annotation': partial(
-            annotation.create,
-            process_settings=process_settings,
-            output_info=output_info
-        ),
-    }
+        }
 
-    url = process_settings['request']['url']
-    interval = process_settings['request']['interval']
+        url = process_settings['request']['url']
+        interval = process_settings['request']['interval']
 
-    monitor_settings = process_settings.get('monitor', {})
-    index_mnemonic = monitor_settings['index_mnemonic']
-    window_duration = monitor_settings['window_duration']
+        monitor_settings = process_settings.get('monitor', {})
+        index_mnemonic = monitor_settings['index_mnemonic']
+        window_duration = monitor_settings['window_duration']
 
-    iterations = 0
-    latest_index = 0
-    accumulator = []
+        iterations = 0
+        latest_index = 0
+        accumulator = []
 
-    process_settings.update(
-        process_state=SAMPLING_STATES.INACTIVE,
-        latest_seen_index=latest_index,
-        index_mnemonic=index_mnemonic,
-    )
-    while True:
-        try:
-            r = session.get(url)
-            r.raise_for_status()
+        process_settings.update(
+            process_state=SAMPLING_STATES.INACTIVE,
+            latest_seen_index=latest_index,
+            index_mnemonic=index_mnemonic,
+        )
+        while True:
+            try:
+                r = session.get(url)
+                r.raise_for_status()
 
-            latest_events = r.json()
-            accumulator, start, end = loop.refresh_accumulator(
-                latest_events, accumulator, index_mnemonic, window_duration
-            )
-
-            if accumulator:
-                run_monitor(
-                    process_name,
-                    process_settings,
-                    accumulator,
-                    functions_map,
+                latest_events = r.json()
+                accumulator, start, end = loop.refresh_accumulator(
+                    latest_events, accumulator, index_mnemonic, window_duration
                 )
-            else:
-                logging.warning("{}: No events received after index {}".format(
-                    process_name, latest_index
+
+                if accumulator:
+                    run_monitor(
+                        process_name,
+                        process_settings,
+                        accumulator,
+                        functions_map,
+                    )
+                else:
+                    logging.warning("{}: No events received after index {}".format(
+                        process_name, latest_index
+                    ))
+
+                logging.debug("{}: Request {} successful".format(
+                    process_name, iterations
                 ))
 
-            logging.debug("{}: Request {} successful".format(
-                process_name, iterations
-            ))
-
-        except KeyboardInterrupt:
-            logging.info(
-                "{}: Stopping after {} iterations".format(
-                    process_name, iterations
+            except KeyboardInterrupt:
+                logging.info(
+                    "{}: Stopping after {} iterations".format(
+                        process_name, iterations
+                    )
                 )
-            )
-            raise
+                raise
 
-        except Exception as e:
-            logging.error(
-                "{}: Error processing events during request {}, {}<{}>".format(
-                    process_name, iterations, e, type(e)
+            except Exception as e:
+                logging.error(
+                    "{}: Error processing events during request {}, {}<{}>".format(
+                        process_name, iterations, e, type(e)
+                    )
                 )
-            )
-            raise
+                raise
 
-        loop.await_next_cycle(interval, process_name)
-        iterations += 1
+            loop.await_next_cycle(interval, process_name)
+            iterations += 1
 
     return
