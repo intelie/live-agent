@@ -24,8 +24,13 @@ LOG_LEVELS = [
 ]
 
 
+default_level = 'INFO'
+log_level = default_level
+
+
 def log_message(message, severity=None):
-    return Message.log(message_type=severity, message=message)
+    if level_is_logged(severity):
+        return Message.log(message_type=severity, message=message)
 
 
 def exception(message):
@@ -39,16 +44,8 @@ error = partial(log_message, severity='error')
 
 
 def log_to_live(message, event_type=None, username=None, password=None, url=None, min_level=None):
-    if (min_level is None) or (min_level.upper() not in LOG_LEVELS):
-        min_level = 'INFO'
-    else:
-        min_level = min_level.upper()
-
-    min_level_idx = LOG_LEVELS.index(min_level)
     message_severity = message.get('message_type', min_level)
-    message_severity_idx = LOG_LEVELS.index(message_severity.upper())
-
-    if message_severity_idx >= min_level_idx:
+    if level_is_logged(message_severity, min_level=min_level):
         log_output_settings = {
             'url': url,
             'username': username,
@@ -60,13 +57,17 @@ def log_to_live(message, event_type=None, username=None, password=None, url=None
 
 
 def setup_live_logging(settings):
+
     log_settings = settings.get('output', {}).get('rest-log', {})
 
     event_type = log_settings.get('event_type', 'dda_log')
     url = log_settings.get('url')
     username = log_settings.get('username')
     password = log_settings.get('password')
-    level = log_settings.get('level')
+    level = log_settings.get('level', default_level)
+
+    global log_level
+    log_level = level
 
     if event_type and url and username and password:
         add_destinations(
@@ -79,3 +80,16 @@ def setup_live_logging(settings):
                 min_level=level
             )
         )
+
+
+def level_is_logged(message_severity, min_level=None):
+    message_severity_idx = LOG_LEVELS.index(message_severity.upper())
+
+    if (min_level is None) or (min_level.upper() not in LOG_LEVELS):
+        min_level = log_level
+    else:
+        min_level = min_level.upper()
+
+    min_level_idx = LOG_LEVELS.index(min_level.upper())
+
+    return message_severity_idx >= min_level_idx
