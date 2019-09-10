@@ -18,8 +18,10 @@ Description:
 
 Detect when the pumps are activated, then:
 - When only one pump is active: notify pumping rate changes;
-- When both pumps are activated in an interval larger than 30 seconds: notify pumping rate changes for each pump;
-- When both pumps are activated in a 30 seconds interval: notify pumping rate changes, commingled flow, focused flow and bottle filling;
+- When both pumps are activated in an interval larger than 30 seconds: notify pumping rate changes
+    for each pump;
+- When both pumps are activated in a 30 seconds interval: notify pumping rate changes, commingled
+    flow, focused flow and bottle filling;
 
 
 Possible alarms:
@@ -29,29 +31,52 @@ Possible alarms:
 
 Possible states:
 
-ID      DESCRIPTION                                                         Pump 1 state        Pump 2 state        Sampling state
-------------------------------------------------------------------------------------------------------------------------------------
-0.0     No sampling                                                         INACTIVE            INACTIVE            INACTIVE
+ID      DESCRIPTION                           Pump 1 state        Pump 2 state        Sampling state
+-----------------------------------------------------------------------------------------------------
+0.0     No sampling                          INACTIVE            INACTIVE            INACTIVE
 
-1.0     Pump N activated at ETIM with flow rate X, pressure Y               PUMPING             INACTIVE            INACTIVE
-1.1     Pump N rate changed to X at ETIM with pressure Y                    PUMPING             INACTIVE            INACTIVE
-1.2     Pump N deactivated at ETIM with pressure Y                          BUILDUP_EXPECTED    INACTIVE            INACTIVE
+1.0     Pump N activated at ETIM with        PUMPING             INACTIVE            INACTIVE
+        flow rate X, pressuse Y
 
-2.0     Buildup stabilized within 0.1 at ETIM with pressure X               BUILDUP_STABLE      INACTIVE            INACTIVE
-2.1     Buildup stabilized within 0.01 at ETIM with pressure X              INACTIVE            INACTIVE            INACTIVE
+1.1     Pump N rate changed to X at ETIM     PUMPING             INACTIVE            INACTIVE
+        with pressure Y
 
-3.0     Commingled flow started at ETIM with pressures X and Y (rate X/Y)   PUMPING             PUMPING             COMMINGLED_FLOW
-3.0a    Alert: Commingled flow too short?                                   INACTIVE            INACTIVE            INACTIVE
-3.1     Outer pump rate changed to X at ETIM with pressure Y                PUMPING             PUMPING             COMMINGLED_FLOW
-         or Pump N rate changed to X at ETIM with pressure Y
-3.2     Focused flow started at ETIM with pressures X and Y (rate X/Y)      PUMPING             PUMPING             FOCUSED_FLOW
-         flow rates (x and y) and pump ratio (x/y)
+1.2     Pump N deactivated at ETIM with      BUILDUP_EXPECTED    INACTIVE            INACTIVE
+        with pressure Y
 
-4.0     Bottle filling start at ETIM with pressure X                        PUMPING             INACTIVE            SAMPLING
-4.0a    Alert: Motor speed and flow rate diverging. Lost seal?              PUMPING             PUMPING             FOCUSED_FLOW
-4.1     Bottle filling end at ETIM with pressure X                          PUMPING             PUMPING             FOCUSED_FLOW
+2.0     Buildup stabilized within 0.1 at     BUILDUP_STABLE      INACTIVE            INACTIVE
+        ETIM with pressure X
 
-3.3     Focused flow finished at ETIM with pressures X and Y (rate X/Y)     BUILDUP_EXPECTED    BUILDUP_EXPECTED    INACTIVE
+2.1     Buildup stabilized within 0.01 at    INACTIVE            INACTIVE            INACTIVE
+        ETIM with pressure X
+
+
+3.0     Commingled flow started at ETIM      PUMPING             PUMPING             COMMINGLED_FLOW
+        with pressures X and Y (rate X/Y)
+
+3.0a    Alert: Commingled flow too short?    INACTIVE            INACTIVE            INACTIVE
+
+3.1     Outer pump rate changed to X at      PUMPING             PUMPING             COMMINGLED_FLOW
+        ETIM with pressure Y
+        or Pump N rate changed to X at
+        ETIM with pressure Y
+
+3.2     Focused flow started at ETIM         PUMPING             PUMPING             FOCUSED_FLOW
+        with pressures X and Y (rate X/Y)
+        flow rates (x and y) and
+        pump ratio (x/y)
+
+4.0     Bottle filling start at ETIM         PUMPING             INACTIVE            SAMPLING
+        with pressure X
+
+4.0a    Alert: Motor speed and flow rate     PUMPING             PUMPING             FOCUSED_FLOW
+        diverging. Lost seal?
+
+4.1     Bottle filling end at ETIM with      PUMPING             PUMPING             FOCUSED_FLOW
+        with pressure X
+
+3.3     Focused flow finished at ETIM        BUILDUP_EXPECTED    BUILDUP_EXPECTED    INACTIVE
+        with pressures X and Y (rate X/Y)
 
 
 State transitions:
@@ -95,23 +120,30 @@ def maybe_create_annotation(process_name, current_state, old_state, context, ann
     else:
         real_func = maybe_create_sampling_annotation
 
-    return real_func(process_name, current_state, old_state, context, annotation_func=annotation_func)
+    return real_func(
+        process_name,
+        current_state,
+        old_state,
+        context,
+        annotation_func=annotation_func
+    )
 
 
-def maybe_create_pump_annotation(process_name, current_state, old_state, context, annotation_func=None):
+def maybe_create_pump_annotation(process_name, current_state, old_state, context, annotation_func=None):  # NOQA
     begin = end = None
 
     probe_name = context['probe_name']
     probe_data = context['probe_data']
-    begin = probe_data.get('pump_activation_timestamp')
+    begin = probe_data.get('pump_activation_timestamp', timestamp.get_timestamp())
     end = probe_data.get('pump_deactivation_timestamp')
 
     if not end:
-        duration = 0
-        timestamp = begin
+        ts = begin
+        end = begin + 60000  # One minute later than `begin` by default
     else:
-        duration = max((end - begin), 0) / 1000
-        timestamp = end
+        ts = end
+
+    duration = max((end - begin), 0) / 1000
 
     annotation_templates = {
         PUMP_STATES.PUMPING: {
@@ -130,26 +162,26 @@ def maybe_create_pump_annotation(process_name, current_state, old_state, context
     }
 
     annotation_data = annotation_templates.get(current_state)
-    if annotation_data and begin:
+    if annotation_data:
         annotation_data.update(
             __src='sampling_monitor',
             uid='{}-{}-{:.0f}'.format(
                 process_name,
                 probe_name,
-                timestamp,
+                ts,
             ),
         )
         annotation_func(probe_name, annotation_data)
 
-    elif not begin:
-        logging.error('{}, probe {}: Cannot create annotation without begin timestamp'.format(
+    else:
+        logging.error('{}, probe {}: Cannot create annotation without data'.format(
             process_name, probe_name
         ))
 
     return
 
 
-def maybe_create_sampling_annotation(process_name, current_state, old_state, context, annotation_func=None):
+def maybe_create_sampling_annotation(process_name, current_state, old_state, context, annotation_func=None):  # NOQA
     process_settings = context
 
     begin = end = None
@@ -164,11 +196,12 @@ def maybe_create_sampling_annotation(process_name, current_state, old_state, con
         end = process_settings.get('focused_flow_end_ts', 0)
 
     if not end:
-        duration = 0
-        timestamp = begin
+        ts = begin
+        end = begin + 60000  # One minute later than `begin` by default
     else:
-        duration = max((end - begin), 0) / 1000
-        timestamp = end
+        ts = end
+
+    duration = max((end - begin), 0) / 1000
 
     annotation_templates = {
         SAMPLING_STATES.COMMINGLED_FLOW: {
@@ -193,26 +226,26 @@ def maybe_create_sampling_annotation(process_name, current_state, old_state, con
     }
 
     annotation_data = annotation_templates.get(current_state)
-    if annotation_data and begin:
+    if annotation_data:
         annotation_data.update(
             __src='sampling_monitor',
             uid='{}-{}-{:.0f}'.format(
                 process_name,
                 current_state,
-                timestamp,
+                ts,
             ),
         )
         annotation_func(process_name, annotation_data)
 
-    elif not begin:
-        logging.error('{}: Cannot create annotation without begin timestamp'.format(
+    else:
+        logging.error('{}: Cannot create annotation without data'.format(
             process_name
         ))
 
     return
 
 
-def find_rate_change(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):
+def find_rate_change(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):  # NOQA
     index_mnemonic = probe_data['index_mnemonic']
     flow_rate_mnemonic = probe_data['pumpout_flowrate_mnemonic']
     probe_state = probe_data.get('process_state', PUMP_STATES.INACTIVE)
@@ -344,7 +377,7 @@ def find_rate_change(process_name, probe_name, probe_data, event_list, sampling_
     return detected_state
 
 
-def find_stable_buildup(process_name, probe_name, probe_data, event_list, state, message_sender=None, targets=None, fallback_state=None):
+def find_stable_buildup(process_name, probe_name, probe_data, event_list, state, message_sender=None, targets=None, fallback_state=None):  # NOQA
     # Ignore buildups while sampling
     if state in (SAMPLING_STATES.FOCUSED_FLOW, SAMPLING_STATES.SAMPLING):
         detected_state = PUMP_STATES.INACTIVE
@@ -362,7 +395,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, state,
     return detected_state
 
 
-def check_seal_health(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):
+def check_seal_health(process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None):  # NOQA
     index_mnemonic = probe_data['index_mnemonic']
     flow_rate_mnemonic = probe_data['pumpout_flowrate_mnemonic']
     motor_speed_mnemonic = probe_data['pump_motor_speed_mnemonic']
@@ -414,7 +447,9 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
             # Drop all events where {target_mnemonic} > 0
             events_before_stopping = list(
                 dropwhile(
-                    lambda event: (event.get(target_mnemonic) == 0) and (event.get(secondary_mnemonic) == 0),
+                    lambda event: (
+                        (event.get(target_mnemonic) == 0) and (event.get(secondary_mnemonic) == 0)
+                    ),
                     events_before_stopping
                 )
             )
@@ -594,7 +629,11 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
         else:
             idle_probes.append(probe_name)
 
-    logging.debug("{} \nIdle probes: {}\nRunning probes: {}".format(process_name, idle_probes, pumping_probes))
+    logging.debug("{} \nIdle probes: {}\nRunning probes: {}".format(
+        process_name,
+        idle_probes,
+        pumping_probes
+    ))
 
     # The guard probe should be active and the sampling probe should be idle
     if idle_probes and pumping_probes:
@@ -700,7 +739,7 @@ def find_sampling_end(process_name, process_settings, event_list, message_sender
     return detected_state
 
 
-def run_probe_monitor(process_name, probe_name, probe_data, event_list, sampling_state, functions_map):
+def run_probe_monitor(process_name, probe_name, probe_data, event_list, sampling_state, functions_map):  # NOQA
     pump_functions = functions_map['pump']
     message_func = functions_map['send_message']
     annotation_func = functions_map['create_annotation']

@@ -35,16 +35,17 @@ PRETEST_STATES = Enum(
 )
 
 
-def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):
-    begin = probe_data.get('pretest_begin_timestamp')
+def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):  # NOQA
+    begin = probe_data.get('pretest_begin_timestamp', timestamp.get_timestamp())
     end = probe_data.get('pretest_end_timestamp')
 
-    if end is None:
-        duration = 0
-        timestamp = begin
+    if not end:
+        ts = begin
+        end = begin + 60000  # One minute later than `begin` by default
     else:
-        duration = max((end - begin), 0) / 1000
-        timestamp = end
+        ts = end
+
+    duration = max((end - begin), 0) / 1000
 
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
@@ -59,22 +60,22 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
     }
 
     annotation_data = annotation_templates.get(current_state)
-    if annotation_data and begin:
+    if annotation_data:
         annotation_data.update(
             __src='pretest_monitor',
             uid='{}-{}-{:.0f}'.format(
                 process_name,
                 probe_name,
-                timestamp,
+                ts,
             ),
-            createdAt=timestamp,
+            createdAt=ts,
             begin=begin,
             end=end,
         )
         annotation_func(probe_name, annotation_data)
 
-    elif not begin:
-        logging.error('{}, probe {}: Cannot create annotation without begin timestamp'.format(
+    else:
+        logging.debug('{}, probe {}: Cannot create annotation without data'.format(
             process_name, probe_name
         ))
 
