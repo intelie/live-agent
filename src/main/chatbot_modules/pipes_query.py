@@ -104,7 +104,7 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         is_valid_query = (len(mentioned_curves) >= 1)
         return is_valid_query and super().can_process(statement)
 
-    def process_indexed_query(self, statement, selected_asset, confidence=0):
+    def process_query(self, statement, selected_asset, confidence=0):
         selected_curves = self.find_selected_curves(statement)
         num_selected_curves = len(selected_curves)
 
@@ -119,7 +119,7 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 confidence = 1
 
         else:
-            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+            response_text = "I'm sorry, which of the curves you meant?{}{}".format(
                 ITEM_PREFIX,
                 ITEM_PREFIX.join(selected_curves)
             )
@@ -137,7 +137,7 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             if selected_asset is None:
                 response_text = "No asset selected. Please select an asset first."
             else:
-                response_text, confidence = self.process_indexed_query(
+                response_text, confidence = self.process_query(
                     statement,
                     selected_asset,
                     confidence=confidence,
@@ -266,7 +266,7 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 confidence = 1
 
         else:
-            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+            response_text = "I'm sorry, which of the curves you meant?{}{}".format(
                 ITEM_PREFIX,
                 ITEM_PREFIX.join(selected_curves)
             )

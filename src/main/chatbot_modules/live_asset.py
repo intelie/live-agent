@@ -155,7 +155,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
 
             elif num_selected_assets > 1:
-                response_text = "I didn't understand, which of the assets you chose?{}{}".format(
+                response_text = "I didn't understand, which of the assets you meant?{}{}".format(
                     ITEM_PREFIX,
                     ITEM_PREFIX.join(item.get('name') for item in selected_assets)
                 )
