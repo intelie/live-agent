@@ -8,19 +8,9 @@ __all__ = [
 ITEM_PREFIX = '\n  '
 
 
-def get_positive_examples(key):
-    return FEATURES[key]['examples']
 
-
-def get_negative_examples(key):
-    examples = NEGATIVE_EXAMPLES
-    for feature_key, feature_data in FEATURES.items():
-        if feature_key != key:
-            examples.extend(feature_data.get('examples', []))
-
-    return examples
-
-
+##
+# Logic adapter registry used by the `bot-features` adapter
 FEATURES = {
     'asset-list': {
         'enabled': True,
@@ -121,6 +111,22 @@ FEATURES = {
         ],
     },
 }
+
+
+##
+# Example phrases for the naive bayes based adapters
+def get_positive_examples(key):
+    return FEATURES[key]['examples']
+
+
+def get_negative_examples(key):
+    examples = NEGATIVE_EXAMPLES
+    for feature_key, feature_data in FEATURES.items():
+        if feature_key != key:
+            examples.extend(feature_data.get('examples', []))
+
+    return examples
+
 
 NEGATIVE_EXAMPLES = [
     'good evening',
