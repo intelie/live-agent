@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import time
 import json
 
 from chatterbot.conversation import Statement
@@ -16,13 +17,141 @@ from .constants import (
 
 
 __all__ = [
+    'CurrentValueQueryAdapter',
     'EtimQueryAdapter',
 ]
 
 
-class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
+class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
     """
     Returns the current value for a mnemonic
+    """
+
+    state_key = 'current-query'
+    default_state = {}
+    positive_examples = get_positive_examples(state_key)
+    negative_examples = get_negative_examples(state_key)
+
+    def run_query(self, target_curve):
+        selected_asset = self.get_selected_asset()
+        if selected_asset:
+            asset_config = selected_asset.get('asset_config', {})
+
+            value_query = '''
+            {event_type} .flags:nocount .flags:reversed
+            => @filter({{{target_curve}}} != null)
+            => {{{target_curve}}}:map():json() as {{{target_curve}}}
+            '''.format(
+                event_type=asset_config['filter'],
+                target_curve=target_curve,
+            )
+
+            return super().run_query(
+                value_query,
+                realtime=False,
+                span="since ts 0 #partial='1'",
+                callback=partial(
+                    self.format_response,
+                    target_curve=target_curve,
+                )
+            )
+
+    def format_response(self, response_content, target_curve=None):
+        if not response_content:
+            result = 'No information about {target_curve}'.format(
+                target_curve=target_curve,
+            )
+        else:
+            results = []
+            for item in response_content:
+                query_result = json.loads(item.get(target_curve, '{}'))
+                timestamp = int(item.get(TIMESTAMP_KEY, 0)) or None
+
+                try:
+                    value = query_result.get(VALUE_KEY)
+                    uom = query_result.get(UOM_KEY)
+
+                    if uom:
+                        query_result = "{0:.2f} {1}".format(value, uom)
+                    else:
+                        query_result = "{0:.2f}".format(value)
+
+                except Exception as e:
+                    logging.error("{}: {} ({})".format(
+                        self.__class__.__name__,
+                        e,
+                        type(e)
+                    ))
+
+                if timestamp:
+                    time_diff = time.time() - (timestamp / 1000)
+
+                if timestamp < 2:
+                    response_age = f'{time_diff:.1f} second ago'
+                else:
+                    response_age = f'{time_diff:.1f} seconds ago'
+
+                results.append(
+                    f"{target_curve} was *{query_result}* {response_age}."
+                )
+
+            result = ITEM_PREFIX.join(results)
+
+        return result
+
+    def can_process(self, statement):
+        mentioned_curves = self.list_mentioned_curves(statement)
+        is_valid_query = (len(mentioned_curves) >= 1)
+        return is_valid_query and super().can_process(statement)
+
+    def process_indexed_query(self, statement, selected_asset, confidence=0):
+        selected_curves = self.find_selected_curves(statement)
+        num_selected_curves = len(selected_curves)
+
+        if num_selected_curves == 0:
+            response_text = "I didn't get the curve name. Can you repeat please?"
+
+        elif num_selected_curves == 1:
+            selected_curve = selected_curves[0]
+
+            with start_action(action_type=self.state_key, curve=selected_curve):
+                response_text = self.run_query(selected_curve)
+                confidence = 1
+
+        else:
+            response_text = "I'm sorry, which of the curves you chose?{}{}".format(
+                ITEM_PREFIX,
+                ITEM_PREFIX.join(selected_curves)
+            )
+
+        return response_text, confidence
+
+    def process(self, statement, additional_response_selection_parameters=None):
+        confidence = self.get_confidence(statement)
+        response = None
+
+        if confidence > self.confidence_threshold:
+            self.load_state()
+            selected_asset = self.get_selected_asset()
+
+            if selected_asset is None:
+                response_text = "No asset selected. Please select an asset first."
+            else:
+                response_text, confidence = self.process_indexed_query(
+                    statement,
+                    selected_asset,
+                    confidence=confidence,
+                )
+
+            response = Statement(text=response_text)
+            response.confidence = confidence
+
+        return response
+
+
+class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
+    """
+    Returns the value for a mnemonic at an specific ETIM
     """
 
     state_key = 'etim-query'
@@ -105,15 +234,9 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                         type(e)
                     ))
 
-                templ = (
-                    "{target_curve} was {query_result} at {index_curve} {index_value:.0f}."
+                results.append(
+                    f"{target_curve} was *{query_result}* at {self.index_curve} {index_value:.0f}."
                 )
-                results.append(templ.format(
-                    target_curve=target_curve,
-                    query_result=query_result,
-                    index_curve=self.index_curve,
-                    index_value=index_value
-                ))
 
             result = ITEM_PREFIX.join(results)
 

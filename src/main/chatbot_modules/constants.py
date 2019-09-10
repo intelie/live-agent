@@ -88,6 +88,15 @@ FEATURES = {
             'what value for when ETIM',
         ],
     },
+    'current-query': {
+        'enabled': True,
+        'description': 'Query the most recent value for a curve',
+        'usage_example': 'what is the current value for {curve name}?',
+        'examples': [
+            'current value',
+            'value now',
+        ],
+    },
     'pipes-current-value': {
         'enabled': False,
         'description': 'Returns the current value for a mnemonic',
