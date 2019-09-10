@@ -267,4 +267,5 @@ class WithAssetAdapter(WithStateAdapter):
                 elif event_type != EVENT_TYPE_STOP:
                     continue
 
+                results_process.join(1)
                 return callback(result)
