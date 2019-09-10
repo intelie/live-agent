@@ -7,12 +7,14 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
-from utils import logging
 from live_client import query
 from live_client.events import messenger
 from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
+
+from chatbot_modules.constants import LOGIC_ADAPTERS
+from utils import logging
 
 
 __all__ = ['start']
@@ -121,20 +123,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, sender, 
         preprocessors=[
             'chatterbot.preprocessors.clean_whitespace'
         ],
-        logic_adapters=[
-            {
-                'import_path': 'chatterbot.logic.BestMatch',
-                'default_response': 'I am sorry, but I do not understand.',
-                'maximum_similarity_threshold': 0.90
-            },
-            'chatbot_modules.internal.StateDebugAdapter',
-            'chatbot_modules.internal.AdapterReloaderAdapter',
-            'chatbot_modules.internal.BotFeaturesAdapter',
-            'chatbot_modules.live_asset.AssetListAdapter',
-            'chatbot_modules.live_asset.AssetSelectionAdapter',
-            'chatbot_modules.live_functions.AutoAnalysisAdapter',
-            'chatbot_modules.pipes_query.EtimQueryAdapter',
-        ],
+        logic_adapters=LOGIC_ADAPTERS,
         read_only=True,
         functions={
             'run_query': run_query_func,

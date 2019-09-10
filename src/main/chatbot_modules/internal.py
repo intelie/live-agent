@@ -86,7 +86,6 @@ class AdapterReloaderAdapter(WithStateAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
         self.bot_kwargs = kwargs
-        self.logic_adapters = kwargs.get('logic_adapters', [])
 
     def validate_adapter(self, adapter):
         try:
@@ -104,6 +103,7 @@ class AdapterReloaderAdapter(WithStateAdapter):
         else:
             adapter_path = adapter
 
+        # Reload the logic adapters
         module_parts = adapter_path.split('.')
         module_path = '.'.join(module_parts[:-1])
         module = importlib.import_module(module_path)
@@ -115,15 +115,27 @@ class AdapterReloaderAdapter(WithStateAdapter):
         for adapter_instance in self.chatbot.logic_adapters:
             del(adapter_instance)
 
-        self.chatbot.logic_adapters = [
-            self.initialize_class(adapter)
-            for adapter in self.logic_adapters
-            if self.validate_adapter(adapter)
-        ]
+        try:
+            # Reload the list of logic adapters
+            constants = importlib.import_module('chatbot_modules.constants')
+            constants = importlib.reload(constants)
 
-        response = Statement(
-            text="{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
-        )
+            self.chatbot.logic_adapters = [
+                self.initialize_class(adapter)
+                for adapter in constants.LOGIC_ADAPTERS
+                if self.validate_adapter(adapter)
+            ]
+
+            response_text = "{} logic adapters reloaded".format(
+                len(self.chatbot.logic_adapters)
+            )
+
+        except Exception as e:
+            response_text = "Error reloading adapters: {} {}".format(
+                e, type(e)
+            )
+
+        response = Statement(text=response_text)
         response.confidence = 1
 
         return response

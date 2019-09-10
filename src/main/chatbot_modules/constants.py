@@ -7,6 +7,21 @@ __all__ = [
 
 ITEM_PREFIX = '\n  '
 
+LOGIC_ADAPTERS = [
+    {
+        'import_path': 'chatterbot.logic.BestMatch',
+        'default_response': 'I am sorry, but I do not understand.',
+        'maximum_similarity_threshold': 0.90
+    },
+    'chatbot_modules.internal.StateDebugAdapter',
+    'chatbot_modules.internal.AdapterReloaderAdapter',
+    'chatbot_modules.internal.BotFeaturesAdapter',
+    'chatbot_modules.live_asset.AssetListAdapter',
+    'chatbot_modules.live_asset.AssetSelectionAdapter',
+    'chatbot_modules.live_functions.AutoAnalysisAdapter',
+    'chatbot_modules.pipes_query.EtimQueryAdapter',
+    'chatbot_modules.pipes_query.CurrentValueQueryAdapter',
+]
 
 
 ##
