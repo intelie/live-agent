@@ -151,6 +151,7 @@ def maybe_create_pump_annotation(process_name, current_state, old_state, context
             '__color': '#E87919',
             'createdAt': begin,
             'begin': begin,
+            'end': end,
         },
         PUMP_STATES.BUILDUP_EXPECTED: {
             'message': "Probe {}: Pump activated for {:.0f} seconds".format(probe_name, duration),
@@ -209,12 +210,14 @@ def maybe_create_sampling_annotation(process_name, current_state, old_state, con
             '__color': '#FFCC33',
             'createdAt': begin,
             'begin': begin,
+            'end': end,
         },
         SAMPLING_STATES.FOCUSED_FLOW: {
             'message': "Focused flow started",
             '__color': '#99FF00',
             'createdAt': begin,
             'begin': begin,
+            'end': end,
         },
         SAMPLING_STATES.INACTIVE: {
             'message': "Sampling finished. Operation took {:.0f} seconds".format(duration),
