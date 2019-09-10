@@ -156,7 +156,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             asset_config = selected_asset.get('asset_config', {})
 
             value_query = '''
-            {event_type} .flags:nocount
+            {event_type} .flags:nocount .flags:reversed
             => {{{target_curve}}}:map():json() as {{{target_curve}}},
                {{{index_curve}}}->value as {{{index_curve}}}
             => @filter({{{index_curve}}}#:round() == {index_value})
