@@ -10,9 +10,9 @@ from setproctitle import setproctitle
 from utils import logging
 from live_client import query
 from live_client.events import messenger
+from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
-from chatbot_modules.constants import EVENT_TYPE_EVENT
 
 
 __all__ = ['start']

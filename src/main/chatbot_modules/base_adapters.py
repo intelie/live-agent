@@ -6,9 +6,9 @@ from eliot import start_action
 import nltk
 
 from live_client.assets.utils import only_enabled_curves
+from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_STOP
 from utils import logging
 
-from .constants import EVENT_TYPE_EVENT, EVENT_TYPE_STOP
 
 __all__ = []
 

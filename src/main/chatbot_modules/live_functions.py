@@ -7,10 +7,11 @@ from eliot import start_action
 
 from live_client.assets import run_analysis
 from live_client.events import annotation
+from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
 
 from .base_adapters import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples, TIMESTAMP_KEY
+from .constants import get_positive_examples, get_negative_examples
 
 
 """
