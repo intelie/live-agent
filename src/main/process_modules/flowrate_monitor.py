@@ -58,7 +58,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
                 int(end - begin),
                 ', '.join(change_counter[mnemonic])
             )
-            messenger.send_chat_message(
+            messenger.maybe_send_chat_message(
                 process_name,
                 message,
                 process_settings,
