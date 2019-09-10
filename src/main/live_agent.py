@@ -29,9 +29,10 @@ class LiveAgent(Daemon):
     def __init__(self, pidfile, settings_file):
         setproctitle('DDA:  Main process')
         logfile = get_logfile()
+        error_logfile = f"{logfile}.error"
         with start_action(action_type=u"init_daemon") as action:
             task_id = action.serialize_task_id()
-            Daemon.__init__(self, pidfile, stdout=logfile, stderr=logfile, task_id=task_id)
+            Daemon.__init__(self, pidfile, stdout=logfile, stderr=error_logfile, task_id=task_id)
 
         self.settings_file = settings_file
 
