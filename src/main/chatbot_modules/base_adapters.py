@@ -6,7 +6,7 @@ from eliot import start_action
 import nltk
 
 from live_client.assets.utils import only_enabled_curves
-from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_STOP
+from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from utils import logging
 
 
@@ -264,7 +264,7 @@ class WithAssetAdapter(WithStateAdapter):
                 event_type = event_data.get('type')
                 if event_type == EVENT_TYPE_EVENT:
                     result = event_data.get('content', [])
-                elif event_type != EVENT_TYPE_STOP:
+                elif event_type != EVENT_TYPE_DESTROY:
                     continue
 
                 results_process.join(1)
