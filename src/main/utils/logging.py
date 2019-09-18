@@ -4,7 +4,7 @@ from functools import partial
 
 from eliot import Message, write_traceback, add_destinations
 
-from live_client.connection.rest_input import send_event
+from live_client.connection.rest_input import async_event_sender
 
 __all__ = [
     'debug',
@@ -43,21 +43,14 @@ warn = partial(log_message, severity='warn')
 error = partial(log_message, severity='error')
 
 
-def log_to_live(message, event_type=None, username=None, password=None, url=None, min_level=None):
+def log_to_live(message, log_function=None, event_type=None, min_level=None):
     message_severity = message.get('message_type', min_level)
     if level_is_logged(message_severity, min_level=min_level):
-        log_output_settings = {
-            'url': url,
-            'username': username,
-            'password': password
-        }
-
         message.update(__type=event_type)
-        send_event(message, log_output_settings)
+        log_function(message)
 
 
 def setup_live_logging(settings):
-
     log_settings = settings.get('output', {}).get('rest-log', {})
 
     event_type = log_settings.get('event_type', 'dda_log')
@@ -68,16 +61,15 @@ def setup_live_logging(settings):
 
     global log_level
     log_level = level
+    log_function = async_event_sender({'url': url, 'username': username, 'password': password})
 
     if event_type and url and username and password:
         add_destinations(
             partial(
                 log_to_live,
+                log_function=log_function,
                 event_type=event_type,
-                username=username,
-                password=password,
-                url=url,
-                min_level=level
+                min_level=level,
             )
         )
 
