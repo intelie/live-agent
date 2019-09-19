@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pprint import pformat
+import queue
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
 from eliot import start_action
@@ -176,6 +177,8 @@ class WithStateAdapter(LogicAdapter):
 
 class WithAssetAdapter(WithStateAdapter):
 
+    query_timeout = 60
+
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
         self.query_runner = kwargs.get('functions', {})['run_query']
@@ -259,13 +262,17 @@ class WithAssetAdapter(WithStateAdapter):
 
             result = []
             while True:
-                event = results_queue.get()
-                event_data = event.get('data', {})
-                event_type = event_data.get('type')
-                if event_type == EVENT_TYPE_EVENT:
-                    result = event_data.get('content', [])
-                elif event_type != EVENT_TYPE_DESTROY:
-                    continue
+                try:
+                    event = results_queue.get(timeout=self.query_timeout)
+                    event_data = event.get('data', {})
+                    event_type = event_data.get('type')
+                    if event_type == EVENT_TYPE_EVENT:
+                        result = event_data.get('content', [])
+                    elif event_type != EVENT_TYPE_DESTROY:
+                        continue
+
+                except queue.Empty as e:
+                    logging.exception(e)
 
                 results_process.join(1)
                 return callback(result)
