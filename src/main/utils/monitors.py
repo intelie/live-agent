@@ -11,18 +11,20 @@ __all__ = [
 ]
 
 
-def find_slope(process_name, event_list, index_mnemonic, value_mnemonic, targets=None, window_size=0, target_r=0):
+def find_slope(process_name, event_list, index_mnemonic, value_mnemonic, targets=None, window_size=0, target_r=0):  # NOQA
     """
     State when the slope of the linear regression of {value_mnemonic}
     over {window_size} seconds is <= {target_slope}
     """
     target_slopes = sorted(targets)
 
-    logging.debug("{}: Trying to detect linear regression with a slope <= {}, watching {} events".format(
-        process_name,
-        ', '.join(str(item) for item in target_slopes),
-        len(event_list)
-    ))
+    logging.debug(
+        "{}: Trying to detect linear regression with a slope <= {}, watching {} events".format(
+            process_name,
+            ', '.join(str(item) for item in target_slopes),
+            len(event_list)
+        )
+    )
 
     start_index = 0
     measured_slopes = []
@@ -82,7 +84,7 @@ def find_slope(process_name, event_list, index_mnemonic, value_mnemonic, targets
                 segment_found = segment_to_check
 
                 logging.info(
-                    "{}: Linear regression within {} ({:.3f}, r²: {:.3f}) found between {:.2f} and {:.2f}".format(
+                    "{}: Linear regression within {} ({:.3f}, r²: {:.3f}) found between {:.2f} and {:.2f}".format(  # NOQA
                         process_name,
                         target_slope,
                         segment_slope,
@@ -110,7 +112,7 @@ def find_slope(process_name, event_list, index_mnemonic, value_mnemonic, targets
     }
 
 
-def find_stable_buildup(process_name, probe_name, probe_data, event_list, message_sender, targets=None, fallback_state=None):
+def find_stable_buildup(process_name, probe_name, probe_data, event_list, message_sender, targets=None, fallback_state=None):  # NOQA
     """
     State when the slope of the linear regression of {pressure_mnemonic}
     over {buildup_duration} seconds is <= {target_slope}
