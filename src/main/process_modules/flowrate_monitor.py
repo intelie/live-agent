@@ -4,8 +4,8 @@ from setproctitle import setproctitle
 from eliot import Action
 
 from live_client.events import messenger
+from live_client.utils import logging
 from utils import loop
-from utils import logging
 
 
 __all__ = [

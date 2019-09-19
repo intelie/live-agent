@@ -5,7 +5,7 @@ from chatterbot.conversation import Statement  # NOQA
 
 from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
-from utils import logging
+from live_client.utils import logging
 
 from .base_adapters import BaseBayesAdapter, WithStateAdapter
 from .constants import get_positive_examples, get_negative_examples

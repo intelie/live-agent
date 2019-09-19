@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import logging
 import time
+
+from live_client.utils import logging
 
 __all__ = [
     'await_next_cycle',

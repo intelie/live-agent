@@ -12,9 +12,9 @@ from live_client.events import messenger
 from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
+from live_client.utils import logging
 
 from chatbot_modules.constants import LOGIC_ADAPTERS
-from utils import logging
 
 
 __all__ = ['start']

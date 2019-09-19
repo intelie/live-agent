@@ -5,7 +5,7 @@ import time
 import atexit
 from signal import SIGTERM
 
-from utils import logging
+from live_client.utils import logging
 
 
 class Daemon:

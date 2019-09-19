@@ -7,7 +7,7 @@ import nltk
 
 from live_client.assets.utils import only_enabled_curves
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
-from utils import logging
+from live_client.utils import logging
 
 
 __all__ = []

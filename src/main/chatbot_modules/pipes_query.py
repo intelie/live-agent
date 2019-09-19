@@ -7,8 +7,8 @@ from chatterbot.conversation import Statement
 from eliot import start_action
 
 from live_client.events.constants import UOM_KEY, VALUE_KEY, TIMESTAMP_KEY
+from live_client.utils import logging
 
-from utils import logging
 from .base_adapters import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
 from .constants import (
     ITEM_PREFIX,

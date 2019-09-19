@@ -7,9 +7,8 @@ from eliot import Action
 import lasio
 
 from live_client.events import raw, messenger
-from live_client.utils import timestamp
+from live_client.utils import timestamp, logging
 from utils import loop
-from utils import logging
 
 __all__ = [
     'start'

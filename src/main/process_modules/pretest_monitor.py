@@ -7,9 +7,8 @@ from setproctitle import setproctitle
 from eliot import Action
 
 from live_client.events import messenger, annotation
-from live_client.utils import timestamp
+from live_client.utils import timestamp, logging
 from utils import loop, monitors
-from utils import logging
 
 __all__ = ['start']
 

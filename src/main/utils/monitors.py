@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import logging
-
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from live_client.utils import timestamp
+from live_client.utils import timestamp, logging
 from utils import loop
 
 __all__ = [

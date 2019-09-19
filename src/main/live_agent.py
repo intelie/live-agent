@@ -11,7 +11,7 @@ from setproctitle import setproctitle
 from runner.daemon import Daemon
 from process_modules import PROCESS_HANDLERS
 from live_client.connection import CONNECTION_HANDLERS
-from utils import logging
+from live_client.utils import logging
 from utils.filter import filter_dict
 
 __all__ = []
