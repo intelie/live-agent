@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from functools import partial
 
-from eliot import start_action, Action
+from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
@@ -113,72 +113,57 @@ def train_bot(process_name, chatbot, language='english'):
     trainer.train(f'chatterbot.corpus.{language}.humor')
 
 
-def start_chatbot(process_name, process_settings, output_info, room_id, sender, first_message):
+def start_chatbot(process_name, process_settings, output_info, room_id, room_queue, task_id):
     setproctitle('DDA: Chatbot for room {}'.format(room_id))
 
-    run_query_func = partial(query.run, process_name, process_settings)
+    with Action.continue_task(task_id=task_id):
+        run_query_func = partial(query.run, process_name, process_settings)
 
-    process_settings.update(state={})
-    load_state_func = partial(load_state, process_settings)
-    share_state_func = partial(share_state, process_settings)
+        process_settings.update(state={})
+        load_state_func = partial(load_state, process_settings)
+        share_state_func = partial(share_state, process_settings)
 
-    bot_alias = process_settings.get('alias', 'Intelie')
-    messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
-    chatbot = ChatBot(
-        bot_alias,
-        filters=[],
-        preprocessors=[
-            'chatterbot.preprocessors.clean_whitespace'
-        ],
-        logic_adapters=LOGIC_ADAPTERS,
-        read_only=True,
-        functions={
-            'run_query': run_query_func,
-            'load_state': load_state_func,
-            'share_state': share_state_func,
-        },
-        process_name=process_name,
-        process_settings=process_settings,
-        output_info=output_info,
-        room_id=room_id,
-    )
-    train_bot(process_name, chatbot)
+        bot_alias = process_settings.get('alias', 'Intelie')
+        messenger.join_room(process_name, process_settings, output_info)
 
-    room_query_template = '__message => @filter room->id=="{}" && author->name!="{}"'
-    room_query = room_query_template.format(room_id, bot_alias)
-
-    results_process, results_queue = run_query_func(
-        room_query,
-        realtime=True,
-    )
-
-    messenger.join_room(process_name, process_settings, output_info)
-
-    process_messages(
-        process_name,
-        process_settings,
-        output_info,
-        room_id,
-        chatbot,
-        [first_message]
-    )
-
-    while True:
-        event = results_queue.get()
-        messages = maybe_extract_messages(event)
-        process_messages(
-            process_name,
-            process_settings,
-            output_info,
-            room_id,
-            chatbot,
-            messages
+        chatbot = ChatBot(
+            bot_alias,
+            filters=[],
+            preprocessors=[
+                'chatterbot.preprocessors.clean_whitespace'
+            ],
+            logic_adapters=LOGIC_ADAPTERS,
+            read_only=True,
+            functions={
+                'run_query': run_query_func,
+                'load_state': load_state_func,
+                'share_state': share_state_func,
+            },
+            process_name=process_name,
+            process_settings=process_settings,
+            output_info=output_info,
+            room_id=room_id,
         )
+        train_bot(process_name, chatbot)
+
+
+        while True:
+            event = room_queue.get()
+            messages = maybe_extract_messages(event)
+            process_messages(
+                process_name,
+                process_settings,
+                output_info,
+                room_id,
+                chatbot,
+                messages
+            )
 
     return chatbot
 
 
-def process_bootstrap_message(process_name, process_settings, output_info, bots_registry, event):
+@preserve_context
+def route_message(process_name, process_settings, output_info, bots_registry, event):
     logging.debug("{}: Got an event: {}".format(process_name, event))
 
     messages = maybe_extract_messages(event)
@@ -189,22 +174,36 @@ def process_bootstrap_message(process_name, process_settings, output_info, bots_
         if room_id is None:
             return
 
-        if room_id in bots_registry and bots_registry[room_id].is_alive():
-            logging.info("{}: Bot for {} is already known".format(process_name, room_id))
+        room_bot, room_queue = bots_registry.get(room_id, (None, None))
 
+        if room_bot and room_bot.is_alive():
+            logging.info("{}: Bot for {} is already known".format(process_name, room_id))
         else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
+            messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
 
-            with start_action(action_type=u"start_chatbot", room_id=room_id):
-                bot_process = Process(
+            with start_action(action_type=u"start_chatbot", room_id=room_id) as action:
+                task_id = action.serialize_task_id()
+                room_queue = Queue()
+                room_bot = Process(
                     target=start_chatbot,
-                    args=(process_name, process_settings, output_info, room_id, sender, message)
+                    args=(
+                        process_name,
+                        process_settings,
+                        output_info,
+                        room_id,
+                        room_queue,
+                        task_id
+                    ),
                 )
 
-            bot_process.start()
-            bots_registry[room_id] = bot_process
+            room_bot.start()
+            bots_registry[room_id] = (room_bot, room_queue)
 
-    return bots_registry.values()
+        # Send the message to the room's bot process
+        room_queue.put(event)
+
+    return [item[0] for item in bots_registry.values()]
 
 
 ##
@@ -215,10 +214,14 @@ def start(process_name, process_settings, output_info, _settings, task_id):
         setproctitle('DDA: Chatbot main process')
         bots_registry = {}
 
-        bot_alias = process_settings.get('alias', 'Intelie')
-
-        bootstrap_query_template = '__message => @filter message:lower():contains("{}")'
-        bootstrap_query = bootstrap_query_template.format(bot_alias.lower())
+        bot_alias = process_settings.get('alias', 'Intelie').lower()
+        bootstrap_query = f'''
+            __message -__delete:*
+            => @filter(
+                message:lower():contains("{bot_alias}") &&
+                author->name:lower() != "{bot_alias}"
+            )
+        '''
 
         results_process, results_queue = query.run(
             process_name,
@@ -233,7 +236,7 @@ def start(process_name, process_settings, output_info, _settings, task_id):
             if event_type != EVENT_TYPE_EVENT:
                 continue
 
-            bot_processes = process_bootstrap_message(
+            bot_processes = route_message(
                 process_name,
                 process_settings,
                 output_info,
