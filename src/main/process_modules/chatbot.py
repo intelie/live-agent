@@ -22,6 +22,7 @@ __all__ = ['start']
 
 ##
 # Misc functions
+@preserve_context
 def load_state(container, state_key=None, default=None):
     state = container.get('state', {})
 
@@ -34,6 +35,7 @@ def load_state(container, state_key=None, default=None):
     return state
 
 
+@preserve_context
 def share_state(container, state_key=None, state_data=None):
     if 'state' not in container:
         container.update(state={})
@@ -43,6 +45,7 @@ def share_state(container, state_key=None, state_data=None):
 
 ##
 # Chat message handling
+@preserve_context
 def maybe_extract_messages(event):
     event_content = event.get('data', {}).get('content', [])
 
@@ -53,6 +56,7 @@ def maybe_extract_messages(event):
     ]
 
 
+@preserve_context
 def maybe_mention(process_settings, message):
     bot_alias = process_settings.get('alias', 'Intelie')
     is_mention = message.has_mention(bot_alias)
@@ -62,6 +66,7 @@ def maybe_mention(process_settings, message):
     return is_mention, message
 
 
+@preserve_context
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
     for message in messages:
         with start_action(action_type=u"process_message", message=message.get('text')):
@@ -88,6 +93,7 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
     messenger.join_room(process_name, process_settings, output_info)
 
 
+@preserve_context
 def maybe_send_message(process_name, process_settings, output_info, room_id, bot_response):
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get('alias', 'Intelie')
@@ -106,6 +112,7 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
 
 ##
 # Room Bot initialization
+@preserve_context
 def train_bot(process_name, chatbot, language='english'):
     trainer = ChatterBotCorpusTrainer(chatbot)
     trainer.train(f'chatterbot.corpus.{language}.conversations')
@@ -145,7 +152,6 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             room_id=room_id,
         )
         train_bot(process_name, chatbot)
-
 
         while True:
             event = room_queue.get()
@@ -209,9 +215,10 @@ def route_message(process_name, process_settings, output_info, bots_registry, ev
 ##
 # Global process initialization
 def start(process_name, process_settings, output_info, _settings, task_id):
+    setproctitle('DDA: Chatbot main process')
+
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Chatbot process started".format(process_name))
-        setproctitle('DDA: Chatbot main process')
         bots_registry = {}
 
         bot_alias = process_settings.get('alias', 'Intelie').lower()
