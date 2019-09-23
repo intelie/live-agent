@@ -21,7 +21,6 @@ DEFAULT_PIDFILE = "/var/run/live-agent.pid"
 
 LOGFILE_ENVVAR = 'LOG_FILE'
 DEFAULT_LOG = "/var/log/live-agent.log"
-CONSOLE_LOG = "/tmp/live-agent.log"
 
 
 class LiveAgent(Daemon):
@@ -132,6 +131,7 @@ class LiveAgent(Daemon):
                 with open(self.settings_file, 'r') as fd:
                     settings = json.load(fd)
 
+                logging.setup_python_logging(settings)
                 logging.setup_live_logging(settings)
                 self.start_processes(settings)
             except KeyboardInterrupt:
@@ -146,19 +146,17 @@ def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
-def get_logfile(console=False):
+def get_logfile():
     if LOGFILE_ENVVAR in os.environ:
         logfile = os.environ[LOGFILE_ENVVAR]
-    elif console:
-        logfile = CONSOLE_LOG
     else:
         logfile = DEFAULT_LOG
 
     return logfile
 
 
-def configure_log(console=False):
-    log_file = get_logfile(console)
+def configure_log():
+    log_file = get_logfile()
     to_file(open(log_file, "ab"))
 
 
@@ -185,7 +183,7 @@ if __name__ == '__main__':
 
     daemon = LiveAgent(pidfile, settings_file)
 
-    configure_log(command == 'console')
+    configure_log()
 
     if command == 'console':
         logging.info('Starting on-console run')
