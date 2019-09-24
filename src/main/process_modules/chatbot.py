@@ -230,23 +230,25 @@ def start(process_name, process_settings, output_info, _settings, task_id):
                 author->name:lower() != "{bot_alias}"
             )
         '''
-        timeout = 30
+        read_timeout = 120
+        request_timeout = (3.05, 5)
 
         results_process, results_queue = query.run(
             process_name,
             process_settings,
             bootstrap_query,
             realtime=True,
-            timeout=timeout,
-            retry=True,
+            timeout=request_timeout,
+            max_retries=5,
         )
 
         while True:
             try:
-                event = results_queue.get(timeout=timeout)
+                event = results_queue.get(timeout=read_timeout)
             except queue.Empty as e:
                 logging.exception(e)
                 start(process_name, process_settings, output_info, _settings, task_id)
+                break
 
             event_type = event.get('data', {}).get('type')
             if event_type != EVENT_TYPE_EVENT:
