@@ -95,8 +95,6 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
                     response
                 )
 
-    messenger.join_room(process_name, process_settings, output_info)
-
 
 @preserve_context
 def maybe_send_message(process_name, process_settings, output_info, room_id, bot_response):
@@ -142,7 +140,6 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         share_state_func = partial(share_state, process_settings)
 
         bot_alias = process_settings.get('alias', 'Intelie')
-        messenger.join_room(process_name, process_settings, output_info)
 
         chatbot = ChatBot(
             bot_alias,
@@ -255,6 +252,7 @@ def start(process_name, process_settings, output_info, _settings, task_id):
         while True:
             try:
                 event = results_queue.get(timeout=read_timeout)
+                messenger.join_messenger(process_name, process_settings, output_info)
             except queue.Empty as e:
                 logging.exception(e)
                 start(process_name, process_settings, output_info, _settings, task_id)
