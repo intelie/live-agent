@@ -20,6 +20,10 @@ from chatbot_modules.constants import LOGIC_ADAPTERS
 
 __all__ = ['start']
 
+read_timeout = 120
+request_timeout = (3.05, 5)
+max_retries = 5
+
 
 ##
 # Misc functions
@@ -125,7 +129,13 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
     setproctitle('DDA: Chatbot for room {}'.format(room_id))
 
     with Action.continue_task(task_id=task_id):
-        run_query_func = partial(query.run, process_name, process_settings)
+        run_query_func = partial(
+            query.run,
+            process_name,
+            process_settings,
+            timeout=request_timeout,
+            max_retries=max_retries,
+        )
 
         process_settings.update(state={})
         load_state_func = partial(load_state, process_settings)
@@ -239,7 +249,7 @@ def start(process_name, process_settings, output_info, _settings, task_id):
             bootstrap_query,
             realtime=True,
             timeout=request_timeout,
-            max_retries=5,
+            max_retries=max_retries,
         )
 
         while True:
