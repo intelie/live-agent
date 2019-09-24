@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Process, Queue
 from functools import partial
+import queue
 
 from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
@@ -229,16 +230,24 @@ def start(process_name, process_settings, output_info, _settings, task_id):
                 author->name:lower() != "{bot_alias}"
             )
         '''
+        timeout = 30
 
         results_process, results_queue = query.run(
             process_name,
             process_settings,
             bootstrap_query,
             realtime=True,
+            timeout=timeout,
+            retry=True,
         )
 
         while True:
-            event = results_queue.get()
+            try:
+                event = results_queue.get(timeout=timeout)
+            except queue.Empty as e:
+                logging.exception(e)
+                start(process_name, process_settings, output_info, _settings, task_id)
+
             event_type = event.get('data', {}).get('type')
             if event_type != EVENT_TYPE_EVENT:
                 continue
