@@ -101,7 +101,8 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get('alias', 'Intelie')
     bot_settings['destination']['room'] = {'id': room_id}
-    bot_settings['destination']['author']['name'] = bot_alias
+    if 'name' not in bot_settings['destination']['author']:
+        bot_settings['destination']['author']['name'] = bot_alias
 
     messenger.send_message(
         process_name,
