@@ -21,6 +21,7 @@ LOGIC_ADAPTERS = [
     'chatbot_modules.live_functions.AutoAnalysisAdapter',
     'chatbot_modules.pipes_query.EtimQueryAdapter',
     'chatbot_modules.pipes_query.CurrentValueQueryAdapter',
+    'chatbot_modules.monitors.MonitorControlAdapter',
 ]
 
 
@@ -95,6 +96,16 @@ FEATURES = {
         'examples': [
             'current value',
             'value now',
+        ],
+    },
+    'monitor-control': {
+        'enabled': True,
+        'description': 'Start the monitors',
+        'usage_example': 'start the monitors',
+        'examples': [
+            'start monitor',
+            'initialize monitor',
+            'run monitor',
         ],
     },
     'bot-features': {

@@ -11,6 +11,160 @@
         "username": "admin",
         "password": "admin"
       },
+      "monitors": {
+        "ReplayRig0": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "request": {
+              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well0?username=teste&password=teste",
+              "interval": 15
+            },
+            "monitor": {
+              "index_mnemonic": "ETIM",
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "probes": {
+                "1": {
+                  "depth_mnemonic": "DVP1",
+                  "pressure_mnemonic": "BRD1",
+                  "pretest_volume_mnemonic": "PTV1",
+                  "pumpout_flowrate_mnemonic": "POTFR",
+                  "pumpout_volume_mnemonic": "POTCV"
+                },
+                "2": {
+                  "depth_mnemonic": "DVP2",
+                  "pressure_mnemonic": "BRD2",
+                  "pretest_volume_mnemonic": "PTV2",
+                  "pumpout_flowrate_mnemonic": "POTFR",
+                  "pumpout_volume_mnemonic": "POTCV"
+                }
+              }
+            },
+            "destination": {
+              "name": "tcp",
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "room": {"id": "eia02b6rencfqrjfq5um06842o"},
+              "dashboard": {"id": 17, "name": "Well 0: Pretest"},
+              "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
+            }
+          },
+          "flowrate": {
+            "type": "flowrate_monitor",
+            "enabled": false,
+            "request": {
+              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well0?username=teste&password=teste",
+              "interval": 60
+            },
+            "monitor": {
+              "index_mnemonic": "ETIM",
+              "flowrate_mnemonics": ["POTFR"],
+              "max_threshold": 10,
+              "window_duration": 600
+            },
+            "destination": {
+              "name": "tcp",
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"},
+              "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+            }
+          }
+        },
+        "ReplayRig3": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "request": {
+              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well3?username=teste&password=teste",
+              "interval": 15
+            },
+            "monitor": {
+              "index_mnemonic": "ETIM",
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "probes": {
+                "1": {
+                  "depth_mnemonic": "PQDVP1",
+                  "pressure_mnemonic": "QDPRESS_PQ1",
+                  "pretest_volume_mnemonic": "PQPTV1",
+                  "pumpout_flowrate_mnemonic": "POTFR",
+                  "pumpout_volume_mnemonic": "POTCV"
+                },
+                "2": {
+                  "depth_mnemonic": "PQDVP2",
+                  "pressure_mnemonic": "QDPRESS_PQ2",
+                  "pretest_volume_mnemonic": "PQPTV2",
+                  "pumpout_flowrate_mnemonic": "POTFR",
+                  "pumpout_volume_mnemonic": "POTCV"
+                }
+              }
+            },
+            "destination": {
+              "name": "rest",
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
+              "dashboard": {"id": 18, "name": "Well 3: Pretest"},
+              "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
+            }
+          },
+          "sampling": {
+            "type": "sampling_monitor",
+            "enabled": true,
+            "request": {
+              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/sampling_monitor/query/well3?username=teste&password=teste",
+              "interval": 15
+            },
+            "monitor": {
+              "index_mnemonic": "ETIM",
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "focused_flow_grace_period": 180,
+              "probes": {
+                "1": {
+                  "depth_mnemonic": "PQDVP1",
+                  "pressure_mnemonic": "QDPRESS_PQ1",
+                  "pumpout_flowrate_mnemonic": "POFR",
+                  "pump_motor_speed_mnemonic": "POMS"
+                },
+                "2": {
+                  "depth_mnemonic": "PQDVP2",
+                  "pressure_mnemonic": "QDPRESS_PQ2",
+                  "pumpout_flowrate_mnemonic": "POFR2",
+                  "pump_motor_speed_mnemonic": "POMS2"
+                }
+              }
+            },
+            "destination": {
+              "name": "rest",
+              "author": {"id": 2, "name": "🤖  Sampling monitor"},
+              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
+              "dashboard": {"id": 21, "name": "Well 3: Sampling"},
+              "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
+            }
+          },
+          "flowrate": {
+            "type": "flowrate_monitor",
+            "enabled": false,
+            "request": {
+              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well3?username=teste&password=teste",
+              "interval": 60
+            },
+            "monitor": {
+              "index_mnemonic": "ETIM",
+              "flowrate_mnemonics": ["POTFR"],
+              "max_threshold": 10,
+              "window_duration": 600
+            },
+            "destination": {
+              "name": "rest",
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"},
+              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
+            }
+          }
+        }
+      },
       "destination": {
         "name": "rest-agent",
         "author": {"id": 2, "name": "Oliver"}
@@ -34,7 +188,7 @@
       "url": "http://localhost:8080/services/plugin-restinput/shell/",
       "username": "live-agent",
       "password": "live-agent",
-      "level": "debug",
+      "level": "info",
       "event_type": "dda_log"
     }
   }

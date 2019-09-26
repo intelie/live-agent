@@ -190,6 +190,9 @@ class WithAssetAdapter(WithStateAdapter):
         all_curves = asset.get('asset_config', {}).get('curves', {})
         return only_enabled_curves(all_curves)
 
+    def get_asset_name(self, asset):
+        return asset.get('asset_name')
+
     def curve_was_mentioned(self, curve, statement, exact=True, match_case=True):
         statement_text = statement.text
 

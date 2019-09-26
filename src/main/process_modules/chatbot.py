@@ -192,7 +192,7 @@ def route_message(process_name, process_settings, output_info, bots_registry, ev
         room_bot, room_queue = bots_registry.get(room_id, (None, None))
 
         if room_bot and room_bot.is_alive():
-            logging.info("{}: Bot for {} is already known".format(process_name, room_id))
+            logging.debug("{}: Bot for {} is already known".format(process_name, room_id))
         else:
             logging.info("{}: New bot for room {}".format(process_name, room_id))
             messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
