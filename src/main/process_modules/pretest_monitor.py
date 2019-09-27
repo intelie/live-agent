@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import requests
+import queue
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
@@ -31,6 +31,9 @@ PRETEST_STATES = Enum(
     'PRETEST_STATES',
     'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE'
 )
+read_timeout = 120
+request_timeout = (3.05, 5)
+max_retries = 5
 
 
 def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):  # NOQA
@@ -310,7 +313,7 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(process_name, settings, output_info, helpers=None, task_id=None):
+def start(process_name, settings, helpers=None, task_id=None):
     if task_id:
         action = Action.continue_task(task_id=task_id)
     else:
@@ -319,7 +322,6 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
     with action.context():
         setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
         logging.info("{}: Pretest monitor started".format(process_name))
-        session = requests.Session()
 
         functions_map = {
             PRETEST_STATES.INACTIVE: find_drawdown,
@@ -352,9 +354,6 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
             ),
         }
 
-        url = settings['request']['url']
-        interval = settings['request']['interval']
-
         monitor_settings = settings.get('monitor', {})
         index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
@@ -365,38 +364,50 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
         iterations = 0
         latest_index = 0
         accumulator = []
+
+        results_process, results_queue = functions_map.get('run_query')(
+            monitors.prepare_query(settings),
+            span=f"last {window_duration} seconds",
+            realtime=True,
+        )
+
         while True:
             try:
-                r = session.get(url)
-                r.raise_for_status()
+                event = results_queue.get(timeout=read_timeout)
+                latest_events = event.get('data', {}).get('content', [])
 
-                latest_events = r.json()
-                accumulator, start, end = loop.refresh_accumulator(
-                    latest_events, accumulator, index_mnemonic, window_duration
-                )
+                if latest_events:
+                    accumulator, start, end = loop.refresh_accumulator(
+                        latest_events, accumulator, index_mnemonic, window_duration
+                    )
 
-                if accumulator:
-                    for probe_name, probe_data in probes.items():
-                        probe_data.update(
-                            index_mnemonic=index_mnemonic,
-                            buildup_duration=buildup_duration,
-                            buildup_wait_period=buildup_wait_period,
-                        )
-                        run_monitor(
-                            process_name,
-                            probe_name,
-                            probe_data,
-                            accumulator,
-                            functions_map,
-                        )
-                else:
-                    logging.warning("{}: No events received after index {}".format(
-                        process_name, latest_index
-                    ))
+                    if accumulator:
+                        for probe_name, probe_data in probes.items():
+                            probe_data.update(
+                                index_mnemonic=index_mnemonic,
+                                buildup_duration=buildup_duration,
+                                buildup_wait_period=buildup_wait_period,
+                            )
+                            run_monitor(
+                                process_name,
+                                probe_name,
+                                probe_data,
+                                accumulator,
+                                functions_map,
+                            )
+                    else:
+                        logging.warning("{}: No events received after index {}".format(
+                            process_name, latest_index
+                        ))
 
                 logging.debug("{}: Request {} successful".format(
                     process_name, iterations
                 ))
+
+            except queue.Empty as e:
+                logging.exception(e)
+                start(process_name, settings, helpers=helpers, task_id=task_id)
+                break
 
             except KeyboardInterrupt:
                 logging.info(
@@ -414,7 +425,6 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
                 )
                 raise
 
-            loop.await_next_cycle(interval, process_name)
             iterations += 1
 
     action.finish()

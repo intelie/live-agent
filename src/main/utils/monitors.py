@@ -232,3 +232,23 @@ def get_function(func_name, context):
             f'{func_name} not implemented: args={args}, kwargs={kwargs}'
         )
     )
+
+
+def prepare_query(settings):
+    event_type = settings.get('event_type')
+    mnemonics_settings = settings.get('monitor', {}).get('mnemonics', {})
+    query_mnemonics = list(mnemonics_settings.values())
+
+    mnemonics_list = "|".join(query_mnemonics)
+    mnemonics_pipe_fragments = [
+        r"lastv(value:object):if(\mnemonic:{0}) as {0}".format(item)
+        for item in query_mnemonics
+    ]
+    mnemonics_pipe = ', '.join(mnemonics_pipe_fragments)
+
+    query = "{} mnemonic!:({}) .flags:nocount => {} over last second every second".format(
+        event_type, mnemonics_list, mnemonics_pipe
+    )
+    logging.debug(f'query is "{query}"')
+
+    return query

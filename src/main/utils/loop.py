@@ -23,15 +23,15 @@ def await_next_cycle(sleep_time, process_name, message=None, log_func=None):
 
 
 def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_duration):
+    # Purge old events and add the new ones
+    accumulator.extend(latest_events)
+
     # Find out the latest timestamp received
     latest_event = latest_events[-1]
     window_end = latest_event.get(index_mnemonic, 0)
     window_start = window_end - window_duration
 
     seen_indexes = set()
-
-    # Purge old events and add the new ones
-    accumulator.extend(latest_events)
 
     purged_accumulator = []
     for item in accumulator:
@@ -40,8 +40,8 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
             purged_accumulator.append(item)
             seen_indexes.add(index)
 
-    logging.debug("{} events between {} and {} out of {} stored events".format(
-        len(purged_accumulator), window_start, window_end, len(accumulator)
+    logging.debug("{} of {} events between {} and {}".format(
+        len(purged_accumulator), len(accumulator), window_start, window_end,
     ))
 
     return purged_accumulator, window_start, window_end

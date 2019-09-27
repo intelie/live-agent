@@ -274,9 +274,6 @@ def start(process_name, process_settings, output_info, _settings, task_id):
                 author->name:lower() != "{bot_alias}"
             )
         '''
-        read_timeout = 120
-        request_timeout = (3.05, 5)
-
         results_process, results_queue = query.run(
             process_name,
             process_settings,

@@ -33,7 +33,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         super().__init__(chatbot, **kwargs)
 
         self.process_settings = kwargs['process_settings']
-        self.output_info = kwargs['output_info']
         self.helpers = dict(
             (name, func)
             for (name, func) in kwargs.get('functions', {}).items()
@@ -42,21 +41,26 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         self.all_monitors = self.process_settings.get('monitors', {})
 
-    def start_monitors(self, selected_asset):
+    def start_monitors(self, selected_asset, active_monitors):
         asset_name = self.get_asset_name(selected_asset)
         asset_monitors = self.all_monitors.get(asset_name, {})
-        active_monitors = {}
 
-        for name, monitor_settings in asset_monitors.items():
+        monitors_to_start = dict(
+            (name, settings)
+            for (name, settings) in asset_monitors.items()
+            if name not in active_monitors
+        )
+
+        for name, settings in monitors_to_start.items():
             """
             TODO:
 
-            1. fazer as notificações voltarem a funcionar
-            2. adicionar event_type às configurações (para posteriormente ser adicionado pelo bot)
-                2.1. seguir o mesmo modelo com os nomes das curvas?
+            1. adicionar event_type às configurações (para posteriormente ser adicionado pelo bot)
+                1.1. seguir o mesmo modelo com os nomes das curvas?
                     event_type, canais, frequencia e janela das consultas
             """
 
+            monitor_settings = settings.copy()
             is_enabled = monitor_settings.get('enabled', False)
             if not is_enabled:
                 logging.info(f"{asset_name}: Ignoring disabled process '{name}'")
@@ -67,6 +71,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 logging.error(f"{asset_name}: Ignoring unknown process type '{process_type}'")
                 continue
 
+            monitor_settings['event_type'] = self.get_event_type(selected_asset)
             process_func = PROCESS_HANDLERS.get(process_type)
             with start_action(action_type=name) as action:
                 task_id = action.serialize_task_id()
@@ -75,7 +80,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                     args=(
                         asset_name,
                         monitor_settings,
-                        self.output_info,
                     ),
                     kwargs={
                         'helpers': self.helpers,
@@ -92,17 +96,18 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         if confidence > self.confidence_threshold:
             self.load_state()
+            active_monitors = self.state.get('active_monitors')
             selected_asset = self.get_selected_asset()
 
             if selected_asset:
-                active_monitors = self.start_monitors(selected_asset)
+                active_monitors = self.start_monitors(selected_asset, active_monitors)
 
                 if active_monitors:
                     self.state = {'active_monitors': active_monitors}
                     self.share_state()
 
                     monitor_names = list(active_monitors.keys())
-                    response_text = "{} monitors started ({})".format(
+                    response_text = "{} monitors running ({})".format(
                         len(monitor_names), ', '.join(monitor_names)
                     )
                     confidence = 1

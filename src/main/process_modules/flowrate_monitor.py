@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 import requests
 from setproctitle import setproctitle
 from eliot import Action
 
-from live_client.events import messenger
 from live_client.utils import logging
-from utils import loop
+from utils import loop, monitors
 
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def check_rate(process_name, flowrate_data, accumulator, process_settings, output_info):
+def check_rate(process_name, flowrate_data, accumulator, process_settings, send_message):
     monitor_settings = process_settings.get('monitor', {})
     index_mnemonic = monitor_settings['index_mnemonic']
     window_duration = monitor_settings['window_duration']
@@ -58,17 +58,12 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
                 int(end - begin),
                 ', '.join(change_counter[mnemonic])
             )
-            messenger.maybe_send_chat_message(
-                process_name,
-                message,
-                process_settings,
-                output_info
-            )
+            send_message(process_settings, message)
 
     return accumulator
 
 
-def start(process_name, process_settings, output_info, helpers=None, task_id=None):
+def start(process_name, process_settings, helpers=None, task_id=None):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Flowrate monitor started".format(process_name))
         setproctitle('DDA: Flowrate monitor')
@@ -77,6 +72,11 @@ def start(process_name, process_settings, output_info, helpers=None, task_id=Non
 
         url = process_settings['request']['url']
         interval = process_settings['request']['interval']
+
+        send_message = partial(
+            monitors.get_function('send_message', helpers),
+            extra_settings=process_settings,
+        )
 
         iterations = 0
         while True:
@@ -91,7 +91,7 @@ def start(process_name, process_settings, output_info, helpers=None, task_id=Non
                     flowrate_data,
                     accumulator,
                     process_settings,
-                    output_info,
+                    send_message
                 )
                 logging.debug("{}: Request {} successful".format(
                     process_name, iterations

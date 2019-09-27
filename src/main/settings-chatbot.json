@@ -21,6 +21,17 @@
               "interval": 15
             },
             "monitor": {
+              "mnemonics": {
+                "index": "ETIM",
+                "pumpout flow rate": "POTFR",
+                "pumpout volume": "POTCV",
+                "probe1 depth": "DVP1",
+                "probe1 pressure": "BRD1",
+                "probe1 pretest volume": "PTV1",
+                "probe2 depth": "DVP2",
+                "probe2 pressure": "BRD2",
+                "probe2 pretest volume": "PTV2"
+              },
               "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
@@ -43,9 +54,7 @@
               }
             },
             "destination": {
-              "name": "tcp",
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
-              "room": {"id": "eia02b6rencfqrjfq5um06842o"},
               "dashboard": {"id": 17, "name": "Well 0: Pretest"},
               "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
             }
@@ -64,9 +73,7 @@
               "window_duration": 600
             },
             "destination": {
-              "name": "tcp",
-              "author": {"id": 2, "name": "🤖  Flowrate monitor"},
-              "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"}
             }
           }
         },
@@ -79,6 +86,17 @@
               "interval": 15
             },
             "monitor": {
+              "mnemonics": {
+                "index": "ETIM",
+                "pumpout flow rate": "POTFR",
+                "pumpout volume": "POTCV",
+                "probe1 depth": "PQDVP1",
+                "probe1 pressure": "QDPRESS_PQ1",
+                "probe1 pretest volume": "PQPTV1",
+                "probe2 depth": "PQDVP2",
+                "probe2 pressure": "QDPRESS_PQ2",
+                "probe2 pretest volume": "PQPTV2"
+              },
               "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
@@ -101,9 +119,7 @@
               }
             },
             "destination": {
-              "name": "rest",
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
-              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
               "dashboard": {"id": 18, "name": "Well 3: Pretest"},
               "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
             }
@@ -116,6 +132,17 @@
               "interval": 15
             },
             "monitor": {
+              "mnemonics": {
+                "index": "ETIM",
+                "probe1 depth": "PQDVP1",
+                "probe1 pressure": "QDPRESS_PQ1",
+                "probe1 pumpout flowrate": "POFR",
+                "probe1 pump motor speed": "POMS",
+                "probe2 depth": "PQDVP2",
+                "probe2 pressure": "QDPRESS_PQ2",
+                "probe2 pumpout flowrate": "POFR2",
+                "probe2 pump motor speed": "POMS2"
+              },
               "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
@@ -137,9 +164,7 @@
               }
             },
             "destination": {
-              "name": "rest",
               "author": {"id": 2, "name": "🤖  Sampling monitor"},
-              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
               "dashboard": {"id": 21, "name": "Well 3: Sampling"},
               "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
             }
@@ -158,9 +183,7 @@
               "window_duration": 600
             },
             "destination": {
-              "name": "rest",
-              "author": {"id": 2, "name": "🤖  Flowrate monitor"},
-              "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"}
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"}
             }
           }
         }

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import requests
+import queue
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
@@ -110,6 +110,9 @@ SAMPLING_STATES = Enum(
     'SAMPLING_STATES',
     'INACTIVE, COMMINGLED_FLOW, FOCUSED_FLOW, SAMPLING'
 )
+read_timeout = 120
+request_timeout = (3.05, 5)
+max_retries = 5
 
 
 def maybe_create_annotation(process_name, current_state, old_state, context, annotation_func=None):
@@ -853,11 +856,10 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     return sampling_state
 
 
-def start(process_name, settings, output_info, helpers=None, task_id=None):
+def start(process_name, settings, helpers=None, task_id=None):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Sampling monitor started".format(process_name))
         setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
-        session = requests.Session()
 
         functions_map = {
             'pump': {
@@ -898,9 +900,6 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
             ),
         }
 
-        url = settings['request']['url']
-        interval = settings['request']['interval']
-
         monitor_settings = settings.get('monitor', {})
         index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
@@ -914,31 +913,43 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
             latest_seen_index=latest_index,
             index_mnemonic=index_mnemonic,
         )
+
+        results_process, results_queue = functions_map.get('run_query')(
+            monitors.prepare_query(settings),
+            span=f"last {window_duration} seconds",
+            realtime=True,
+        )
+
         while True:
             try:
-                r = session.get(url)
-                r.raise_for_status()
+                event = results_queue.get(timeout=read_timeout)
+                latest_events = event.get('data', {}).get('content', [])
 
-                latest_events = r.json()
-                accumulator, start, end = loop.refresh_accumulator(
-                    latest_events, accumulator, index_mnemonic, window_duration
-                )
-
-                if accumulator:
-                    run_monitor(
-                        process_name,
-                        settings,
-                        accumulator,
-                        functions_map,
+                if latest_events:
+                    accumulator, start, end = loop.refresh_accumulator(
+                        latest_events, accumulator, index_mnemonic, window_duration
                     )
-                else:
-                    logging.warning("{}: No events received after index {}".format(
-                        process_name, latest_index
-                    ))
+
+                    if accumulator:
+                        run_monitor(
+                            process_name,
+                            settings,
+                            accumulator,
+                            functions_map,
+                        )
+                    else:
+                        logging.warning("{}: No events received after index {}".format(
+                            process_name, latest_index
+                        ))
 
                 logging.debug("{}: Request {} successful".format(
                     process_name, iterations
                 ))
+
+            except queue.Empty as e:
+                logging.exception(e)
+                start(process_name, settings, helpers=helpers, task_id=task_id)
+                break
 
             except KeyboardInterrupt:
                 logging.info(
@@ -956,7 +967,6 @@ def start(process_name, settings, output_info, helpers=None, task_id=None):
                 )
                 raise
 
-            loop.await_next_cycle(interval, process_name)
             iterations += 1
 
     return
