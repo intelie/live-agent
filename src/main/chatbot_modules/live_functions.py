@@ -6,7 +6,6 @@ from chatterbot.conversation import Statement
 from eliot import start_action
 
 from live_client.assets import run_analysis
-from live_client.events import annotation
 from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
 
@@ -82,6 +81,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         process_name = kwargs['process_name']
         process_settings = kwargs['process_settings']
         output_info = kwargs['output_info']
+        self.annotator = kwargs.get('functions', {})['create_annotation']
 
         self.room_id = kwargs['room_id']
         self.analyzer = partial(
@@ -89,11 +89,6 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             process_name,
             process_settings,
             output_info
-        )
-        self.annotator = partial(
-            annotation.create,
-            process_settings=process_settings,
-            output_info=output_info,
         )
 
     def find_index_value(self, statement):

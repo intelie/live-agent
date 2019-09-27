@@ -9,7 +9,7 @@ from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
 from live_client import query
-from live_client.events import messenger
+from live_client.events import (messenger, annotation)
 from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
@@ -46,6 +46,28 @@ def share_state(container, state_key=None, state_data=None):
         container.update(state={})
 
     container['state'].update(**{state_key: state_data})
+
+
+@preserve_context
+def allow_extra_settings(func, *args, **kwargs):
+    # Allow the caller to override some of the settings
+    extra_settings = kwargs.pop('extra_settings', {})
+    if extra_settings:
+        process_settings = kwargs.get('process_settings', {})
+        process_settings.update(extra_settings)
+        kwargs['process_settings'] = process_settings
+
+    return func(*args, **kwargs)
+
+
+@preserve_context
+def create_annotation(*args, **kwargs):
+    return allow_extra_settings(annotation.create, *args, **kwargs)
+
+
+@preserve_context
+def send_message(*args, **kwargs):
+    return allow_extra_settings(messenger.send_message, *args, **kwargs)
 
 
 ##
@@ -128,6 +150,10 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
     setproctitle('DDA: Chatbot for room {}'.format(room_id))
 
     with Action.continue_task(task_id=task_id):
+        process_settings.update(state={})
+        load_state_func = partial(load_state, process_settings)
+        share_state_func = partial(share_state, process_settings)
+
         run_query_func = partial(
             query.run,
             process_name,
@@ -135,10 +161,18 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             timeout=request_timeout,
             max_retries=max_retries,
         )
-
-        process_settings.update(state={})
-        load_state_func = partial(load_state, process_settings)
-        share_state_func = partial(share_state, process_settings)
+        annotate_func = partial(
+            create_annotation,
+            process_settings=process_settings,
+            output_info=output_info,
+            room={'id': room_id},
+        )
+        messenger_func = partial(
+            send_message,
+            process_settings=process_settings,
+            output_info=output_info,
+            room={'id': room_id},
+        )
 
         bot_alias = process_settings.get('alias', 'Intelie')
 
@@ -151,9 +185,11 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             logic_adapters=LOGIC_ADAPTERS,
             read_only=True,
             functions={
-                'run_query': run_query_func,
                 'load_state': load_state_func,
                 'share_state': share_state_func,
+                'run_query': run_query_func,
+                'create_annotation': annotate_func,
+                'send_message': messenger_func,
             },
             process_name=process_name,
             process_settings=process_settings,

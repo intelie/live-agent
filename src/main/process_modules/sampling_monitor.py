@@ -6,7 +6,7 @@ from enum import Enum
 from setproctitle import setproctitle
 from eliot import Action
 
-from live_client.events import messenger, annotation
+from live_client.events import messenger
 from live_client.utils import timestamp, logging
 from utils import loop, monitors
 
@@ -174,7 +174,7 @@ def maybe_create_pump_annotation(process_name, current_state, old_state, context
         annotation_func(probe_name, annotation_data)
 
     else:
-        logging.error('{}, probe {}: Cannot create annotation without data'.format(
+        logging.debug('{}, probe {}: Cannot create annotation without data'.format(
             process_name, probe_name
         ))
 
@@ -240,7 +240,7 @@ def maybe_create_sampling_annotation(process_name, current_state, old_state, con
         annotation_func(process_name, annotation_data)
 
     else:
-        logging.error('{}: Cannot create annotation without data'.format(
+        logging.debug('{}: Cannot create annotation without data'.format(
             process_name
         ))
 
@@ -853,7 +853,7 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     return sampling_state
 
 
-def start(process_name, process_settings, output_info, task_id):
+def start(process_name, settings, output_info, helpers=None, task_id=None):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Sampling monitor started".format(process_name))
         setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
@@ -886,21 +886,22 @@ def start(process_name, process_settings, output_info, task_id):
                 SAMPLING_STATES.SAMPLING: find_sampling_end,
             },
             'send_message': partial(
-                messenger.send_message,
-                process_settings=process_settings,
-                output_info=output_info
+                monitors.get_function('send_message', helpers),
+                extra_settings=settings,
             ),
             'create_annotation': partial(
-                annotation.create,
-                process_settings=process_settings,
-                output_info=output_info
+                monitors.get_function('create_annotation', helpers),
+                extra_settings=settings,
+            ),
+            'run_query': monitors.get_function(
+                'run_query', helpers
             ),
         }
 
-        url = process_settings['request']['url']
-        interval = process_settings['request']['interval']
+        url = settings['request']['url']
+        interval = settings['request']['interval']
 
-        monitor_settings = process_settings.get('monitor', {})
+        monitor_settings = settings.get('monitor', {})
         index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
 
@@ -908,7 +909,7 @@ def start(process_name, process_settings, output_info, task_id):
         latest_index = 0
         accumulator = []
 
-        process_settings.update(
+        settings.update(
             process_state=SAMPLING_STATES.INACTIVE,
             latest_seen_index=latest_index,
             index_mnemonic=index_mnemonic,
@@ -926,7 +927,7 @@ def start(process_name, process_settings, output_info, task_id):
                 if accumulator:
                     run_monitor(
                         process_name,
-                        process_settings,
+                        settings,
                         accumulator,
                         functions_map,
                     )

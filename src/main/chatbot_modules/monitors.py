@@ -34,7 +34,11 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         self.process_settings = kwargs['process_settings']
         self.output_info = kwargs['output_info']
-        self.room_id = kwargs['room_id']  # NOQA
+        self.helpers = dict(
+            (name, func)
+            for (name, func) in kwargs.get('functions', {}).items()
+            if '_state' not in name
+        )
 
         self.all_monitors = self.process_settings.get('monitors', {})
 
@@ -55,12 +59,12 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
             is_enabled = monitor_settings.get('enabled', False)
             if not is_enabled:
-                logging.info(f"Ignoring disabled process '{name}'")
+                logging.info(f"{asset_name}: Ignoring disabled process '{name}'")
                 continue
 
             process_type = monitor_settings.get('type')
             if process_type not in PROCESS_HANDLERS:
-                logging.error(f"Ignoring unknown process type '{process_type}'")
+                logging.error(f"{asset_name}: Ignoring unknown process type '{process_type}'")
                 continue
 
             process_func = PROCESS_HANDLERS.get(process_type)
@@ -69,13 +73,16 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 process = Process(
                     target=process_func,
                     args=(
-                        name,
+                        asset_name,
                         monitor_settings,
                         self.output_info,
-                        task_id
-                    )
+                    ),
+                    kwargs={
+                        'helpers': self.helpers,
+                        'task_id': task_id,
+                    }
                 )
-                active_monitors[name] = monitor_settings
+                active_monitors[name] = process
                 process.start()
 
         return active_monitors

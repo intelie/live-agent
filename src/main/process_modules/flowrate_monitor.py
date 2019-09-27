@@ -68,7 +68,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
     return accumulator
 
 
-def start(process_name, process_settings, output_info, task_id):
+def start(process_name, process_settings, output_info, helpers=None, task_id=None):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Flowrate monitor started".format(process_name))
         setproctitle('DDA: Flowrate monitor')

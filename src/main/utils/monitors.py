@@ -8,6 +8,7 @@ from utils import loop
 __all__ = [
     'find_slope',
     'find_stable_buildup',
+    'get_function',
 ]
 
 
@@ -222,3 +223,12 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
         pretest_end_timestamp=pretest_end_timestamp,
     )
     return detected_state
+
+
+def get_function(func_name, context):
+    return context.get(
+        func_name,
+        lambda *args, **kwargs: logging.error(
+            f'{func_name} not implemented: args={args}, kwargs={kwargs}'
+        )
+    )

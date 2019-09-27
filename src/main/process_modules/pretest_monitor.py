@@ -4,9 +4,8 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
-from eliot import Action
+from eliot import Action, start_action
 
-from live_client.events import messenger, annotation
 from live_client.utils import timestamp, logging
 from utils import loop, monitors
 
@@ -311,10 +310,15 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(process_name, settings, output_info, task_id):
-    with Action.continue_task(task_id=task_id):
-        logging.info("{}: Pretest monitor started".format(process_name))
+def start(process_name, settings, output_info, helpers=None, task_id=None):
+    if task_id:
+        action = Action.continue_task(task_id=task_id)
+    else:
+        action = start_action(action_type='pretest_monitor')
+
+    with action.context():
         setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
+        logging.info("{}: Pretest monitor started".format(process_name))
         session = requests.Session()
 
         functions_map = {
@@ -336,14 +340,15 @@ def start(process_name, settings, output_info, task_id):
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
             'send_message': partial(
-                messenger.send_message,
-                settings=settings,
-                output_info=output_info
+                monitors.get_function('send_message', helpers),
+                extra_settings=settings,
             ),
             'create_annotation': partial(
-                annotation.create,
-                settings=settings,
-                output_info=output_info
+                monitors.get_function('create_annotation', helpers),
+                extra_settings=settings,
+            ),
+            'run_query': monitors.get_function(
+                'run_query', helpers
             ),
         }
 
@@ -411,5 +416,7 @@ def start(process_name, settings, output_info, task_id):
 
             loop.await_next_cycle(interval, process_name)
             iterations += 1
+
+    action.finish()
 
     return
