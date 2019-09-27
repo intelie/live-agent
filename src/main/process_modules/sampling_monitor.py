@@ -853,7 +853,7 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     return sampling_state
 
 
-def start(process_name, process_settings, output_info, _settings, task_id):
+def start(process_name, process_settings, output_info, task_id):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Sampling monitor started".format(process_name))
         setproctitle('DDA: Sampling monitor "{}"'.format(process_name))

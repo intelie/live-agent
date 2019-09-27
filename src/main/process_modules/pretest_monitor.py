@@ -311,7 +311,7 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(process_name, process_settings, output_info, _settings, task_id):
+def start(process_name, settings, output_info, task_id):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Pretest monitor started".format(process_name))
         setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
@@ -337,20 +337,20 @@ def start(process_name, process_settings, output_info, _settings, task_id):
             ),
             'send_message': partial(
                 messenger.send_message,
-                process_settings=process_settings,
+                settings=settings,
                 output_info=output_info
             ),
             'create_annotation': partial(
                 annotation.create,
-                process_settings=process_settings,
+                settings=settings,
                 output_info=output_info
             ),
         }
 
-        url = process_settings['request']['url']
-        interval = process_settings['request']['interval']
+        url = settings['request']['url']
+        interval = settings['request']['interval']
 
-        monitor_settings = process_settings.get('monitor', {})
+        monitor_settings = settings.get('monitor', {})
         index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
         buildup_duration = monitor_settings['buildup_duration']

@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def check_rate(process_name, flowrate_data, accumulator, process_settings, output_info, settings):
+def check_rate(process_name, flowrate_data, accumulator, process_settings, output_info):
     monitor_settings = process_settings.get('monitor', {})
     index_mnemonic = monitor_settings['index_mnemonic']
     window_duration = monitor_settings['window_duration']
@@ -68,7 +68,7 @@ def check_rate(process_name, flowrate_data, accumulator, process_settings, outpu
     return accumulator
 
 
-def start(process_name, process_settings, output_info, settings, task_id):
+def start(process_name, process_settings, output_info, task_id):
     with Action.continue_task(task_id=task_id):
         logging.info("{}: Flowrate monitor started".format(process_name))
         setproctitle('DDA: Flowrate monitor')
@@ -92,7 +92,6 @@ def start(process_name, process_settings, output_info, settings, task_id):
                     accumulator,
                     process_settings,
                     output_info,
-                    settings
                 )
                 logging.debug("{}: Request {} successful".format(
                     process_name, iterations
