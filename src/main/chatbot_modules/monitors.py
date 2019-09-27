@@ -55,9 +55,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             """
             TODO:
 
-            1. adicionar event_type às configurações (para posteriormente ser adicionado pelo bot)
-                1.1. seguir o mesmo modelo com os nomes das curvas?
-                    event_type, canais, frequencia e janela das consultas
+            1. definir formato das configurações
             """
 
             monitor_settings = settings.copy()
