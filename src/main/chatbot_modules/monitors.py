@@ -38,6 +38,48 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         self.all_monitors = self.process_settings.get('monitors', {})
 
+    def start_monitors(self, selected_asset):
+        asset_name = self.get_asset_name(selected_asset)
+        asset_monitors = self.all_monitors.get(asset_name, {})
+        active_monitors = {}
+
+        for name, monitor_settings in asset_monitors.items():
+            """
+            TODO:
+
+            1. fazer as notificações voltarem a funcionar
+            2. adicionar event_type às configurações (para posteriormente ser adicionado pelo bot)
+                2.1. seguir o mesmo modelo com os nomes das curvas?
+                    event_type, canais, frequencia e janela das consultas
+            """
+
+            is_enabled = monitor_settings.get('enabled', False)
+            if not is_enabled:
+                logging.info(f"Ignoring disabled process '{name}'")
+                continue
+
+            process_type = monitor_settings.get('type')
+            if process_type not in PROCESS_HANDLERS:
+                logging.error(f"Ignoring unknown process type '{process_type}'")
+                continue
+
+            process_func = PROCESS_HANDLERS.get(process_type)
+            with start_action(action_type=name) as action:
+                task_id = action.serialize_task_id()
+                process = Process(
+                    target=process_func,
+                    args=(
+                        name,
+                        monitor_settings,
+                        self.output_info,
+                        task_id
+                    )
+                )
+                active_monitors[name] = monitor_settings
+                process.start()
+
+        return active_monitors
+
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
 
@@ -46,42 +88,15 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             selected_asset = self.get_selected_asset()
 
             if selected_asset:
-                asset_name = self.get_asset_name(selected_asset)
-                asset_monitors = self.all_monitors.get(asset_name)
-                if asset_monitors:
-                    active_monitors = {}
+                active_monitors = self.start_monitors(selected_asset)
 
-                    for name, process_settings in asset_monitors.items():
-                        is_enabled = process_settings.get('enabled', False)
-                        if not is_enabled:
-                            logging.info(f"Ignoring disabled process '{name}'")
-                            continue
-
-                        process_type = process_settings.get('type')
-                        if process_type not in PROCESS_HANDLERS:
-                            logging.error(f"Ignoring unknown process type '{process_type}'")
-                            continue
-
-                        process_func = PROCESS_HANDLERS.get(process_type)
-                        with start_action(action_type=name) as action:
-                            task_id = action.serialize_task_id()
-                            process = Process(
-                                target=process_func,
-                                args=(
-                                    name,
-                                    process_settings,
-                                    self.output_info,
-                                    {},
-                                    task_id
-                                )
-                            )
-                            active_monitors[name] = process_settings
-                            process.start()
-
+                if active_monitors:
                     self.state = {'active_monitors': active_monitors}
                     self.share_state()
-                    response_text = "Monitors {} started".format(
-                        ', '.join(active_monitors.keys())
+
+                    monitor_names = list(active_monitors.keys())
+                    response_text = "{} monitors started ({})".format(
+                        len(monitor_names), ', '.join(monitor_names)
                     )
                     confidence = 1
 
