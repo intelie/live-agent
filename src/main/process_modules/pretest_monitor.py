@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import queue
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
@@ -313,7 +312,9 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(process_name, settings, helpers=None, task_id=None):
+def start(name, settings, helpers=None, task_id=None):
+    process_name = f"{name} - pretest"
+
     if task_id:
         action = Action.continue_task(task_id=task_id)
     else:
@@ -361,71 +362,26 @@ def start(process_name, settings, helpers=None, task_id=None):
         buildup_wait_period = monitor_settings['buildup_wait_period']
         probes = monitor_settings['probes']
 
-        iterations = 0
-        latest_index = 0
-        accumulator = []
-
         results_process, results_queue = functions_map.get('run_query')(
             monitors.prepare_query(settings),
             span=f"last {window_duration} seconds",
             realtime=True,
         )
 
-        while True:
-            try:
-                event = results_queue.get(timeout=read_timeout)
-                latest_events = event.get('data', {}).get('content', [])
-
-                if latest_events:
-                    accumulator, start, end = loop.refresh_accumulator(
-                        latest_events, accumulator, index_mnemonic, window_duration
-                    )
-
-                    if accumulator:
-                        for probe_name, probe_data in probes.items():
-                            probe_data.update(
-                                index_mnemonic=index_mnemonic,
-                                buildup_duration=buildup_duration,
-                                buildup_wait_period=buildup_wait_period,
-                            )
-                            run_monitor(
-                                process_name,
-                                probe_name,
-                                probe_data,
-                                accumulator,
-                                functions_map,
-                            )
-                    else:
-                        logging.warning("{}: No events received after index {}".format(
-                            process_name, latest_index
-                        ))
-
-                logging.debug("{}: Request {} successful".format(
-                    process_name, iterations
-                ))
-
-            except queue.Empty as e:
-                logging.exception(e)
-                start(process_name, settings, helpers=helpers, task_id=task_id)
-                break
-
-            except KeyboardInterrupt:
-                logging.info(
-                    "{}: Stopping after {} iterations".format(
-                        process_name, iterations
-                    )
+        with monitors.handle_events(results_queue, settings, timeout=read_timeout) as accumulator:
+            for probe_name, probe_data in probes.items():
+                probe_data.update(
+                    index_mnemonic=index_mnemonic,
+                    buildup_duration=buildup_duration,
+                    buildup_wait_period=buildup_wait_period,
                 )
-                raise
-
-            except Exception as e:
-                logging.error(
-                    "{}: Error processing events during request {}, {}<{}>".format(
-                        process_name, iterations, e, type(e)
-                    )
+                run_monitor(
+                    process_name,
+                    probe_name,
+                    probe_data,
+                    accumulator,
+                    functions_map,
                 )
-                raise
-
-            iterations += 1
 
     action.finish()
 

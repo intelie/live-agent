@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from contextlib import contextmanager
+import queue
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
@@ -252,3 +255,78 @@ def prepare_query(settings):
     logging.debug(f'query is "{query}"')
 
     return query
+
+
+def validate_event(event, settings):
+    valid_events = []
+    mnemonics_settings = settings.get('monitor', {}).get('mnemonics', {})
+    expected_curves = set(mnemonics_settings.values())
+    missing_curves = expected_curves
+
+    event_content = event.get('data', {}).get('content', [])
+    if event_content:
+
+        for item in event_content:
+            item_curves = set(item.keys())
+
+            # Which curves are missing from all items in this event?
+            missing_curves = missing_curves - item_curves
+
+            # Does this item has all curves?
+            is_valid = len(expected_curves - item_curves) == 0
+            if is_valid:
+                valid_events.append(item)
+
+    return valid_events, missing_curves
+
+
+@contextmanager
+def handle_events(results_queue, settings, timeout=10):
+    event_type = settings.get('event_type')
+    monitor_type = settings.get('type')
+    process_name = f"{event_type} {monitor_type}"
+
+    monitor_settings = settings.get('monitor', {})
+    index_mnemonic = monitor_settings['index_mnemonic']
+    window_duration = monitor_settings['window_duration']
+
+    accumulator = []
+    latest_index = 0
+    iterations = 0
+    while True:
+        try:
+            event = results_queue.get(timeout=timeout)
+            latest_data, missing_curves = validate_event(
+                event, settings
+            )
+
+            if latest_data:
+                accumulator, start, end = loop.refresh_accumulator(
+                    latest_data, accumulator, index_mnemonic, window_duration
+                )
+
+                if accumulator:
+                    yield accumulator
+
+                else:
+                    logging.warning(
+                        f"{process_name}: No events received after index {latest_index}"
+                    )
+
+            elif missing_curves:
+                logging.info(
+                    f"{process_name}: Some curves are missing ({missing_curves}). "
+                    f"\nWaiting for more data"
+                )
+
+            logging.debug(f"{process_name}: Request {iterations} successful")
+
+        except KeyboardInterrupt:
+            logging.info(f"{process_name}: Stopping after {iterations} iterations")
+            raise
+
+        except (queue.Empty, Exception) as e:
+            logging.exception(e)
+            break
+
+        iterations += 1

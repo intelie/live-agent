@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-import queue
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
-from eliot import Action
+from eliot import Action, start_action
 
 from live_client.events import messenger
 from live_client.utils import timestamp, logging
@@ -856,8 +855,15 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
     return sampling_state
 
 
-def start(process_name, settings, helpers=None, task_id=None):
-    with Action.continue_task(task_id=task_id):
+def start(name, settings, helpers=None, task_id=None):
+    process_name = f"{name} - sampling"
+
+    if task_id:
+        action = Action.continue_task(task_id=task_id)
+    else:
+        action = start_action(action_type='pretest_monitor')
+
+    with action.context():
         logging.info("{}: Sampling monitor started".format(process_name))
         setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
 
@@ -904,13 +910,9 @@ def start(process_name, settings, helpers=None, task_id=None):
         index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
 
-        iterations = 0
-        latest_index = 0
-        accumulator = []
-
         settings.update(
             process_state=SAMPLING_STATES.INACTIVE,
-            latest_seen_index=latest_index,
+            latest_seen_index=0,
             index_mnemonic=index_mnemonic,
         )
 
@@ -920,53 +922,14 @@ def start(process_name, settings, helpers=None, task_id=None):
             realtime=True,
         )
 
-        while True:
-            try:
-                event = results_queue.get(timeout=read_timeout)
-                latest_events = event.get('data', {}).get('content', [])
+        with monitors.handle_events(results_queue, settings, timeout=read_timeout) as accumulator:
+            run_monitor(
+                process_name,
+                settings,
+                accumulator,
+                functions_map,
+            )
 
-                if latest_events:
-                    accumulator, start, end = loop.refresh_accumulator(
-                        latest_events, accumulator, index_mnemonic, window_duration
-                    )
-
-                    if accumulator:
-                        run_monitor(
-                            process_name,
-                            settings,
-                            accumulator,
-                            functions_map,
-                        )
-                    else:
-                        logging.warning("{}: No events received after index {}".format(
-                            process_name, latest_index
-                        ))
-
-                logging.debug("{}: Request {} successful".format(
-                    process_name, iterations
-                ))
-
-            except queue.Empty as e:
-                logging.exception(e)
-                start(process_name, settings, helpers=helpers, task_id=task_id)
-                break
-
-            except KeyboardInterrupt:
-                logging.info(
-                    "{}: Stopping after {} iterations".format(
-                        process_name, iterations
-                    )
-                )
-                raise
-
-            except Exception as e:
-                logging.error(
-                    "{}: Error processing events during request {}, {}<{}>".format(
-                        process_name, iterations, e, type(e)
-                    )
-                )
-                raise
-
-            iterations += 1
+    action.finish()
 
     return
