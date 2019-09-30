@@ -23,8 +23,6 @@
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
-                "pumpout flow rate": "POTFR",
-                "pumpout volume": "POTCV",
                 "probe1 depth": "DVP1",
                 "probe1 pressure": "BRD1",
                 "probe1 pretest volume": "PTV1",
@@ -40,16 +38,12 @@
                 "1": {
                   "depth_mnemonic": "DVP1",
                   "pressure_mnemonic": "BRD1",
-                  "pretest_volume_mnemonic": "PTV1",
-                  "pumpout_flowrate_mnemonic": "POTFR",
-                  "pumpout_volume_mnemonic": "POTCV"
+                  "pretest_volume_mnemonic": "PTV1"
                 },
                 "2": {
                   "depth_mnemonic": "DVP2",
                   "pressure_mnemonic": "BRD2",
-                  "pretest_volume_mnemonic": "PTV2",
-                  "pumpout_flowrate_mnemonic": "POTFR",
-                  "pumpout_volume_mnemonic": "POTCV"
+                  "pretest_volume_mnemonic": "PTV2"
                 }
               }
             },
@@ -88,8 +82,6 @@
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
-                "pumpout flow rate": "POTFR",
-                "pumpout volume": "POTCV",
                 "probe1 depth": "PQDVP1",
                 "probe1 pressure": "QDPRESS_PQ1",
                 "probe1 pretest volume": "PQPTV1",
@@ -105,16 +97,12 @@
                 "1": {
                   "depth_mnemonic": "PQDVP1",
                   "pressure_mnemonic": "QDPRESS_PQ1",
-                  "pretest_volume_mnemonic": "PQPTV1",
-                  "pumpout_flowrate_mnemonic": "POTFR",
-                  "pumpout_volume_mnemonic": "POTCV"
+                  "pretest_volume_mnemonic": "PQPTV1"
                 },
                 "2": {
                   "depth_mnemonic": "PQDVP2",
                   "pressure_mnemonic": "QDPRESS_PQ2",
-                  "pretest_volume_mnemonic": "PQPTV2",
-                  "pumpout_flowrate_mnemonic": "POTFR",
-                  "pumpout_volume_mnemonic": "POTCV"
+                  "pretest_volume_mnemonic": "PQPTV2"
                 }
               }
             },
