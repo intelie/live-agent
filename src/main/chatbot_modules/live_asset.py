@@ -39,9 +39,9 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
         )
 
         if not available_assets:
+            process_name = kwargs['process_name']
             logging.warn(
-                '{}: No assets available. Check permissions for this user!',
-                kwargs['process_name']
+                f'{process_name}: No assets available. Check permissions for this user!',
             )
 
         self.load_state()
@@ -127,32 +127,36 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             elif num_selected_assets == 1:
                 selected_asset = selected_assets[0]
+                selected_asset_name = selected_asset.get('name')
 
                 asset_name = selected_asset.get('name')
                 asset_id = selected_asset.get('id', 0)
                 asset_type = selected_asset.get('asset_type', 'rig')
                 asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
 
-                self.state = {
-                    'asset_id': asset_id,
-                    'asset_type': asset_type,
-                    'asset_name': asset_name,
-                    'asset_config': asset_config,
-                }
-                self.share_state()
+                if asset_config:
+                    self.state = {
+                        'asset_id': asset_id,
+                        'asset_type': asset_type,
+                        'asset_name': asset_name,
+                        'asset_config': asset_config,
+                    }
+                    self.share_state()
 
-                event_type = asset_config.get('event_type', None)
-                asset_curves = only_enabled_curves(asset_config.get('curves', {}))
+                    event_type = asset_config.get('event_type', None)
+                    asset_curves = only_enabled_curves(asset_config.get('curves', {}))
 
-                text_templ = (
-                    'Ok, the asset {} was selected.'
-                    '\nIt uses the event_type "{}" and has {} curves'
-                )
-                response_text = text_templ.format(
-                    selected_asset.get('name'),
-                    event_type,
-                    len(asset_curves.keys()),
-                )
+                    text_templ = (
+                        'Ok, the asset {} was selected.'
+                        '\nIt uses the event_type "{}" and has {} curves'
+                    )
+                    response_text = text_templ.format(
+                        selected_asset_name,
+                        event_type,
+                        len(asset_curves.keys()),
+                    )
+                else:
+                    response_text = f"Error fetching information about {selected_asset_name}"
 
             elif num_selected_assets > 1:
                 response_text = "I didn't understand, which of the assets you meant?{}{}".format(
