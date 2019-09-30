@@ -48,7 +48,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         monitors_to_start = dict(
             (name, settings)
             for (name, settings) in asset_monitors.items()
-            if name not in active_monitors
+            if (name not in active_monitors) or not (active_monitors[name].is_alive())
         )
 
         for name, settings in monitors_to_start.items():
