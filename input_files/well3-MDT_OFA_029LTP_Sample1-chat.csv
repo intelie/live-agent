@@ -6,6 +6,8 @@ ADJ_TIME from the events: 19235",,,
 54,28499,19349,-986,RTOC,verry good,20/6/2013,23:47:15,TIME = 20335,,,
 872,29371,20221,-114,RTOC,once at depth set both probes and do a 10@60 test on each one,21/6/2013,00:01:47,,,,
 102,29473,20323,-12,WL UNIT,okay,21/6/2013,00:03:29,< ETIM 252.4,,-776,
+42,29515,20365,30,RTOC,Oliver activate the asset ReplayRig3 now,21/6/2013,00:03:29,,,,
+47,29520,20370,35,RTOC,Oliver start the monitors,21/6/2013,00:03:29,,,,
 512,29985,20835,500,RTOC,upper has better perm,21/6/2013,00:12:01,,,,
 11,29996,20846,511,WL UNIT,both pretests done. RT mob for Lower = 158.6 and RT mob for Upper = 316,21/6/2013,00:12:12,> ETIM 395.38,,-1155.62, max diff
 10,30006,20856,521,RTOC,recycle both probes,21/6/2013,00:12:22,,,,

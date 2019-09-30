@@ -6,7 +6,7 @@
       "type": "las_file",
       "enabled": true,
       "path_list" : [
-        ["./input_files/well0-MDT_OFA_CMR_103LTP.las", null],
+        ["./input_files/well0-MDT_OFA_CMR_103LTP.las", "./input_files/well0-MDT_OFA_CMR_103LTP.csv"],
         ["./input_files/well0-MDT_OFA_CMR_104LTP.las", null],
         ["./input_files/well0-MDT_OFA_CMR_106LTP.las", null]
       ],
