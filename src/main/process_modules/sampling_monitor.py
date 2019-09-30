@@ -922,13 +922,12 @@ def start(name, settings, helpers=None, task_id=None):
             realtime=True,
         )
 
-        with monitors.handle_events(results_queue, settings, timeout=read_timeout) as accumulator:
-            run_monitor(
-                process_name,
-                settings,
-                accumulator,
-                functions_map,
-            )
+        monitors.handle_events(
+            lambda accumulator: run_monitor(process_name, settings, accumulator, functions_map),
+            results_queue,
+            settings,
+            timeout=read_timeout
+        )
 
     action.finish()
 

@@ -368,7 +368,7 @@ def start(name, settings, helpers=None, task_id=None):
             realtime=True,
         )
 
-        with monitors.handle_events(results_queue, settings, timeout=read_timeout) as accumulator:
+        def process_events(accumulator):
             for probe_name, probe_data in probes.items():
                 probe_data.update(
                     index_mnemonic=index_mnemonic,
@@ -382,6 +382,8 @@ def start(name, settings, helpers=None, task_id=None):
                     accumulator,
                     functions_map,
                 )
+
+        monitors.handle_events(process_events, results_queue, settings, timeout=read_timeout)
 
     action.finish()
 

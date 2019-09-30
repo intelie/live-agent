@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from contextlib import contextmanager
 import queue
 
 import numpy as np
@@ -261,11 +260,10 @@ def validate_event(event, settings):
     valid_events = []
     mnemonics_settings = settings.get('monitor', {}).get('mnemonics', {})
     expected_curves = set(mnemonics_settings.values())
-    missing_curves = expected_curves
 
     event_content = event.get('data', {}).get('content', [])
     if event_content:
-
+        missing_curves = expected_curves
         for item in event_content:
             item_curves = set(item.keys())
 
@@ -276,12 +274,13 @@ def validate_event(event, settings):
             is_valid = len(expected_curves - item_curves) == 0
             if is_valid:
                 valid_events.append(item)
+    else:
+        missing_curves = []
 
     return valid_events, missing_curves
 
 
-@contextmanager
-def handle_events(results_queue, settings, timeout=10):
+def handle_events(processor_func, results_queue, settings, timeout=10):
     event_type = settings.get('event_type')
     monitor_type = settings.get('type')
     process_name = f"{event_type} {monitor_type}"
@@ -306,7 +305,7 @@ def handle_events(results_queue, settings, timeout=10):
                 )
 
                 if accumulator:
-                    yield accumulator
+                    processor_func(accumulator)
 
                 else:
                     logging.warning(
@@ -316,6 +315,7 @@ def handle_events(results_queue, settings, timeout=10):
             elif missing_curves:
                 logging.info(
                     f"{process_name}: Some curves are missing ({missing_curves}). "
+                    f"\nevent was: {event} "
                     f"\nWaiting for more data"
                 )
 
