@@ -248,8 +248,12 @@ def prepare_query(settings):
     ]
     mnemonics_pipe = ', '.join(mnemonics_pipe_fragments)
 
-    query = "{} mnemonic!:({}) .flags:nocount => {} over last second every second".format(
-        event_type, mnemonics_list, mnemonics_pipe
+    query = """
+        {} mnemonic!:({}) .flags:nocount
+        => {} over last second every second
+        => @filter({} != null)
+    """.format(
+        event_type, mnemonics_list, mnemonics_pipe, query_mnemonics[0]
     )
     logging.debug(f'query is "{query}"')
 
