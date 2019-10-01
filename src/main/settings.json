@@ -96,7 +96,7 @@
                 "final timestamp": "end"
               },
               "index_mnemonic": "timestamp",
-              "flowrate_mnemonic": "POTFR",
+              "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
               "max_threshold": 5,
               "window_duration": 60,
               "sampling_frequency": 5,
@@ -197,7 +197,7 @@
                 "final timestamp": "end"
               },
               "index_mnemonic": "timestamp",
-              "flowrate_mnemonic": "POTFR",
+              "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
               "max_threshold": 5,
               "window_duration": 60,
               "sampling_frequency": 5,

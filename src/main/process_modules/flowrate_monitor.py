@@ -21,17 +21,14 @@ def check_rate(process_name, accumulator, settings, send_message):
     if not accumulator:
         return
 
-    monitor_settings = settings.get('monitor', {})
-    flowrate_mnemonic = monitor_settings['flowrate_mnemonic']
-    latest_event = accumulator[-1]
-
     # Generate alerts whether the threshold was reached
     # a new event means another threshold breach
     template = (
         u'Whoa! {} was changed {} times over the last {} seconds, please calm down ({})'
     )
+    latest_event = accumulator[-1]
     message = template.format(
-        flowrate_mnemonic,
+        latest_event['mnemonic'],
         int(latest_event['num_changes']),
         int((int(latest_event['end']) - int(latest_event['start'])) / 1000),
         latest_event['values_list'],
@@ -48,19 +45,22 @@ def check_rate(process_name, accumulator, settings, send_message):
 def build_query(settings):
     event_type = settings.get('event_type')
     monitor_settings = settings.get('monitor', {})
-    flowrate_mnemonic = monitor_settings['flowrate_mnemonic']
     max_threshold = monitor_settings['max_threshold']
     window_duration = monitor_settings['window_duration']
     sampling_frequency = monitor_settings['sampling_frequency']
     precision = monitor_settings['precision']
 
+    flowrate_mnemonics = monitor_settings['flowrate_mnemonics']
+    mnemonics_list = "|".join(flowrate_mnemonics)
+
     query = f"""
-        {event_type} mnemonic!:{flowrate_mnemonic}
+        {event_type} mnemonic!:({mnemonics_list})
         => value as current_value,
            value#:round({precision}):dcount() as num_changes,
            value#round({precision}):set() as values_list,
            timestamp:min() as start,
            timestamp:max() as end,
+           mnemonic
           every {sampling_frequency} seconds over last {window_duration} seconds
         => @filter(num_changes >= {max_threshold})
         => @throttle 1, {window_duration} seconds
