@@ -56,6 +56,8 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             TODO:
 
             1. definir formato das configurações
+            2. implementar controle para parada dos monitores
+            3. implementar detecção de dados insuficientes
             """
 
             monitor_settings = settings.copy()
