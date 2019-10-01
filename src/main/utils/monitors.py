@@ -294,11 +294,11 @@ def handle_events(processor_func, results_queue, settings, timeout=10):
     window_duration = monitor_settings['window_duration']
 
     accumulator = []
-    latest_index = 0
     iterations = 0
     while True:
         try:
             event = results_queue.get(timeout=timeout)
+
             latest_data, missing_curves = validate_event(
                 event, settings
             )
@@ -310,11 +310,6 @@ def handle_events(processor_func, results_queue, settings, timeout=10):
 
                 if accumulator:
                     processor_func(accumulator)
-
-                else:
-                    logging.warning(
-                        f"{process_name}: No events received after index {latest_index}"
-                    )
 
             elif missing_curves:
                 logging.info(

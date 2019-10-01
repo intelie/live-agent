@@ -27,17 +27,20 @@ def check_rate(process_name, accumulator, settings, send_message):
 
     # Generate alerts whether the threshold was reached
     # a new event means another threshold breach
-    interval = (latest_event['end'] - latest_event['start']) / 1000
     template = (
         u'Whoa! {} was changed {} times over the last {} seconds, please calm down ({})'
     )
     message = template.format(
         flowrate_mnemonic,
-        latest_event['num_changes'],
-        interval,
-        latest_event['values_list'],
+        int(latest_event['num_changes']),
+        int((int(latest_event['end']) - int(latest_event['start'])) / 1000),
+        ", ".join(latest_event['values_list']),
     )
-    send_message(settings, message)
+    send_message(
+        process_name,
+        message,
+        timestamp=latest_event['timestamp']
+    )
 
     return accumulator
 
@@ -68,7 +71,7 @@ def build_query(settings):
 
 
 def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - pretest"
+    process_name = f"{name} - flowrate"
 
     if task_id:
         action = Action.continue_task(task_id=task_id)
@@ -103,6 +106,8 @@ def start(name, settings, helpers=None, task_id=None):
         )
 
         def process_events(accumulator):
+            logging.info("{}: Got an event {}".format(process_name, accumulator[-1]))
+
             check_rate(
                 process_name,
                 accumulator,

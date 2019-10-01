@@ -51,10 +51,6 @@
           "pretest": {
             "type": "pretest_monitor",
             "enabled": true,
-            "request": {
-              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well0?username=teste&password=teste",
-              "interval": 15
-            },
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
@@ -99,6 +95,7 @@
                 "initial timestamp": "start",
                 "final timestamp": "end"
               },
+              "index_mnemonic": "timestamp",
               "flowrate_mnemonic": "POTFR",
               "max_threshold": 5,
               "window_duration": 60,
@@ -114,10 +111,6 @@
           "pretest": {
             "type": "pretest_monitor",
             "enabled": true,
-            "request": {
-              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/pretest_monitor/query/well3?username=teste&password=teste",
-              "interval": 15
-            },
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
@@ -154,10 +147,6 @@
           "sampling": {
             "type": "sampling_monitor",
             "enabled": true,
-            "request": {
-              "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/sampling_monitor/query/well3?username=teste&password=teste",
-              "interval": 15
-            },
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
@@ -207,6 +196,7 @@
                 "initial timestamp": "start",
                 "final timestamp": "end"
               },
+              "index_mnemonic": "timestamp",
               "flowrate_mnemonic": "POTFR",
               "max_threshold": 5,
               "window_duration": 60,
