@@ -115,15 +115,19 @@
     "well0_flowrate": {
       "type": "flowrate_monitor",
       "enabled": false,
-      "request": {
-        "url": "http://localhost:8080/open/plugin-liverig/liverig-simplerest/external_agent/query/well0?username=teste&password=teste",
-        "interval": 60
-      },
       "monitor": {
-        "index_mnemonic": "ETIM",
-        "flowrate_mnemonics": ["POTFR"],
-        "max_threshold": 10,
-        "window_duration": 600
+        "mnemonics": {
+          "current value": "current_value",
+          "number of changes": "num_changes",
+          "values": "values_list",
+          "initial timestamp": "start",
+          "final timestamp": "end"
+        },
+        "flowrate_mnemonic": "POTFR",
+        "max_threshold": 5,
+        "window_duration": 60,
+        "sampling_frequency": 5,
+        "precision": 1
       },
       "destination": {
         "name": "tcp",
@@ -139,10 +143,18 @@
         "interval": 60
       },
       "monitor": {
-        "index_mnemonic": "ETIM",
-        "flowrate_mnemonics": ["POTFR"],
-        "max_threshold": 10,
-        "window_duration": 600
+        "mnemonics": {
+          "current value": "current_value",
+          "number of changes": "num_changes",
+          "values": "values_list",
+          "initial timestamp": "start",
+          "final timestamp": "end"
+        },
+        "flowrate_mnemonic": "POTFR",
+        "max_threshold": 5,
+        "window_duration": 60,
+        "sampling_frequency": 5,
+        "precision": 1
       },
       "destination": {
         "name": "rest",
