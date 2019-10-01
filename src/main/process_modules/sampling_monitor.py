@@ -2,6 +2,7 @@
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
+import queue
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
@@ -922,12 +923,15 @@ def start(name, settings, helpers=None, task_id=None):
             realtime=True,
         )
 
-        monitors.handle_events(
-            lambda accumulator: run_monitor(process_name, settings, accumulator, functions_map),
-            results_queue,
-            settings,
-            timeout=read_timeout
-        )
+        try:
+            monitors.handle_events(
+                lambda accumulator: run_monitor(process_name, settings, accumulator, functions_map),
+                results_queue,
+                settings,
+                timeout=read_timeout
+            )
+        except queue.Empty:
+            start(name, settings, helpers=helpers, task_id=task_id)
 
     action.finish()
 

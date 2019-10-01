@@ -325,8 +325,13 @@ def handle_events(processor_func, results_queue, settings, timeout=10):
             logging.info(f"{process_name}: Stopping after {iterations} iterations")
             raise
 
-        except (queue.Empty, Exception) as e:
+        except queue.Empty as e:
             logging.exception(e)
-            break
+            raise
+
+        except Exception as e:
+            logging.exception(e)
+            handle_events(processor_func, results_queue, settings, timeout=timeout)
+            return
 
         iterations += 1
