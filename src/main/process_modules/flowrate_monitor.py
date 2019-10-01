@@ -34,7 +34,7 @@ def check_rate(process_name, accumulator, settings, send_message):
         flowrate_mnemonic,
         int(latest_event['num_changes']),
         int((int(latest_event['end']) - int(latest_event['start'])) / 1000),
-        ", ".join(latest_event['values_list']),
+        latest_event['values_list'],
     )
     send_message(
         process_name,
@@ -106,8 +106,6 @@ def start(name, settings, helpers=None, task_id=None):
         )
 
         def process_events(accumulator):
-            logging.info("{}: Got an event {}".format(process_name, accumulator[-1]))
-
             check_rate(
                 process_name,
                 accumulator,
