@@ -61,6 +61,7 @@ def build_query(settings):
            timestamp:min() as start,
            timestamp:max() as end,
            mnemonic
+          by mnemonic
           every {sampling_frequency} seconds over last {window_duration} seconds
         => @filter(num_changes >= {max_threshold})
         => @throttle 1, {window_duration} seconds
