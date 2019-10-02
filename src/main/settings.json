@@ -100,7 +100,7 @@
               "max_threshold": 5,
               "window_duration": 60,
               "sampling_frequency": 5,
-              "precision": 1
+              "precision": 0
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
@@ -201,7 +201,7 @@
               "max_threshold": 5,
               "window_duration": 60,
               "sampling_frequency": 5,
-              "precision": 1
+              "precision": 0
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
