@@ -11,6 +11,15 @@ from .constants import get_positive_examples, get_negative_examples
 
 __all__ = ['MonitorControlAdapter']
 
+"""
+TODO:
+
+1. definir formato das configurações
+2. implementar controle para parada dos monitores
+3. implementar detecção de dados insuficientes
+4. implementar controles individuais para os monitores
+"""
+
 ITEM_PREFIX = '\n  '
 
 
@@ -52,14 +61,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         )
 
         for name, settings in monitors_to_start.items():
-            """
-            TODO:
-
-            1. definir formato das configurações
-            2. implementar controle para parada dos monitores
-            3. implementar detecção de dados insuficientes
-            """
-
             monitor_settings = settings.copy()
             is_enabled = monitor_settings.get('enabled', False)
             if not is_enabled:
