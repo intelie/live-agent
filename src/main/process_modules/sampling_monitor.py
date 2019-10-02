@@ -185,18 +185,18 @@ def maybe_create_pump_annotation(process_name, current_state, old_state, context
 
 
 def maybe_create_sampling_annotation(process_name, current_state, old_state, context, annotation_func=None):  # NOQA
-    process_settings = context
+    settings = context
 
     begin = end = None
     if old_state == SAMPLING_STATES.SAMPLING and current_state == SAMPLING_STATES.FOCUSED_FLOW:
         return
     elif current_state == SAMPLING_STATES.COMMINGLED_FLOW:
-        begin = process_settings.get('commingled_flow_start_ts', 0)
+        begin = settings.get('commingled_flow_start_ts', 0)
     elif current_state == SAMPLING_STATES.FOCUSED_FLOW:
-        begin = process_settings.get('focused_flow_start_ts', 0)
+        begin = settings.get('focused_flow_start_ts', 0)
     else:
-        begin = process_settings.get('focused_flow_start_ts', 0)
-        end = process_settings.get('focused_flow_end_ts', 0)
+        begin = settings.get('focused_flow_start_ts', 0)
+        end = settings.get('focused_flow_end_ts', 0)
 
     if not end:
         ts = begin
@@ -489,11 +489,11 @@ def check_seal_health(process_name, probe_name, probe_data, event_list, sampling
     )
 
 
-def find_commingled_flow(process_name, process_settings, event_list, message_sender=None):
+def find_commingled_flow(process_name, settings, event_list, message_sender=None):
     # When both pumps are started we get to commingled flow
-    commingled_flow_start_ts = process_settings.get('commingled_flow_start_ts', 0)
-    commingled_flow_end_ts = process_settings.get('commingled_flow_end_ts', 0)
-    monitor_settings = process_settings['monitor']
+    commingled_flow_start_ts = settings.get('commingled_flow_start_ts', 0)
+    commingled_flow_end_ts = settings.get('commingled_flow_end_ts', 0)
+    monitor_settings = settings['monitor']
 
     probes = monitor_settings.get('probes', [])
     pumping_probes = [
@@ -524,7 +524,7 @@ def find_commingled_flow(process_name, process_settings, event_list, message_sen
             message_sender(process_name, message, timestamp=commingled_flow_start_ts)
             logging.info(message)
 
-    process_settings.update(
+    settings.update(
         latest_seen_index=commingled_flow_start_ts,
         commingled_flow_start_ts=commingled_flow_start_ts,
         commingled_flow_end_ts=commingled_flow_end_ts,
@@ -532,16 +532,16 @@ def find_commingled_flow(process_name, process_settings, event_list, message_sen
     return detected_state
 
 
-def find_focused_flow(process_name, process_settings, event_list, message_sender=None):
+def find_focused_flow(process_name, settings, event_list, message_sender=None):
     # When rates of both pumps are stable for more than {focused_flow_grace_period}
-    monitor_settings = process_settings['monitor']
+    monitor_settings = settings['monitor']
     index_mnemonic = monitor_settings['index_mnemonic']
     focused_flow_grace_period = monitor_settings.get('focused_flow_grace_period', 60)
 
-    commingled_flow_end_ts = process_settings.get('commingled_flow_end_ts', 0)
-    focused_flow_start_ts = process_settings.get('focused_flow_start_ts', 0)
-    focused_flow_end_ts = process_settings.get('focused_flow_start_ts', 0)
-    focused_flow_start_index = process_settings.get('focused_flow_start_index', 0)
+    commingled_flow_end_ts = settings.get('commingled_flow_end_ts', 0)
+    focused_flow_start_ts = settings.get('focused_flow_start_ts', 0)
+    focused_flow_end_ts = settings.get('focused_flow_start_ts', 0)
+    focused_flow_start_index = settings.get('focused_flow_start_index', 0)
 
     probes = monitor_settings.get('probes', [])
     pumping_probes = [
@@ -606,7 +606,7 @@ def find_focused_flow(process_name, process_settings, event_list, message_sender
 
         detected_state = SAMPLING_STATES.INACTIVE
 
-    process_settings.update(
+    settings.update(
         latest_seen_index=focused_flow_start_index,
         commingled_flow_end_ts=commingled_flow_end_ts,
         focused_flow_start_ts=focused_flow_start_ts,
@@ -615,12 +615,12 @@ def find_focused_flow(process_name, process_settings, event_list, message_sender
     return detected_state
 
 
-def find_sampling_start(process_name, process_settings, event_list, message_sender=None):
+def find_sampling_start(process_name, settings, event_list, message_sender=None):
     # A pump will be stopped in order to collect a sample
-    monitor_settings = process_settings['monitor']
-    sampling_start_index = process_settings.get('sampling_start_index', 0)
-    sampling_start_ts = process_settings.get('sampling_start_ts', 0)
-    focused_flow_end_ts = process_settings.get('focused_flow_end_ts', 0)
+    monitor_settings = settings['monitor']
+    sampling_start_index = settings.get('sampling_start_index', 0)
+    sampling_start_ts = settings.get('sampling_start_ts', 0)
+    focused_flow_end_ts = settings.get('focused_flow_end_ts', 0)
 
     detected_state = None
     pumping_probes = []
@@ -686,7 +686,7 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
         focused_flow_end_ts = max(rate_changes_timestamps)
         detected_state = SAMPLING_STATES.INACTIVE
 
-    process_settings.update(
+    settings.update(
         latest_seen_index=sampling_start_index,
         sampling_start_index=sampling_start_index,
         sampling_start_ts=sampling_start_ts,
@@ -695,13 +695,13 @@ def find_sampling_start(process_name, process_settings, event_list, message_send
     return detected_state
 
 
-def find_sampling_end(process_name, process_settings, event_list, message_sender=None):
+def find_sampling_end(process_name, settings, event_list, message_sender=None):
     # When the second pump gets reactivated
-    monitor_settings = process_settings['monitor']
-    sampling_start_index = process_settings.get('sampling_start_index', 0)
-    sampling_start_ts = process_settings.get('sampling_start_ts', 0)
-    sampling_end_index = process_settings.get('sampling_end_index', 0)
-    sampling_end_ts = process_settings.get('sampling_end_ts', 0)
+    monitor_settings = settings['monitor']
+    sampling_start_index = settings.get('sampling_start_index', 0)
+    sampling_start_ts = settings.get('sampling_start_ts', 0)
+    sampling_end_index = settings.get('sampling_end_index', 0)
+    sampling_end_ts = settings.get('sampling_end_ts', 0)
 
     probes = monitor_settings.get('probes', [])
     pumping_probes = [
@@ -735,7 +735,7 @@ def find_sampling_end(process_name, process_settings, event_list, message_sender
         message_sender(process_name, message, timestamp=sampling_end_ts)
         logging.info(message)
 
-    process_settings.update(
+    settings.update(
         latest_seen_index=sampling_start_index,
         sampling_start_ts=sampling_start_ts,
         sampling_end_index=sampling_end_index,
@@ -789,12 +789,12 @@ def run_probe_monitor(process_name, probe_name, probe_data, event_list, sampling
     return probe_state
 
 
-def run_sampling_monitor(process_name, process_settings, event_list, functions_map):
+def run_sampling_monitor(process_name, settings, event_list, functions_map):
     sampling_functions = functions_map['sampling']
     message_func = functions_map['send_message']
     annotation_func = functions_map['create_annotation']
 
-    sampling_state = process_settings.get('process_state', SAMPLING_STATES.INACTIVE)
+    sampling_state = settings.get('process_state', SAMPLING_STATES.INACTIVE)
     logging.debug("{}: Sampling monitor at state {}".format(
         process_name, sampling_state
     ))
@@ -802,7 +802,7 @@ def run_sampling_monitor(process_name, process_settings, event_list, functions_m
     sampling_transition_func = sampling_functions[sampling_state]
     detected_state = sampling_transition_func(
         process_name,
-        process_settings,
+        settings,
         event_list,
         message_sender=message_func,
     )
@@ -815,31 +815,23 @@ def run_sampling_monitor(process_name, process_settings, event_list, functions_m
             process_name,
             detected_state,
             sampling_state,
-            context=process_settings,
+            context=settings,
             annotation_func=annotation_func,
         )
         sampling_state = detected_state
 
-    process_settings.update(process_state=sampling_state)
+    settings.update(process_state=sampling_state)
 
 
-def run_monitor(process_name, process_settings, event_list, functions_map):
-    process_settings = loop.maybe_reset_latest_index(process_settings, event_list)
-    monitor_settings = process_settings['monitor']
-    index_mnemonic = monitor_settings['index_mnemonic']
-    buildup_duration = monitor_settings['buildup_duration']
-    buildup_wait_period = monitor_settings['buildup_wait_period']
-
-    sampling_state = process_settings.get('process_state', SAMPLING_STATES.INACTIVE)
+def run_monitor(process_name, settings, event_list, functions_map):
+    settings.update(**monitors.get_global_mnemonics(settings))
+    settings = loop.maybe_reset_latest_index(settings, event_list)
+    sampling_state = settings.get('process_state', SAMPLING_STATES.INACTIVE)
 
     # Refresh the state for each probe
-    probes = monitor_settings.get('probes', [])
+    monitor_settings = settings.get('monitor', {})
+    probes = monitor_settings.get('probes', {})
     for probe_name, probe_data in probes.items():
-        probe_data.update(
-            index_mnemonic=index_mnemonic,
-            buildup_duration=buildup_duration,
-            buildup_wait_period=buildup_wait_period,
-        )
         probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
         run_probe_monitor(
             process_name,
@@ -851,8 +843,8 @@ def run_monitor(process_name, process_settings, event_list, functions_map):
         )
 
     # Refresh the state for the sampling process
-    probe_data = loop.maybe_reset_latest_index(process_settings, event_list)
-    sampling_state = run_sampling_monitor(process_name, process_settings, event_list, functions_map)
+    probe_data = loop.maybe_reset_latest_index(settings, event_list)
+    sampling_state = run_sampling_monitor(process_name, settings, event_list, functions_map)
     return sampling_state
 
 
@@ -908,13 +900,9 @@ def start(name, settings, helpers=None, task_id=None):
         }
 
         monitor_settings = settings.get('monitor', {})
-        index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
-
-        settings.update(
-            process_state=SAMPLING_STATES.INACTIVE,
-            latest_seen_index=0,
-            index_mnemonic=index_mnemonic,
+        monitor_settings.update(
+            probes=monitors.init_probes_data(settings)
         )
 
         results_process, results_queue = functions_map.get('run_query')(

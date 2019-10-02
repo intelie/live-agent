@@ -17,31 +17,22 @@
             "type": "pretest_monitor",
             "enabled": true,
             "monitor": {
-              "mnemonics": {
-                "index": "ETIM",
-                "probe1 depth": "DVP1",
-                "probe1 pressure": "BRD1",
-                "probe1 pretest volume": "PTV1",
-                "probe2 depth": "DVP2",
-                "probe2 pressure": "BRD2",
-                "probe2 pretest volume": "PTV2"
-              },
-              "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
               "buildup_wait_period": 120,
-              "probes": {
-                "1": {
-                  "depth_mnemonic": "DVP1",
-                  "pressure_mnemonic": "BRD1",
-                  "pretest_volume_mnemonic": "PTV1"
-                },
-                "2": {
-                  "depth_mnemonic": "DVP2",
-                  "pressure_mnemonic": "BRD2",
-                  "pretest_volume_mnemonic": "PTV2"
-                }
-              }
+              "mnemonics": {
+                "index": "ETIM",
+                "pretest number": "PTNO",
+                "probe1 depth mnemonic": "DVP1",
+                "probe1 pressure mnemonic": "BRD1",
+                "probe1 pretest volume mnemonic": "PTV1",
+                "probe1 temperature mnemonic": "B1TR",
+                "probe2 depth mnemonic": "DVP2",
+                "probe2 pressure mnemonic": "BRD2",
+                "probe2 pretest volume mnemonic": "PTV2",
+                "probe2 temperature mnemonic": "B2TR"
+              },
+              "probes": ["1", "2"]
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
@@ -54,13 +45,13 @@
             "enabled": true,
             "monitor": {
               "mnemonics": {
+                "index": "timestamp",
                 "current value": "current_value",
                 "number of changes": "num_changes",
                 "values": "values_list",
                 "initial timestamp": "start",
                 "final timestamp": "end"
               },
-              "index_mnemonic": "timestamp",
               "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
               "max_threshold": 5,
               "window_duration": 60,
@@ -77,31 +68,22 @@
             "type": "pretest_monitor",
             "enabled": true,
             "monitor": {
-              "mnemonics": {
-                "index": "ETIM",
-                "probe1 depth": "PQDVP1",
-                "probe1 pressure": "QDPRESS_PQ1",
-                "probe1 pretest volume": "PQPTV1",
-                "probe2 depth": "PQDVP2",
-                "probe2 pressure": "QDPRESS_PQ2",
-                "probe2 pretest volume": "PQPTV2"
-              },
-              "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
               "buildup_wait_period": 120,
-              "probes": {
-                "1": {
-                  "depth_mnemonic": "PQDVP1",
-                  "pressure_mnemonic": "QDPRESS_PQ1",
-                  "pretest_volume_mnemonic": "PQPTV1"
-                },
-                "2": {
-                  "depth_mnemonic": "PQDVP2",
-                  "pressure_mnemonic": "QDPRESS_PQ2",
-                  "pretest_volume_mnemonic": "PQPTV2"
-                }
-              }
+              "mnemonics": {
+                "index": "ETIM",
+                "pretest number": "PTNO",
+                "probe1 depth mnemonic": "PQDVP1",
+                "probe1 pressure mnemonic": "QDPRESS_PQ1",
+                "probe1 pretest volume mnemonic": "PQPTV1",
+                "probe1 temperature mnemonic": "PQ1TR",
+                "probe2 depth mnemonic": "PQDVP2",
+                "probe2 pressure mnemonic": "QDPRESS_PQ2",
+                "probe2 pretest volume mnemonic": "PQPTV2",
+                "probe2 temperature mnemonic": "PQ2TR"
+              },
+              "probes": ["1", "2"]
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
@@ -115,34 +97,20 @@
             "monitor": {
               "mnemonics": {
                 "index": "ETIM",
-                "probe1 depth": "PQDVP1",
-                "probe1 pressure": "QDPRESS_PQ1",
-                "probe1 pumpout flowrate": "POFR",
-                "probe1 pump motor speed": "POMS",
-                "probe2 depth": "PQDVP2",
-                "probe2 pressure": "QDPRESS_PQ2",
-                "probe2 pumpout flowrate": "POFR2",
-                "probe2 pump motor speed": "POMS2"
+                "probe1 depth mnemonic": "PQDVP1",
+                "probe1 pressure mnemonic": "QDPRESS_PQ1",
+                "probe1 pumpout flowrate mnemonic": "POFR",
+                "probe1 pump motor speed mnemonic": "POMS",
+                "probe2 depth mnemonic": "PQDVP2",
+                "probe2 pressure mnemonic": "QDPRESS_PQ2",
+                "probe2 pumpout flowrate mnemonic": "POFR2",
+                "probe2 pump motor speed mnemonic": "POMS2"
               },
-              "index_mnemonic": "ETIM",
               "window_duration": 60,
               "buildup_duration": 30,
               "buildup_wait_period": 120,
               "focused_flow_grace_period": 180,
-              "probes": {
-                "1": {
-                  "depth_mnemonic": "PQDVP1",
-                  "pressure_mnemonic": "QDPRESS_PQ1",
-                  "pumpout_flowrate_mnemonic": "POFR",
-                  "pump_motor_speed_mnemonic": "POMS"
-                },
-                "2": {
-                  "depth_mnemonic": "PQDVP2",
-                  "pressure_mnemonic": "QDPRESS_PQ2",
-                  "pumpout_flowrate_mnemonic": "POFR2",
-                  "pump_motor_speed_mnemonic": "POMS2"
-                }
-              }
+              "probes": ["1", "2"]
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Sampling monitor"},
@@ -155,13 +123,13 @@
             "enabled": true,
             "monitor": {
               "mnemonics": {
+                "index": "timestamp",
                 "current value": "current_value",
                 "number of changes": "num_changes",
                 "values": "values_list",
                 "initial timestamp": "start",
                 "final timestamp": "end"
               },
-              "index_mnemonic": "timestamp",
               "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
               "max_threshold": 5,
               "window_duration": 60,

@@ -357,25 +357,16 @@ def start(name, settings, helpers=None, task_id=None):
         }
 
         monitor_settings = settings.get('monitor', {})
-        index_mnemonic = monitor_settings['index_mnemonic']
         window_duration = monitor_settings['window_duration']
-        buildup_duration = monitor_settings['buildup_duration']
-        buildup_wait_period = monitor_settings['buildup_wait_period']
-        probes = monitor_settings['probes']
-
         results_process, results_queue = functions_map.get('run_query')(
             monitors.prepare_query(settings),
             span=f"last {window_duration} seconds",
             realtime=True,
         )
+        probes = monitors.init_probes_data(settings)
 
         def process_events(accumulator):
             for probe_name, probe_data in probes.items():
-                probe_data.update(
-                    index_mnemonic=index_mnemonic,
-                    buildup_duration=buildup_duration,
-                    buildup_wait_period=buildup_wait_period,
-                )
                 run_monitor(
                     process_name,
                     probe_name,
