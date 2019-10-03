@@ -24,7 +24,17 @@ Sequence of events:
 
 We want to generate notifications for events 1 to 4
 
-https://shellgamechanger.intelie.com/#/dashboard/51/?mode=view&span=2019-05-16%252008%253A47%253A16%2520to%25202019-05-16%252008%253A58%253A46
+State transitions:
+
+      |
+      v
+    INACTIVE --> DRAWDOWN_START --> DRAWDOWN_END ---> BUILDUP_STABLE--
+      ^                                           |                  |
+      |                                           v                  v
+      ----------------------------------------------------------------
+           ^                                 |
+           |                                 v
+           -- RECYCLE_END <-- RECYCLE_START --
 """
 
 PRETEST_STATES = Enum(
