@@ -274,11 +274,13 @@ def get_probe_mnemonics(settings, probe_name):
 
 
 def init_probes_data(settings):
+    event_type = settings.get('event_type')
     monitor_settings = settings.get('monitor', {})
     probes = monitor_settings['probes']
 
     return dict(
         (probe_name, dict(
+            event_type=event_type,
             **get_monitor_parameters(settings),
             **get_global_mnemonics(settings),
             **get_probe_mnemonics(settings, probe_name)
