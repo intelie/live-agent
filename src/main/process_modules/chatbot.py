@@ -9,7 +9,7 @@ from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
 from live_client import query
-from live_client.events import (messenger, annotation)
+from live_client.events import (messenger, annotation, raw)
 from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
@@ -68,6 +68,11 @@ def create_annotation(*args, **kwargs):
 @preserve_context
 def send_message(*args, **kwargs):
     return allow_extra_settings(messenger.send_message, *args, **kwargs)
+
+
+@preserve_context
+def send_event(*args, **kwargs):
+    return allow_extra_settings(raw.create, *args, **kwargs)
 
 
 ##
@@ -173,6 +178,11 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             output_info=output_info,
             room={'id': room_id},
         )
+        send_event_func = partial(
+            send_event,
+            process_settings=process_settings,
+            output_info=output_info,
+        )
 
         bot_alias = process_settings.get('alias', 'Intelie')
 
@@ -190,6 +200,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
                 'run_query': run_query_func,
                 'create_annotation': annotate_func,
                 'send_message': messenger_func,
+                'send_event': send_event_func,
             },
             process_name=process_name,
             process_settings=process_settings,
