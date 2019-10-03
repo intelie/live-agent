@@ -168,6 +168,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
     segment_found = regression_results.get('segment')
     pretest_end_timestamp = None
     target_state = None
+    buildup_slope = None
 
     if segment_found:
         segment_slope = regression_results.get('segment_slope')
@@ -197,6 +198,7 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
 
         detected_state = target_state
         latest_seen_index = etim
+        buildup_slope = segment_slope
         logging.debug(message)
 
     elif data:
@@ -219,10 +221,12 @@ def find_stable_buildup(process_name, probe_name, probe_data, event_list, messag
 
             detected_state = fallback_state
             latest_seen_index = latest_event_index
+            buildup_slope = None
 
     probe_data.update(
         latest_seen_index=latest_seen_index,
         pretest_end_timestamp=pretest_end_timestamp,
+        buildup_slope=buildup_slope,
     )
     return detected_state
 
