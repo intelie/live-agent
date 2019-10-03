@@ -302,11 +302,16 @@ def prepare_query(settings):
     query_mnemonics = list(mnemonics_settings.values())
 
     mnemonics_list = "|".join(query_mnemonics)
-    mnemonics_pipe_fragments = [
+    values_pipe_fragments = [
         r"lastv(value:object):if(\mnemonic:{0}) as {0}".format(item)
         for item in query_mnemonics
     ]
-    mnemonics_pipe = ', '.join(mnemonics_pipe_fragments)
+    units_pipe_fragments = [
+        r"lastv(uom:object):if(\mnemonic:{0}) as {0}_uom".format(item)
+        for item in query_mnemonics
+    ]
+    pipe_fragments = values_pipe_fragments + units_pipe_fragments
+    mnemonics_pipe = ', '.join(pipe_fragments)
 
     query = """
         {} mnemonic!:({}) .flags:nocount
