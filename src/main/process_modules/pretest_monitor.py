@@ -3,6 +3,7 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 import queue
+from hashlib import md5
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
@@ -297,16 +298,20 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
                 average_pressure_after=average_pressure_after,
             )
 
+        if pretest_report and isinstance(pretest_report, dict):
+            # Send data about the pretest as soon as we get it
+            pretest_uid_base = '{event_type}-{probe_name}-{pretest_begin_timestamp}'.format(
+                **pretest_report
+            )
+            pretest_report.update(
+                uid=md5(pretest_uid_base.encode('utf-8')).hexdigest(),
+                __overwrite=['uid'],
+            )
+            event_sender(PRETEST_REPORT_EVENT_TYPE, pretest_report)
+
         if (state is PRETEST_STATES.INACTIVE) and pretest_report:
-            """
-            We should have a complete report item. Send it to live and clear it
-            """
-            if isinstance(pretest_report, dict):
-                event_sender(PRETEST_REPORT_EVENT_TYPE, pretest_report)
-
+            # Clear the previous pretest data
             pretest_report = {}
-
-        logging.info(f"maybe_update_pretest_report: pretest report is {pretest_report}")
 
     probe_data.update(
         process_state=state,
