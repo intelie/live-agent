@@ -535,7 +535,7 @@ def find_commingled_flow(process_name, settings, event_list, message_sender=None
 def find_focused_flow(process_name, settings, event_list, message_sender=None):
     # When rates of both pumps are stable for more than {focused_flow_grace_period}
     monitor_settings = settings['monitor']
-    index_mnemonic = monitor_settings['index_mnemonic']
+    index_mnemonic = monitor_settings['mnemonics']['index']
     focused_flow_grace_period = monitor_settings.get('focused_flow_grace_period', 60)
 
     commingled_flow_end_ts = settings.get('commingled_flow_end_ts', 0)
