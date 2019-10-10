@@ -16,10 +16,10 @@ from utils.filter import filter_dict
 
 __all__ = []
 
-PIDFILE_ENVVAR = 'PID_FILE'
+PIDFILE_ENVVAR = 'DDA_PID_FILE'
 DEFAULT_PIDFILE = "/var/run/live-agent.pid"
 
-LOGFILE_ENVVAR = 'LOG_FILE'
+LOGFILE_ENVVAR = 'DDA_LOG_FILE'
 DEFAULT_LOG = "/var/log/live-agent.log"
 
 

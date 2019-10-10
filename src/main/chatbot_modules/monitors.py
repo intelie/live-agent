@@ -96,6 +96,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         confidence = self.get_confidence(statement)
 
         if confidence > self.confidence_threshold:
+            confidence = 1
             self.load_state()
             active_monitors = self.state.get('active_monitors')
             selected_asset = self.get_selected_asset()
@@ -111,10 +112,9 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                     response_text = "{} monitors running ({})".format(
                         len(monitor_names), ', '.join(monitor_names)
                     )
-                    confidence = 1
 
                 else:
-                    response_text = f'{selected_asset} has no registered monitors'
+                    response_text = f'{selected_asset["asset_name"]} has no registered monitors'
 
             else:
                 response_text = "No asset selected. Please select an asset first."

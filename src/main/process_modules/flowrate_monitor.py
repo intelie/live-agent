@@ -74,44 +74,32 @@ def build_query(settings):
 def start(name, settings, helpers=None, task_id=None):
     process_name = f"{name} - flowrate"
 
-    if task_id:
-        action = Action.continue_task(task_id=task_id)
-    else:
-        action = start_action(action_type='flowrate_monitor')
-
+    action = monitors.get_log_action(task_id, 'flowrate_monitor')
     with action.context():
         logging.info("{}: Flowrate monitor started".format(process_name))
         setproctitle('DDA: Flowrate monitor "{}"'.format(process_name))
 
-        functions_map = {
-            'send_message': partial(
-                monitors.get_function('send_message', helpers),
-                extra_settings=settings,
-            ),
-            'create_annotation': partial(
-                monitors.get_function('create_annotation', helpers),
-                extra_settings=settings,
-            ),
-            'run_query': monitors.get_function(
-                'run_query', helpers
-            ),
-        }
+        window_duration = settings['monitor']['window_duration']
 
-        monitor_settings = settings.get('monitor', {})
-        window_duration = monitor_settings['window_duration']
-
-        results_process, results_queue = functions_map.get('run_query')(
+        # Registrar consulta na API de console:
+        run_query = monitors.get_function('run_query', helpers)
+        results_process, results_queue = run_query(
             build_query(settings),
             span=f"last {window_duration} seconds",
             realtime=True,
         )
 
+        # Preparar callback para tratar os eventos vindos da API de console via response_queue:
+        send_message = partial(
+            monitors.get_function('send_message', helpers),
+            extra_settings=settings,
+        )
         def process_events(accumulator):
             check_rate(
                 process_name,
                 accumulator,
                 settings,
-                functions_map.get('send_message'),
+                send_message,
             )
 
         try:
@@ -122,8 +110,7 @@ def start(name, settings, helpers=None, task_id=None):
                 timeout=read_timeout
             )
         except queue.Empty:
+            # [ECS]: Essa chamada é um problema pois python não faz tail recursion <<<<<
             start(name, settings, helpers=helpers, task_id=task_id)
 
     action.finish()
-
-    return

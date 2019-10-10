@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import queue
 
-import numpy as np
-from sklearn.linear_model import LinearRegression
-
+from eliot import Action, start_action
 from live_client.utils import timestamp, logging
+from sklearn.linear_model import LinearRegression
 from utils import loop
 
 __all__ = [
@@ -406,3 +406,13 @@ def handle_events(processor_func, results_queue, settings, timeout=10):
             return
 
         iterations += 1
+
+
+# TODO: Melhorar o nome da função abaixo: <<<<<
+def get_log_action(task_id, action_type):
+    if task_id:
+        action = Action.continue_task(task_id=task_id)
+    else:
+        action = start_action(action_type = action_type)
+
+    return action

@@ -139,6 +139,26 @@
             "destination": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
             }
+          },
+          "flowrate_linearity": {
+            "type": "flowrate_linearity_monitor",
+            "enabled": true,
+            "monitor": {
+              "mnemonics": {
+                "ratio": "ratio",
+                "mean ratio": "mratio"
+              },
+              "index_mnemonic": "timestamp",
+              "window_duration": 5,
+              "sampling_interval": 1,
+              "threshold": 0.1,
+
+              "flowrate_mnemonic": "POFR",
+              "pressure_mnemonic": "QDPRESS_PQ1"
+            },
+            "destination": {
+              "author": {"id": 2, "name": "🤖  Flowrate Linearity monitor"}
+            }
           }
         }
       },
