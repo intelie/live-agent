@@ -50,9 +50,9 @@ from .constants import get_positive_examples, get_negative_examples
 """
 
 
-__all__ = ['AutoAnalysisAdapter']
+__all__ = ["AutoAnalysisAdapter"]
 
-ITEM_PREFIX = '\n  '
+ITEM_PREFIX = "\n  "
 
 
 class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
@@ -60,36 +60,23 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
     Analyze a curve on live
     """
 
-    state_key = 'auto-analysis'
-    index_curve = 'ETIM'
-    required_state = [
-        'assetId',
-        'channel',
-        'begin',
-        'end',
-        'computeFields',
-    ]
-    default_state = {
-        'computeFields': ['min', 'max', 'avg', 'stdev', 'linreg', 'derivatives']
-    }
+    state_key = "auto-analysis"
+    index_curve = "ETIM"
+    required_state = ["assetId", "channel", "begin", "end", "computeFields"]
+    default_state = {"computeFields": ["min", "max", "avg", "stdev", "linreg", "derivatives"]}
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
-        process_name = kwargs['process_name']
-        process_settings = kwargs['process_settings']
-        output_info = kwargs['output_info']
-        self.annotator = kwargs.get('functions', {})['create_annotation']
+        process_name = kwargs["process_name"]
+        process_settings = kwargs["process_settings"]
+        output_info = kwargs["output_info"]
+        self.annotator = kwargs.get("functions", {})["create_annotation"]
 
-        self.room_id = kwargs['room_id']
-        self.analyzer = partial(
-            run_analysis,
-            process_name,
-            process_settings,
-            output_info
-        )
+        self.room_id = kwargs["room_id"]
+        self.analyzer = partial(run_analysis, process_name, process_settings, output_info)
 
     def find_index_value(self, statement):
         tagged_words = self.pos_tag(statement)
@@ -102,7 +89,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             if word == self.index_curve:
                 index_mentioned = True
 
-            if index_mentioned and (tag == 'CD'):  # CD: Cardinal number
+            if index_mentioned and (tag == "CD"):  # CD: Cardinal number
                 value = word
                 break
 
@@ -118,7 +105,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             assetId="{0[asset_type]}/{0[asset_id]}".format(asset),
             channel=curve,
             qualifier=curve,
-            computeFields=self.default_state.get('computeFields'),
+            computeFields=self.default_state.get("computeFields"),
             begin=begin,
             end=end,
         )
@@ -126,16 +113,13 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         if analysis_results:
             # Gerar annotation
             analysis_results.update(
-                __src='auto-analysis',
+                __src="auto-analysis",
                 uid=str(uuid4()),
                 createdAt=get_timestamp(),
-                room={'id': self.room_id}
+                room={"id": self.room_id},
             )
-            with start_action(action_type='create annotation', curve=curve):
-                self.annotator(
-                    '{} for {}'.format(self.state_key, curve),
-                    analysis_results,
-                )
+            with start_action(action_type="create annotation", curve=curve):
+                self.annotator("{} for {}".format(self.state_key, curve), analysis_results)
 
             response_text = "Analysis of curve {} finished".format(curve)
             confidence = 1  # Otherwise another answer might be chosen
@@ -148,15 +132,15 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
     def run_query(self, asset, curve, index_value, confidence=0):
         selected_asset = self.get_selected_asset()
         if selected_asset:
-            asset_config = selected_asset.get('asset_config', {})
+            asset_config = selected_asset.get("asset_config", {})
 
-            value_query = '''
+            value_query = """
             {event_type} .flags:nocount .flags:reversed
             => {{{target_curve}}}:map():json() as {{{target_curve}}},
                {{{index_curve}}}->value as {{{index_curve}}}
             => @filter({{{index_curve}}}#:round() == {index_value})
-            '''.format(
-                event_type=asset_config['filter'],
+            """.format(
+                event_type=asset_config["filter"],
                 target_curve=curve,
                 index_curve=self.index_curve,
                 index_value=index_value,
@@ -172,15 +156,13 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                     curve=curve,
                     index_value=index_value,
                     confidence=confidence,
-                )
+                ),
             )
 
     def prepare_analysis(self, content, asset=None, curve=None, index_value=None, confidence=0):
         if not content:
-            response_text = 'No information about {curve} at {index_curve} {index_value}'.format(
-                curve=curve,
-                index_curve=self.index_curve,
-                index_value=index_value,
+            response_text = "No information about {curve} at {index_curve} {index_value}".format(
+                curve=curve, index_curve=self.index_curve, index_value=index_value
             )
 
         else:
@@ -189,10 +171,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
                 with start_action(action_type=self.state_key, curve=curve, begin=timestamp):
                     response_text, confidence = self.run_analysis(
-                        asset,
-                        curve,
-                        begin=timestamp,
-                        confidence=confidence
+                        asset, curve, begin=timestamp, confidence=confidence
                     )
 
         return response_text, confidence
@@ -208,9 +187,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             # Iniciar analise
             with start_action(action_type=self.state_key, curve=selected_curve):
                 response_text, confidence = self.run_analysis(
-                    selected_asset,
-                    selected_curve,
-                    confidence=confidence
+                    selected_asset, selected_curve, confidence=confidence
                 )
 
         elif num_selected_curves == 0:
@@ -218,8 +195,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
         else:
             response_text = "I'm sorry, which of the curves you want to analyse?{}{}".format(
-                ITEM_PREFIX,
-                ITEM_PREFIX.join(selected_curves)
+                ITEM_PREFIX, ITEM_PREFIX.join(selected_curves)
             )
 
         return response_text, confidence
@@ -240,16 +216,12 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
             with start_action(action_type=self.state_key, curve=selected_curve):
                 response_text, confidence = self.run_query(
-                    selected_asset,
-                    selected_curve,
-                    selected_value,
-                    confidence=confidence,
+                    selected_asset, selected_curve, selected_value, confidence=confidence
                 )
 
         else:
             response_text = "I'm sorry, which of the curves you chose?{}{}".format(
-                ITEM_PREFIX,
-                ITEM_PREFIX.join(selected_curves)
+                ITEM_PREFIX, ITEM_PREFIX.join(selected_curves)
             )
 
         return response_text, confidence
@@ -265,22 +237,18 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 response_text = "No asset selected. Please select an asset first."
             else:
                 mentioned_curves = self.list_mentioned_curves(statement)
-                has_index_mention = (
-                    (len(mentioned_curves) > 1) and (self.index_curve in mentioned_curves)
+                has_index_mention = (len(mentioned_curves) > 1) and (
+                    self.index_curve in mentioned_curves
                 )
 
                 if has_index_mention:
                     response_text, confidence = self.process_indexed_analysis(
-                        statement,
-                        selected_asset,
-                        confidence=confidence
+                        statement, selected_asset, confidence=confidence
                     )
 
                 else:
                     response_text, confidence = self.process_direct_analysis(
-                        statement,
-                        selected_asset,
-                        confidence=confidence
+                        statement, selected_asset, confidence=confidence
                     )
 
             response = Statement(text=response_text)

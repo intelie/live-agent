@@ -14,12 +14,13 @@ class Daemon:
 
     Usage: subclass the Daemon class and override the run() method
     """
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', **kwargs):
+
+    def __init__(self, pidfile, stdin="/dev/null", stdout="/dev/null", **kwargs):
         self.pidfile = pidfile
-        self.stdin = kwargs.get('stdin', '/dev/null')
-        self.stdout = kwargs.get('stdout', '/dev/null')
-        self.stderr = kwargs.get('stderr', '/dev/null')
-        self.task_id = kwargs.get('task_id')
+        self.stdin = kwargs.get("stdin", "/dev/null")
+        self.stdout = kwargs.get("stdout", "/dev/null")
+        self.stderr = kwargs.get("stderr", "/dev/null")
+        self.task_id = kwargs.get("task_id")
 
     def daemonize(self):
         """
@@ -55,19 +56,19 @@ class Daemon:
         sys.stdout.flush()
         sys.stderr.flush()
 
-        with open(self.stdin, 'r') as si:
+        with open(self.stdin, "r") as si:
             os.dup2(si.fileno(), sys.stdin.fileno())
 
-        with open(self.stdout, 'a+') as so:
+        with open(self.stdout, "a+") as so:
             os.dup2(so.fileno(), sys.stdout.fileno())
 
-        with open(self.stderr, 'ab+', 0) as se:
+        with open(self.stderr, "ab+", 0) as se:
             os.dup2(se.fileno(), sys.stderr.fileno())
 
         # write pidfile
         atexit.register(self.delpid)
         pid = str(os.getpid())
-        with open(self.pidfile, 'w+') as pf:
+        with open(self.pidfile, "w+") as pf:
             pf.write("%s\n" % pid)
 
     def delpid(self):
@@ -75,7 +76,7 @@ class Daemon:
 
     def loadpid(self):
         try:
-            with open(self.pidfile, 'r') as pf:
+            with open(self.pidfile, "r") as pf:
                 pid = int(pf.read().strip())
         except IOError:
             pid = None

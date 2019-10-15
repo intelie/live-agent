@@ -1,29 +1,24 @@
 import queue
 import traceback
 
-from eliot import Action, start_action
 from functools import partial
-from live_client.events import messenger
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
 
-__all__ = [
-    'start'
-]
+__all__ = ["start"]
 
 READ_TIMEOUT = 120
 MIN_FLOWRATE = 1e-18
 
 
 def build_query(settings):
-    event_type = settings.get('event_type')
-    monitor_settings = settings.get('monitor', {})
-    flowrate_mnemonic = monitor_settings['flowrate_mnemonic']
-    pressure_mnemonic = monitor_settings['pressure_mnemonic']
-    sampling_interval = monitor_settings['sampling_interval']
-    window_duration = monitor_settings['window_duration']
-    threshold = monitor_settings['threshold']
+    monitor_settings = settings.get("monitor", {})
+    flowrate_mnemonic = monitor_settings["flowrate_mnemonic"]
+    pressure_mnemonic = monitor_settings["pressure_mnemonic"]
+    sampling_interval = monitor_settings["sampling_interval"]
+    window_duration = monitor_settings["window_duration"]
+    threshold = monitor_settings["threshold"]
 
     # [TODO]:
     #   - A query abaixo relaciona apenas uma pressão com o flowrate. Na verdade
@@ -32,7 +27,11 @@ def build_query(settings):
     query = f"""raw_well3
 => {flowrate_mnemonic}->value# as flowrate, {pressure_mnemonic}->value# as pressure
 => flowrate#, pressure#, flowrate#/pressure# as ratio
-=> flowrate#, ratio#, avg(ratio) as mratio every {sampling_interval} seconds over last {window_duration} seconds
+=> flowrate#,
+    ratio#,
+    avg(ratio) as mratio
+   every {sampling_interval} seconds
+   over last {window_duration} seconds
 => @filter(flowrate# > {MIN_FLOWRATE} & (abs(ratio#/mratio# - 1) > {threshold}))
 """
     print(query)
@@ -49,52 +48,46 @@ def check_rate(process_name, accumulator, settings, send_message):
     send_message(
         process_name,
         f'Ratio: {latest_event["ratio"]}, Mean: {latest_event["mratio"]}',
-        timestamp = latest_event['timestamp']
+        timestamp=latest_event["timestamp"],
     )
 
     return accumulator
+
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
 def start(name, settings, helpers=None, task_id=None):
     process_name = f"{name} - flowrate linearity"
 
-    action = monitors.get_log_action(task_id, 'flowrate_linearity_monitor')
+    action = monitors.get_log_action(task_id, "flowrate_linearity_monitor")
     with action.context():
         logging.info("{}: Flowrate linearity monitor started".format(process_name))
         setproctitle('DDA: Flowrate linearity monitor "{}"'.format(process_name))
 
-        window_duration = settings['monitor']['window_duration']
+        window_duration = settings["monitor"]["window_duration"]
 
         # Registrar consulta na API de console:
-        run_query = monitors.get_function('run_query', helpers)
+        run_query = monitors.get_function("run_query", helpers)
         results_process, results_queue = run_query(
-            build_query(settings),
-            span=f"last {window_duration} seconds",
-            realtime=True,
+            build_query(settings), span=f"last {window_duration} seconds", realtime=True
         )
 
         # Preparar callback para tratar os eventos vindos da API de console via response_queue:
         send_message = partial(
-            monitors.get_function('send_message', helpers),
-            extra_settings=settings,
+            monitors.get_function("send_message", helpers), extra_settings=settings
         )
+
         def process_events(accumulator):
             check_rate(process_name, accumulator, settings, send_message)
 
         try:
-            monitors.handle_events(
-                process_events,
-                results_queue,
-                settings,
-                timeout=READ_TIMEOUT
-            )
+            monitors.handle_events(process_events, results_queue, settings, timeout=READ_TIMEOUT)
 
         except queue.Empty:
             start(name, settings, helpers=helpers, task_id=task_id)
 
         except Exception as e:
-            print(f'Ocorreu um erro: {e}')
-            print('Stack trace:')
+            print(f"Ocorreu um erro: {e}")
+            print("Stack trace:")
             traceback.print_exc()
             raise
 
