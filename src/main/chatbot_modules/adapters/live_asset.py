@@ -7,8 +7,8 @@ from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
 from live_client.utils import logging
 
-from .base_adapters import BaseBayesAdapter, WithStateAdapter
-from .constants import get_positive_examples, get_negative_examples
+from .base import BaseBayesAdapter, WithStateAdapter
+from ..constants import get_positive_examples, get_negative_examples
 
 
 __all__ = ["AssetListAdapter", "AssetSelectionAdapter"]

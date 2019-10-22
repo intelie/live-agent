@@ -5,8 +5,8 @@ from multiprocessing import Process
 
 from live_client.utils import logging
 from process_modules import PROCESS_HANDLERS
-from .base_adapters import BaseBayesAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples
+from .base import BaseBayesAdapter, WithAssetAdapter
+from ..constants import get_positive_examples, get_negative_examples
 
 
 __all__ = ["MonitorControlAdapter"]

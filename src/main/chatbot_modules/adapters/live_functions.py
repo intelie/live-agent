@@ -9,8 +9,8 @@ from live_client.assets import run_analysis
 from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
 
-from .base_adapters import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples
+from .base import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
+from ..constants import get_positive_examples, get_negative_examples
 
 
 """
