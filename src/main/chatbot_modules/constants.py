@@ -19,6 +19,7 @@ LOGIC_ADAPTERS = [
     "chatbot_modules.pipes_query.EtimQueryAdapter",
     "chatbot_modules.pipes_query.CurrentValueQueryAdapter",
     "chatbot_modules.monitors.MonitorControlAdapter",
+    "chatbot_modules.adapters.torque_and_drag.TorqueAndDragAdapter",
 ]
 
 
@@ -94,27 +95,40 @@ FEATURES = {
         "usage_example": "start the monitors",
         "examples": ["start monitor", "initialize monitor", "run monitor"],
     },
-    "bot-features": {
-        "examples": [
-            "/help",
-            "!help",
-            "/commands",
-            "!commands",
-            "list your features",
-            "which features  have",
-            "which tasks can perform",
-            "how can you help me",
-            "how can you help us",
-            "what can you do",
-            "what can be done you",
-            "what is your job",
-            "how can you help me",
-            "what are you capable",
-            "which capabilities do you have",
-            "which powers do you have",
-            "what is your superpower",
-            "which are your superpowers" "which superpowers do you have",
-        ]
+    'torque-drag': {
+        'enabled': True,
+        'description': 'Start T&D calibration',
+        'usage_example': 'calibrate torque and drag',
+        'examples': [
+            'start td',
+            'begin td',
+            'calibrate td',
+            'calibrate torque and drag',
+            'start torque and drag calibration',
+        ],
+    },
+    'bot-features': {
+        'examples': [
+            '/help',
+            '!help',
+            '/commands',
+            '!commands',
+            'list your features',
+            'which features  have',
+            'which tasks can perform',
+            'how can you help me',
+            'how can you help us',
+            'what can you do',
+            'what can be done you',
+            'what is your job',
+            'how can you help me',
+            'what are you capable',
+            'which capabilities do you have',
+            'which powers do you have',
+            'what is your superpower',
+            'which are your superpowers'
+            'which superpowers do you have',
+        ],
     },
 }
 
