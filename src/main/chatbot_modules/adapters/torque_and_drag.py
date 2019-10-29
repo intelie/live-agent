@@ -30,7 +30,7 @@ def convert_to_custom_unit(mnemonic, uom, value):
     curve_unit_force_convert(value#, uom, mnemonic:decode("DBTM", "m","HKLA", "N", "MFIA", "m3/s"));
 
 -- getting tripping in data
-va007_trip_out .timestamp:adjusted_index_timestamp mnemonic!:(WOBA|DMEA|RPMA|ROPA|DBTM|MFIA|BPOS|HKLA)
+{event_type} .timestamp:adjusted_index_timestamp mnemonic!:(WOBA|DMEA|RPMA|ROPA|DBTM|MFIA|BPOS|HKLA)
 
 -- making batch of data and calculating opmode
 => @custom_batch
@@ -90,13 +90,24 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             response.confidence = confidence
             return response
 
-        points = self.retrieve_regression_points(params)
-        # TODO: [ECS]: Parâmetros hardcoded abaixo, tratar: <<<<<
-        well_id = points[0]['wellId']
+        confidence = 1
+        asset = self.get_selected_asset()
+        if asset == {}:
+            response = Statement("Please, select an asset before performing the calibration")
+            response.confidence = confidence
+            return response
 
+        MIN_POINT_COUNT = 2
+        params['event_type'] = self.get_event_type(asset)
+        points = self.retrieve_regression_points(params)
+        if len(points) < MIN_POINT_COUNT:
+            response = Statement("There are not enough data points to perform the calibration. Please select another range.")
+            response.confidence = confidence
+            return response
+
+        well_id = points[0]['wellId']
         calibration_result = self.request_calibration(well_id, points)
 
-        confidence = 1
         response = self.build_response(confidence, {
             'wellId': well_id,
             'calibration_result': calibration_result,
@@ -110,8 +121,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         return has_required_terms and super().can_process(statement)
 
     def build_response(self, confidence, context):
-        message = f"""
-Calibration Results:
+        message = f"""Calibration Results:
 -  Well ID: {context["wellId"]}
 -  Regression method: {context["calibration_result"]["calibrationMethod"]}
 -  Travelling Block Weight: {context["calibration_result"]["travellingBlockWeight"]}
@@ -199,6 +209,7 @@ Calibration Results:
     def retrieve_regression_points(self, params):
         points = []
         pipes_query = (tnd_query_template.format(
+            event_type = params['event_type'],
             min_depth = params['min_depth'],
             max_depth = params['max_depth'],
         ))
