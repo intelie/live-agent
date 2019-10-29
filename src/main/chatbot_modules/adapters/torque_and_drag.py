@@ -1,4 +1,3 @@
-import json
 import queue
 import re
 import requests
@@ -7,8 +6,6 @@ from chatterbot.conversation import Statement
 from eliot import start_action
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
-from multiprocessing import Process
-from process_modules import PROCESS_HANDLERS
 
 from .base import (
     BaseBayesAdapter,
@@ -50,6 +47,7 @@ va007_trip_out .timestamp:adjusted_index_timestamp mnemonic!:(WOBA|DMEA|RPMA|ROP
 
 """
 
+
 class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
     state_key = 'torque-drag'
     positive_examples = get_positive_examples(state_key)
@@ -69,18 +67,11 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             if '_state' not in name
         )
 
-        self.all_monitors = self.process_settings.get('monitors', {})
-
-
     def process(self, statement, additional_response_selection_parameters=None):
-        if not self._is_our_message(statement):
-            response = Statement('')
-            response.confidence = 0
-            return response
-        confidence = 1
-
+        confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
-        if params == None:
+        if not params:
+            # NOTE: Não seria melhor fazer este tratamento em `can_process`?
             response = Statement("Sorry, I can't read the calibration parameters from your message")
             response.confidence = confidence
             return response
@@ -91,35 +82,35 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         travelling_block_weight = 900000
         calibration_result = self.request_calibration(well_id, travelling_block_weight, points)
 
+        confidence = 1
         response = self.build_response(calibration_result, confidence)
         return response
 
-
-    def _is_our_message(self, statement):
-        keywords = 'torque,drag'.split(',')
+    def can_process(self, statement):
+        # NOTE: Transformei `_is_our_message` neste método, para que o chatterbot
+        # nem tente usar este adapter para processar mensagens que não são endereçadas a ele
+        keywords = ['torque', 'drag']
         found_keywords = [word for word in statement.text.lower().split() if word in keywords]
-        return sorted(found_keywords) == sorted(keywords)
-
+        has_required_terms = sorted(found_keywords) == sorted(keywords)
+        return has_required_terms and super().can_process(statement)
 
     def build_response(self, calibration_result, confidence):
-        message_lines = [
-            'Calibration Results:',
-            f'Regression method: {calibration_result["calibrationMethod"]}',
-            f'Travelling Block Weight: {calibration_result["travellingBlockWeight"]}',
-            f'Pipes Weight Multiplier: {calibration_result["pipesWeightMultiplier"]}',
-        ]
-        message = '\n'.join(message_lines)
+        message = f"""
+        Calibration Results:
+        -  Regression method: {calibration_result["calibrationMethod"]}
+        -  Travelling Block Weight: {calibration_result["travellingBlockWeight"]}
+        -  Pipes Weight Multiplier: {calibration_result["pipesWeightMultiplier"]}
+        """
         response = Statement(message)
         response.confidence = confidence
-
         return response
-
 
     # TODO: Melhorar a maneira de obter os parâmetros para ficar mais fácil para o usuário:
     def extract_calibration_params(self, message):
+        # NOTE: Eu usaria o mesmo mecanismo de `EtimQueryAdapter.find_index_value`
         ret = None
         m = re.search(r'(\d+).+?(\d+).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2}).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2})\s*$', message)
-        if m != None:
+        if m is not None:
             ret = {
                 'min_depth': m.group(1),
                 'max_depth': m.group(2),
@@ -128,8 +119,8 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             }
         return ret
 
-
     def run_query(self, query_str, realtime=False, span=None, callback=None):
+        # NOTE: Este `start_action` é redundante, `query_runner` já irá fazê-lo
         with start_action(action_type=self.state_key, pipes_query=query_str):
             results_process, results_queue = self.query_runner(
                 query_str,
@@ -154,20 +145,18 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
             results_process.join(1)
 
-            if callback != None:
+            if callback is not None:
                 return callback(result)
             return result
 
-
     def build_calibration_data(self, well_id, travelling_block_weight, points):
         return {
-            "wellId": f"{well_id}",
+            "wellId": f"{well_id}",  # NOTE: Precisa mesmo forçar que seja uma string?
             "travellingBlockWeight": travelling_block_weight,
             "saveResult": "true",
             "calibrationMethod": "LINEAR_REGRESSION",
             "points": points
         }
-
 
     def request_calibration(self, well_id, travelling_block_weight, points):
         service_path = '/services/plugin-og-model-torquendrag/calibrate/'
@@ -176,22 +165,27 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         s = requests.Session()
         s.auth = (self.username, self.password)
         calibration_data = self.build_calibration_data(well_id, travelling_block_weight, points)
-        response = s.post(url,
-            json = calibration_data,
+        response = s.post(
+            url,
+            json=calibration_data,
         )
         try:
             response.raise_for_status()
         except Exception as e:
-            logging.error(f'{str(e)}')
+            logging.exception(e)
+            # NOTE: Acredito que ninguem vai tratar esta exceção.
+            # O chamador deveria captura-la e retornar um statement
+            # com confidence baixa dizendo que ocorreu um erro
             raise
 
         result = response.json()
         return result
 
-
     def retrieve_regression_points(self, params):
         points = []
-        pipes_query = (tnd_query_template
+        # NOTE: Não seria melhor usar uma f-string na definição do template e só popula-la aqui?
+        pipes_query = (
+            tnd_query_template
             .replace('{min_depth}', params['min_depth'])
             .replace('{max_depth}', params['max_depth'])
         )
@@ -201,6 +195,6 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         span = f'{start_time} to {end_time}'
         points = self.run_query(
             pipes_query,
-            span = span,
+            span=span,
         )
         return points
