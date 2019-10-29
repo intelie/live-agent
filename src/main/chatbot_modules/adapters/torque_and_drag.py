@@ -156,7 +156,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
             if callback != None:
                 return callback(result)
-            return None
+            return result
 
 
     def build_calibration_data(self, well_id, travelling_block_weight, points):
@@ -202,6 +202,5 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         points = self.run_query(
             pipes_query,
             span = span,
-            callback = lambda val: val
         )
         return points
