@@ -1,5 +1,7 @@
+import json
 import queue
 import re
+import requests
 
 from chatterbot.conversation import Statement
 from eliot import start_action
@@ -63,6 +65,10 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         super().__init__(chatbot, **kwargs)
 
         self.process_settings = kwargs['process_settings']
+        self.live_host = self.process_settings['live']['host']
+        self.username = self.process_settings['live']['username']
+        self.password = self.process_settings['live']['password']
+
         self.helpers = dict(
             (name, func)
             for (name, func) in kwargs.get('functions', {}).items()
@@ -97,65 +103,17 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         start_time = params['start_time']
         end_time = params['end_time']
 
-        # Build pipes query:
-        query = (tnd_query_template
-            .replace('{min_depth}', min_depth)
-            .replace('{max_depth}', max_depth)
-            .replace('{start_time}', start_time)
-            .replace('{end_time}', end_time)
-        )
-
-        # Execute pipes query:
-        result = self.run_query(
-            query,
-            realtime = False,
-            span = '2018-02-12 10:00 to 2018-02-13 09:20',
-            callback = lambda res: res,
-        )
-
-        '''
-        results_process, results_queue = self.query_runner(
-            query,
-            realtime = True,
-            span = '2018-02-12 10:00 to 2018-02-13 09:20'
-        )
-
-        result = 'Ainda não foi :(' # <<<<<
-        try:
-            event = results_queue.get(timeout=self.query_timeout)
-            event_data = event.get('data', {})
-            event_type = event_data.get('type')
-            if event_type == EVENT_TYPE_EVENT:
-                result = event_data.get('content', [])
-            #elif event_type != EVENT_TYPE_DESTROY:
-            #    continue
-
-        except queue.Empty as e:
-            logging.exception(e)
-
-        results_process.join(10)
-        '''
+        # Retrieve regression points:
+        points = self.retrieve_regression_points()
 
         # Build calibration request:
         # Request calibration data
-        # Define output:
-        message_lines = [
-            'Performing calibration with parameters:',
-            f'Min Bitdepth:{params["min_depth"]}m,',
-            f'Max Bitdepth:{params["max_depth"]}m,',
-            f'Start Time: {params["start_time"]},',
-            f'End Time: {params["end_time"]}',
-        ]
-        calibration_response_lines =  [
-            'Calibration output: ',
-            'travellingBlockWeight = 789000',
-            'pipesWeightMultiplier = 0.87',
-        ]
-        message_lines.append('')
-        message_lines.extend(calibration_response_lines)
+        well_id = 6
+        calibration_result = self.request_calibration(well_id, 900000, points)
 
-        #message = '\n'.join(message_lines)
-        message = result
+        # Define output:
+
+        message = str(calibration_result)
 
         response = Statement(message)
         response.confidence = confidence
@@ -206,3 +164,59 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
                 results_process.join(1)
                 return callback(result)
+
+
+    def build_calibration_data(self, well_id, travelling_block_weight, points):
+        return {
+            "wellId": f"{well_id}",
+            "travellingBlockWeight": travelling_block_weight,
+            "saveResult": "true",
+            "calibrationMethod": "LINEAR_REGRESSION",
+            "points": points
+        }
+
+
+    def request_calibration(self, well_id, travelling_block_weight, points):
+        service_path = '/services/plugin-og-model-torquendrag/calibrate/'
+        url = f'{self.live_host}{service_path}'
+
+        s = requests.Session()
+        s.auth = (self.username, self.password)
+        calibration_data = self.build_calibration_data(well_id, travelling_block_weight, points)
+        response = s.post(url,
+            json = calibration_data,
+        )
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            print(str(e))# <<<<< Colocar log aqui
+            raise
+
+        result = response.json()
+        return result
+
+
+    def retrieve_regression_points(self):
+        points = []
+        with open('src/main/sample_points.json', 'rb') as points_file:
+            points = json.load(points_file)
+        return points
+
+        # Habilitar código abaixo após resolver a execução da query pipes:
+        '''
+        # Build pipes query:
+        query = (tnd_query_template
+            .replace('{min_depth}', min_depth)
+            .replace('{max_depth}', max_depth)
+            .replace('{start_time}', start_time)
+            .replace('{end_time}', end_time)
+        )
+
+        # Execute pipes query:
+        #result = self.run_query(
+        #    query,
+        #    realtime = False,
+        #    span = '2018-02-12 10:00 to 2018-02-13 09:20',
+        #    callback = lambda res: res,
+        #)
+    '''
