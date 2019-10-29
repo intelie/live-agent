@@ -52,12 +52,6 @@ va007_trip_out .timestamp:adjusted_index_timestamp mnemonic!:(WOBA|DMEA|RPMA|ROP
 
 class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
     state_key = 'torque-drag'
-    #required_state = [
-    #    'assetId',
-    #]
-    #default_state = {
-    #    'active_monitors': {}
-    #}
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
 
@@ -79,51 +73,52 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
 
     def process(self, statement, additional_response_selection_parameters=None):
-        #Verify if the message is for us to process:
-        #example = 'calibrate torque and drag for bitdepth until 4300m from 9:00 to 9:30'
-        keywords = 'torque,drag'.split(',')
-
-        # Not ours, move on:
-        found_keywords = [word for word in statement.text.lower().split() if word in keywords]
-        if sorted(found_keywords) != sorted(keywords):
+        if not self._is_our_message(statement):
             response = Statement('')
             response.confidence = 0
             return response
-
-        # Extract parameters from message:
         confidence = 1
-        params = self._get_calibration_params(statement.text)
+
+        params = self.extract_calibration_params(statement.text)
         if params == None:
             response = Statement("Sorry, I can't read the calibration parameters from your message")
             response.confidence = confidence
             return response
 
-        min_depth = params['min_depth']
-        max_depth = params['max_depth']
-        start_time = params['start_time']
-        end_time = params['end_time']
-
-        # Retrieve regression points:
-        points = self.retrieve_regression_points()
-
-        # Build calibration request:
-        # Request calibration data
+        points = self.retrieve_regression_points(params)
+        # TODO: [ECS]: Parâmetros hardcoded abaixo, tratar: <<<<<
         well_id = 6
-        calibration_result = self.request_calibration(well_id, 900000, points)
+        travelling_block_weight = 900000
+        calibration_result = self.request_calibration(well_id, travelling_block_weight, points)
 
-        # Define output:
+        response = self.build_response(calibration_result, confidence)
+        return response
 
-        message = str(calibration_result)
 
+    def _is_our_message(self, statement):
+        keywords = 'torque,drag'.split(',')
+        found_keywords = [word for word in statement.text.lower().split() if word in keywords]
+        return sorted(found_keywords) == sorted(keywords)
+
+
+    def build_response(self, calibration_result, confidence):
+        message_lines = [
+            'Calibration Results:',
+            f'Regression method: {calibration_result["calibrationMethod"]}',
+            f'Travelling Block Weight: {calibration_result["travellingBlockWeight"]}',
+            f'Pipes Weight Multiplier: {calibration_result["pipesWeightMultiplier"]}',
+        ]
+        message = '\n'.join(message_lines)
         response = Statement(message)
         response.confidence = confidence
 
         return response
 
 
-    def _get_calibration_params(self, message):
+    # TODO: Melhorar a maneira de obter os parâmetros para ficar mais fácil para o usuário:
+    def extract_calibration_params(self, message):
         ret = None
-        m = re.search(r'(\d+).+?(\d+).+?(\d{1,2}:\d{2}).+?(\d{1,2}:\d{2})\s*$', message)
+        m = re.search(r'(\d+).+?(\d+).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2}).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2})\s*$', message)
         if m != None:
             ret = {
                 'min_depth': m.group(1),
@@ -135,7 +130,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
-        with start_action(action_type=self.state_key, query=query_str):
+        with start_action(action_type=self.state_key, pipes_query=query_str):
             results_process, results_queue = self.query_runner(
                 query_str,
                 realtime=realtime,
@@ -143,27 +138,25 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             )
 
             result = []
-            i = 1 #<<<<<
             while True:
                 try:
-                    print(f'Passagem {i}') #<<<<<
-                    i += 1 #<<<<<
                     event = results_queue.get(timeout=self.query_timeout)
                     event_data = event.get('data', {})
                     event_type = event_data.get('type')
-                    print(event_type) #<<<<<
                     if event_type == EVENT_TYPE_EVENT:
-                        result = event_data.get('content', [])
-                        print(result) #<<<<<
-                    elif event_type != EVENT_TYPE_DESTROY:
-                        continue
+                        result.extend(event_data.get('content', []))
 
+                    if event_type == EVENT_TYPE_DESTROY:
+                        break
 
                 except queue.Empty as e:
                     logging.exception(e)
 
-                results_process.join(1)
+            results_process.join(1)
+
+            if callback != None:
                 return callback(result)
+            return None
 
 
     def build_calibration_data(self, well_id, travelling_block_weight, points):
@@ -189,34 +182,26 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         try:
             response.raise_for_status()
         except Exception as e:
-            print(str(e))# <<<<< Colocar log aqui
+            logging.error(f'{str(e)}')
             raise
 
         result = response.json()
         return result
 
 
-    def retrieve_regression_points(self):
+    def retrieve_regression_points(self, params):
         points = []
-        with open('src/main/sample_points.json', 'rb') as points_file:
-            points = json.load(points_file)
-        return points
-
-        # Habilitar código abaixo após resolver a execução da query pipes:
-        '''
-        # Build pipes query:
-        query = (tnd_query_template
-            .replace('{min_depth}', min_depth)
-            .replace('{max_depth}', max_depth)
-            .replace('{start_time}', start_time)
-            .replace('{end_time}', end_time)
+        pipes_query = (tnd_query_template
+            .replace('{min_depth}', params['min_depth'])
+            .replace('{max_depth}', params['max_depth'])
         )
 
-        # Execute pipes query:
-        #result = self.run_query(
-        #    query,
-        #    realtime = False,
-        #    span = '2018-02-12 10:00 to 2018-02-13 09:20',
-        #    callback = lambda res: res,
-        #)
-    '''
+        start_time = params['start_time']
+        end_time = params['end_time']
+        span = f'{start_time} to {end_time}'
+        points = self.run_query(
+            pipes_query,
+            span = span,
+            callback = lambda val: val
+        )
+        return points
