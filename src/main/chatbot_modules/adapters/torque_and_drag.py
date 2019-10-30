@@ -213,9 +213,6 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             response.raise_for_status()
         except Exception as e:
             logging.exception(e)
-            # NOTE: Acredito que ninguem vai tratar esta exceção.
-            # O chamador deveria captura-la e retornar um statement
-            # com confidence baixa dizendo que ocorreu um erro
             raise
 
         result = response.json()
