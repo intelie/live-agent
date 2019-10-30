@@ -17,6 +17,12 @@ from ..constants import (
 )
 
 
+def build_statement(text, confidence):
+    statement = Statement(text)
+    statement.confidence = confidence
+    return statement
+
+
 tnd_query_template = """
 -- custom functions
 def @custom_batch():
@@ -86,29 +92,38 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if not params:
-            response = Statement("Sorry, I can't read the calibration parameters from your message")
-            response.confidence = confidence
-            return response
+            return build_statement(
+                "Sorry, I can't read the calibration parameters from your message",
+                confidence
+            )
 
         confidence = 1
         asset = self.get_selected_asset()
         if asset == {}:
-            response = Statement("Please, select an asset before performing the calibration")
-            response.confidence = confidence
-            return response
+            return build_statement(
+                "Please, select an asset before performing the calibration",
+                confidence
+            )
 
         MIN_POINT_COUNT = 2
         params['event_type'] = self.get_event_type(asset)
         points = self.retrieve_regression_points(params)
         if len(points) < MIN_POINT_COUNT:
-            response = Statement("There are not enough data points to perform the calibration. Please select another range.")
-            response.confidence = confidence
-            return response
+            return build_statement(
+                "There are not enough data points to perform the calibration. Please select another range.",
+                confidence
+            )
 
         well_id = points[0]['wellId']
-        calibration_result = self.request_calibration(well_id, points)
+        try:
+            calibration_result = self.request_calibration(well_id, points)
+        except:
+            return build_statement(
+                "I'm not able to get data from calibration service. Please, check dda and live configuration.",
+                confidence
+            )
 
-        response = self.build_response(confidence, {
+        response = self.build_success_response(confidence, {
             'wellId': well_id,
             'calibration_result': calibration_result,
         })
@@ -120,7 +135,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         has_required_terms = sorted(found_keywords) == sorted(keywords)
         return has_required_terms and super().can_process(statement)
 
-    def build_response(self, confidence, context):
+    def build_success_response(self, confidence, context):
         message = f"""Calibration Results:
 -  Well ID: {context["wellId"]}
 -  Regression method: {context["calibration_result"]["calibrationMethod"]}
