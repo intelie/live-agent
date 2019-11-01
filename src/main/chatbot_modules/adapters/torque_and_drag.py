@@ -6,6 +6,7 @@ from chatterbot.conversation import Statement
 from eliot import start_action
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
+from utils.util import attempt
 
 from .base import (
     BaseBayesAdapter,
@@ -89,6 +90,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         )
 
     def process(self, statement, additional_response_selection_parameters=None):
+        # Try to read params from the chat:
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if not params:
@@ -97,7 +99,10 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
                 confidence
             )
 
+        # Parameters read, so we believe it's ours.
         confidence = 1
+
+        # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
             return build_statement(
@@ -105,16 +110,27 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
                 confidence
             )
 
+        # Retrieve the points to calculate the regression:
         MIN_POINT_COUNT = 2
         params['event_type'] = self.get_event_type(asset)
-        points = self.retrieve_regression_points(params)
+        if params.get('start_time') == None:
+            try:
+                self.infer_time_range(params)
+            except Exception as e:
+                return build_statement(
+                    f'{str(e)} Please select another range.',
+                    confidence
+                )
+
+        points = self.live_retrieve_regression_points(params)
         if len(points) < MIN_POINT_COUNT:
             return build_statement(
                 "There are not enough data points to perform the calibration. Please select another range.",
                 confidence
             )
-
         well_id = points[0]['wellId']
+
+        # Perform calibration:
         try:
             calibration_result = self.request_calibration(well_id, points)
         except:
@@ -123,6 +139,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
                 confidence
             )
 
+        # Return a response:
         response = self.build_success_response(confidence, {
             'wellId': well_id,
             'calibration_result': calibration_result,
@@ -152,13 +169,20 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         ret = None
         m = re.search(r'(\d+).+?(\d+).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2}).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2})\s*$', message)
         if m is not None:
-            ret = {
+            return {
                 'min_depth': m.group(1),
                 'max_depth': m.group(2),
                 'start_time': m.group(3),
                 'end_time': m.group(4),
             }
-        return ret
+
+        m = re.search(r'(\d+) *m *and *(\d+) *m.*?$', message)
+        if m is not None:
+            return {
+                'min_depth': m.group(1),
+                'max_depth': m.group(2),
+            }
+
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
         results_process, results_queue = self.query_runner(
@@ -218,7 +242,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         result = response.json()
         return result
 
-    def retrieve_regression_points(self, params):
+    def live_retrieve_regression_points(self, params):
         points = []
         pipes_query = (tnd_query_template.format(
             event_type = params['event_type'],
@@ -234,3 +258,59 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             span=span,
         )
         return points
+
+    def live_timestamps_from_depth_range(self, event_type, depth_range, span = None):
+        span = span or "since ts 0 #partial='1'"
+        template = '{event_type} mnemonic!:DBTM value#:{depth_range} .timestamp:adjusted_index_timestamp .flags:reversed'
+
+        candidates = []
+        pipes_query = (template.format(
+            event_type = event_type,
+            depth_range = str(depth_range),
+        ))
+        candidates = self.run_query(pipes_query, span = span)
+        return candidates
+
+    def infer_time_range(self, params):
+        RANGE_SIZE = 100
+        min_depth = int(params['min_depth'])
+        max_depth = int(params['max_depth'])
+        event_type = params['event_type']
+        start_depth_range = [min_depth, min_depth + RANGE_SIZE]
+        end_depth_range = [max_depth - RANGE_SIZE, max_depth]
+
+        end_ts = self.retrieve_timestamp_for_depth_range(
+            max,
+            end_depth_range,
+            event_type,
+            error_message = 'Could not infer a value for end_ts.'
+        )
+
+        start_ts = self.retrieve_timestamp_for_depth_range(
+            min,
+            start_depth_range,
+            event_type,
+            error_message = 'Could not infer a value for start_ts.',
+            span = f"since ts 0 until ts {end_ts} #partial='1'",
+        )
+
+        end_ts = attempt(self.retrieve_timestamp_for_depth_range,
+            max,
+            end_depth_range,
+            event_type,
+            error_message = 'Could not infer a value for end_ts.',
+            span = f"since ts {start_ts} until ts {end_ts} #partial='1'",
+        ) or end_ts
+
+        params.update(
+            start_time = f'ts {start_ts}',
+            end_time = f'ts {end_ts}',
+        )
+
+    def retrieve_timestamp_for_depth_range(self, fn, depth_range, event_type, *, error_message, span = None):
+        try:
+            candidates = self.live_timestamps_from_depth_range(event_type, depth_range, span = span)
+            timestamp = fn(map(lambda val: int(val['timestamp']), candidates))
+        except:
+            raise Exception(error_message)
+        return timestamp
