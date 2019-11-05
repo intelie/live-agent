@@ -1,4 +1,8 @@
-# -*- coding: utf-8 -*-
+import sys
+
+# TODO: Replace this by an import for release code.
+# The contents of the modules folder shall be installed via pip to be available
+sys.path.append('/data/intelie/projects/dda/repo/src/modules')
 
 __all__ = ["get_positive_examples", "get_negative_examples"]
 
@@ -10,16 +14,16 @@ LOGIC_ADAPTERS = [
         "default_response": "I am sorry, but I do not understand.",
         "maximum_similarity_threshold": 0.90,
     },
-    "chatbot_modules.internal.StateDebugAdapter",
-    "chatbot_modules.internal.AdapterReloaderAdapter",
-    "chatbot_modules.internal.BotFeaturesAdapter",
-    "chatbot_modules.live_asset.AssetListAdapter",
-    "chatbot_modules.live_asset.AssetSelectionAdapter",
-    "chatbot_modules.live_functions.AutoAnalysisAdapter",
-    "chatbot_modules.pipes_query.EtimQueryAdapter",
-    "chatbot_modules.pipes_query.CurrentValueQueryAdapter",
-    "chatbot_modules.monitors.MonitorControlAdapter",
-    "chatbot_modules.adapters.torque_and_drag.TorqueAndDragAdapter",
+    'chatbot_modules.adapters.internal.StateDebugAdapter',
+    'chatbot_modules.adapters.internal.AdapterReloaderAdapter',
+    'chatbot_modules.adapters.internal.BotFeaturesAdapter',
+    'chatbot_modules.adapters.live_asset.AssetListAdapter',
+    'chatbot_modules.adapters.live_asset.AssetSelectionAdapter',
+    'chatbot_modules.adapters.live_functions.AutoAnalysisAdapter',
+    'chatbot_modules.adapters.pipes_query.EtimQueryAdapter',
+    'chatbot_modules.adapters.pipes_query.CurrentValueQueryAdapter',
+    'chatbot_modules.adapters.monitors.MonitorControlAdapter',
+    'torque_and_drag_calibration.adapters.torque_and_drag.TorqueAndDragAdapter',
 ]
 
 
