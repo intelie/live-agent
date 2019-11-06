@@ -3,12 +3,7 @@ import time
 
 from live_client.utils import logging
 
-__all__ = [
-    'await_next_cycle',
-    'refresh_accumulator',
-    'filter_events',
-    'maybe_reset_latest_index',
-]
+__all__ = ["await_next_cycle", "refresh_accumulator", "filter_events", "maybe_reset_latest_index"]
 
 
 def await_next_cycle(sleep_time, process_name, message=None, log_func=None):
@@ -40,24 +35,20 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
             purged_accumulator.append(item)
             seen_indexes.add(index)
 
-    logging.debug("{} of {} events between {} and {}".format(
-        len(purged_accumulator), len(accumulator), window_start, window_end,
-    ))
+    logging.debug(
+        "{} of {} events between {} and {}".format(
+            len(purged_accumulator), len(accumulator), window_start, window_end
+        )
+    )
 
     return purged_accumulator, window_start, window_end
 
 
 def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
-    events_in_window = [
-        item for item in events
-        if item.get(index_mnemonic, 0) > window_start
-    ]
+    events_in_window = [item for item in events if item.get(index_mnemonic, 0) > window_start]
 
     if value_mnemonic:
-        valid_events = [
-            item for item in events_in_window
-            if item.get(value_mnemonic) is not None
-        ]
+        valid_events = [item for item in events_in_window if item.get(value_mnemonic) is not None]
     else:
         valid_events = events_in_window
 
@@ -66,12 +57,12 @@ def filter_events(events, window_start, index_mnemonic, value_mnemonic=None):
 
 def maybe_reset_latest_index(process_data, event_list):
     # If the index gets reset we must reset {latest_seen_index}
-    latest_seen_index = process_data.get('latest_seen_index', 0)
-    index_mnemonic = process_data['index_mnemonic']
+    latest_seen_index = process_data.get("latest_seen_index", 0)
+    index_mnemonic = process_data["index_mnemonic"]
 
     last_event = event_list[-1]
     last_event_index = last_event.get(index_mnemonic, latest_seen_index)
     if last_event_index < latest_seen_index:
-        process_data['latest_seen_index'] = last_event_index
+        process_data["latest_seen_index"] = last_event_index
 
     return process_data

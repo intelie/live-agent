@@ -11,12 +11,9 @@ from .base_adapters import BaseBayesAdapter, WithStateAdapter
 from .constants import get_positive_examples, get_negative_examples
 
 
-__all__ = [
-    'AssetListAdapter',
-    'AssetSelectionAdapter',
-]
+__all__ = ["AssetListAdapter", "AssetSelectionAdapter"]
 
-ITEM_PREFIX = '\n  '
+ITEM_PREFIX = "\n  "
 
 
 class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
@@ -24,7 +21,7 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
     Interacts with the user to associate the chatbot to an asset
     """
 
-    state_key = 'asset-list'
+    state_key = "asset-list"
     default_state = {}
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
@@ -33,25 +30,17 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
         super().__init__(chatbot, **kwargs)
 
         available_assets = list_assets(
-            kwargs['process_name'],
-            kwargs['process_settings'],
-            kwargs['output_info'],
+            kwargs["process_name"], kwargs["process_settings"], kwargs["output_info"]
         )
 
         if not available_assets:
-            process_name = kwargs['process_name']
-            logging.warn(
-                f'{process_name}: No assets available. Check permissions for this user!',
-            )
+            process_name = kwargs["process_name"]
+            logging.warn(f"{process_name}: No assets available. Check permissions for this user!")
 
         self.load_state()
         self.state = {
-            'assets': available_assets,
-            'asset_names': [
-                item.get('name')
-                for item in available_assets
-                if 'name' in item
-            ]
+            "assets": available_assets,
+            "asset_names": [item.get("name") for item in available_assets if "name" in item],
         }
         self.share_state()
 
@@ -60,9 +49,8 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
 
         if self.confidence > self.confidence_threshold:
             response = Statement(
-                text='The known assets are:{}{}'.format(
-                    ITEM_PREFIX,
-                    ITEM_PREFIX.join(self.state.get('asset_names', []))
+                text="The known assets are:{}{}".format(
+                    ITEM_PREFIX, ITEM_PREFIX.join(self.state.get("asset_names", []))
                 )
             )
             response.confidence = self.confidence
@@ -78,13 +66,8 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     Interacts with the user to associate the chatbot to an asset
     """
 
-    state_key = 'selected-asset'
-    required_state = [
-        'asset_id',
-        'asset_type',
-        'asset_name',
-        'asset_config',
-    ]
+    state_key = "selected-asset"
+    required_state = ["asset_id", "asset_type", "asset_name", "asset_config"]
     default_state = {}
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
@@ -92,15 +75,12 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
-        process_name = kwargs['process_name']
-        process_settings = kwargs['process_settings']
-        output_info = kwargs['output_info']
+        process_name = kwargs["process_name"]
+        process_settings = kwargs["process_settings"]
+        output_info = kwargs["output_info"]
 
         self.asset_fetcher = partial(
-            fetch_asset_settings,
-            process_name,
-            process_settings,
-            output_info
+            fetch_asset_settings, process_name, process_settings, output_info
         )
 
     def process(self, statement, additional_response_selection_parameters=None):
@@ -108,16 +88,11 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         self.confidence = self.get_confidence(statement)
 
         def asset_was_mentioned(asset):
-            return asset.get('name', 'INVALID ASSET NAME').lower() in statement.text.lower()
+            return asset.get("name", "INVALID ASSET NAME").lower() in statement.text.lower()
 
         if self.confidence > self.confidence_threshold:
-            asset_list = self.shared_state.get('asset-list', {})
-            selected_assets = list(
-                filter(
-                    asset_was_mentioned,
-                    asset_list.get('assets', [{}])
-                )
-            )
+            asset_list = self.shared_state.get("asset-list", {})
+            selected_assets = list(filter(asset_was_mentioned, asset_list.get("assets", [{}])))
 
             num_selected_assets = len(selected_assets)
 
@@ -127,41 +102,38 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             elif num_selected_assets == 1:
                 selected_asset = selected_assets[0]
-                selected_asset_name = selected_asset.get('name')
+                selected_asset_name = selected_asset.get("name")
 
-                asset_name = selected_asset.get('name')
-                asset_id = selected_asset.get('id', 0)
-                asset_type = selected_asset.get('asset_type', 'rig')
+                asset_name = selected_asset.get("name")
+                asset_id = selected_asset.get("id", 0)
+                asset_type = selected_asset.get("asset_type", "rig")
                 asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
 
                 if asset_config:
                     self.state = {
-                        'asset_id': asset_id,
-                        'asset_type': asset_type,
-                        'asset_name': asset_name,
-                        'asset_config': asset_config,
+                        "asset_id": asset_id,
+                        "asset_type": asset_type,
+                        "asset_name": asset_name,
+                        "asset_config": asset_config,
                     }
                     self.share_state()
 
-                    event_type = asset_config.get('event_type', None)
-                    asset_curves = only_enabled_curves(asset_config.get('curves', {}))
+                    event_type = asset_config.get("event_type", None)
+                    asset_curves = only_enabled_curves(asset_config.get("curves", {}))
 
                     text_templ = (
-                        'Ok, the asset {} was selected.'
+                        "Ok, the asset {} was selected."
                         '\nIt uses the event_type "{}" and has {} curves'
                     )
                     response_text = text_templ.format(
-                        selected_asset_name,
-                        event_type,
-                        len(asset_curves.keys()),
+                        selected_asset_name, event_type, len(asset_curves.keys())
                     )
                 else:
                     response_text = f"Error fetching information about {selected_asset_name}"
 
             elif num_selected_assets > 1:
                 response_text = "I didn't understand, which of the assets you meant?{}{}".format(
-                    ITEM_PREFIX,
-                    ITEM_PREFIX.join(item.get('name') for item in selected_assets)
+                    ITEM_PREFIX, ITEM_PREFIX.join(item.get("name") for item in selected_assets)
                 )
 
             response = Statement(text=response_text)

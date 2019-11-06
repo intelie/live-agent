@@ -10,7 +10,7 @@ from eliot import Action, start_action
 from live_client.utils import timestamp, logging
 from utils import loop, monitors
 
-__all__ = ['start']
+__all__ = ["start"]
 
 """
 Sequence of events:
@@ -40,22 +40,21 @@ State transitions:
 Also, we want to generate events to populate a pretests summary report
 """
 
-PRETEST_STATES = Enum(
-    'PRETEST_STATES',
-    'INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE'
-)
+PRETEST_STATES = Enum("PRETEST_STATES", "INACTIVE, DRAWDOWN_START, DRAWDOWN_END, BUILDUP_STABLE")
 DRAWDOWN_END_STATES = (PRETEST_STATES.DRAWDOWN_END, PRETEST_STATES.BUILDUP_STABLE)
 PRETEST_END_STATES = (PRETEST_STATES.BUILDUP_STABLE, PRETEST_STATES.INACTIVE)
-PRETEST_REPORT_EVENT_TYPE = 'pretest_report'
+PRETEST_REPORT_EVENT_TYPE = "pretest_report"
 
 read_timeout = 120
 request_timeout = (3.05, 5)
 max_retries = 5
 
 
-def maybe_create_annotation(process_name, probe_name, probe_data, current_state, annotation_func=None):  # NOQA
-    begin = probe_data.get('pretest_begin_timestamp', timestamp.get_timestamp())
-    end = probe_data.get('pretest_end_timestamp')
+def maybe_create_annotation(
+    process_name, probe_name, probe_data, current_state, annotation_func=None
+):  # NOQA
+    begin = probe_data.get("pretest_begin_timestamp", timestamp.get_timestamp())
+    end = probe_data.get("pretest_end_timestamp")
 
     if not end:
         ts = begin
@@ -67,25 +66,21 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
 
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
-            'message': "Probe {}: Pretest in progress".format(probe_name),
-            '__color': '#E87919',
+            "message": "Probe {}: Pretest in progress".format(probe_name),
+            "__color": "#E87919",
         },
         PRETEST_STATES.INACTIVE: {
-            'message': "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, duration),
-            '__overwrite': ['uid'],
-            '__color': '#73E819',
-        }
+            "message": "Probe {}: Pretest completed in {:.1f} seconds".format(probe_name, duration),
+            "__overwrite": ["uid"],
+            "__color": "#73E819",
+        },
     }
 
     annotation_data = annotation_templates.get(current_state)
     if annotation_data:
         annotation_data.update(
-            __src='pretest_monitor',
-            uid='{}-{}-{:.0f}'.format(
-                process_name,
-                probe_name,
-                ts,
-            ),
+            __src="pretest_monitor",
+            uid="{}-{}-{:.0f}".format(process_name, probe_name, ts),
             createdAt=ts,
             begin=begin,
             end=end,
@@ -93,19 +88,16 @@ def maybe_create_annotation(process_name, probe_name, probe_data, current_state,
         annotation_func(probe_name, annotation_data)
 
     else:
-        logging.debug('{}, probe {}: Cannot create annotation without data'.format(
-            process_name, probe_name
-        ))
+        logging.debug(
+            "{}, probe {}: Cannot create annotation without data".format(process_name, probe_name)
+        )
 
     return
 
 
 def find_reference_event(reference_index, event_list, probe_data):
-    index_mnemonic = probe_data['index_mnemonic']
-    events = [
-        item for item in event_list
-        if item.get(index_mnemonic) == reference_index
-    ]
+    index_mnemonic = probe_data["index_mnemonic"]
+    events = [item for item in event_list if item.get(index_mnemonic) == reference_index]
     if events:
         event = events.pop()
     else:
@@ -116,11 +108,7 @@ def find_reference_event(reference_index, event_list, probe_data):
 
 def get_average(event_list, mnemonic, start, end):
     slice_events = event_list[start:end]
-    values = [
-        item.get(mnemonic)
-        for item in slice_events
-        if item.get(mnemonic) is not None
-    ]
+    values = [item.get(mnemonic) for item in slice_events if item.get(mnemonic) is not None]
     average_value = sum(values) / len(values)
     return average_value
 
@@ -130,21 +118,18 @@ def get_value(event, mnemonic):
 
 
 def get_uom(event, mnemonic):
-    return event.get(f'{mnemonic}_uom')
+    return event.get(f"{mnemonic}_uom")
 
 
 def get_datum(event, mnemonic):
-    return dict(
-        value=get_value(event, mnemonic),
-        uom=get_uom(event, mnemonic),
-    )
+    return dict(value=get_value(event, mnemonic), uom=get_uom(event, mnemonic))
 
 
 def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event_sender):
-    prev_state = probe_data.get('process_state', PRETEST_STATES.INACTIVE)
-    pretest_report = probe_data.get('pretest_report', {})
+    prev_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
+    pretest_report = probe_data.get("pretest_report", {})
 
-    reference_index = probe_data.get('latest_seen_index')
+    reference_index = probe_data.get("latest_seen_index")
     if reference_index and (state != prev_state):
 
         logging.info(f"maybe_update_pretest_report: state: {state}, prev_state: {prev_state}")
@@ -165,25 +150,22 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
             - hydrostatic pressure before
             - initial volume
             """
-            event_type = probe_data['event_type']
-            pretest_number_mnemonic = probe_data['pretest_number_mnemonic']
-            depth_mnemonic = probe_data['depth_mnemonic']
-            pressure_mnemonic = probe_data['pressure_mnemonic']
-            pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
+            event_type = probe_data["event_type"]
+            pretest_number_mnemonic = probe_data["pretest_number_mnemonic"]
+            depth_mnemonic = probe_data["depth_mnemonic"]
+            pressure_mnemonic = probe_data["pressure_mnemonic"]
+            pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
 
-            pretest_begin_timestamp = probe_data.get('pretest_begin_timestamp')
+            pretest_begin_timestamp = probe_data.get("pretest_begin_timestamp")
             pretest_number = get_datum(reference_event, pretest_number_mnemonic)
             probe_depth = get_datum(reference_event, depth_mnemonic)
 
             previous_index = reference_event_index - 1
             average_pressure_before = {
-                'value': get_average(
-                    event_list,
-                    pressure_mnemonic,
-                    previous_index - 10,
-                    previous_index
+                "value": get_average(
+                    event_list, pressure_mnemonic, previous_index - 10, previous_index
                 ),
-                'uom': get_uom(reference_event, pressure_mnemonic)
+                "uom": get_uom(reference_event, pressure_mnemonic),
             }
 
             previous_event = event_list[previous_index]
@@ -212,16 +194,16 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
             - flow rate
             """
 
-            pretest_begin_timestamp = probe_data.get('pretest_begin_timestamp')
-            drawdown_end_timestamp = probe_data.get('drawdown_end_timestamp')
+            pretest_begin_timestamp = probe_data.get("pretest_begin_timestamp")
+            drawdown_end_timestamp = probe_data.get("drawdown_end_timestamp")
             if pretest_begin_timestamp and drawdown_end_timestamp:
                 drawdown_duration = (drawdown_end_timestamp - pretest_begin_timestamp) / 1000
             else:
                 drawdown_duration = None
 
-            pressure_mnemonic = probe_data['pressure_mnemonic']
-            pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
-            temperature_mnemonic = probe_data['temperature_mnemonic']
+            pressure_mnemonic = probe_data["pressure_mnemonic"]
+            pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
+            temperature_mnemonic = probe_data["temperature_mnemonic"]
 
             formation_pressure = get_datum(reference_event, pressure_mnemonic)
             temperature = get_datum(reference_event, temperature_mnemonic)
@@ -229,8 +211,8 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
 
             if drawdown_duration:
                 flow_rate = {
-                    'value': (pretest_volume.get('value', 0) / drawdown_duration),
-                    'uom': "{}/s".format(pretest_volume.get('uom'), 'vol')
+                    "value": (pretest_volume.get("value", 0) / drawdown_duration),
+                    "uom": "{}/s".format(pretest_volume.get("uom"), "vol"),
                 }
             else:
                 flow_rate = None
@@ -255,24 +237,24 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
             hydrostatic pressure after (before stabilization)
             """
 
-            pressure_mnemonic = probe_data['pressure_mnemonic']
+            pressure_mnemonic = probe_data["pressure_mnemonic"]
             average_pressure_after = None
 
-            buildup_slope = probe_data.get('buildup_slope')
+            buildup_slope = probe_data.get("buildup_slope")
             stable_buildup = buildup_slope is not None
             if stable_buildup:
                 pretest_end_etim = reference_index
-                pretest_end_timestamp = probe_data.get('pretest_end_timestamp')
+                pretest_end_timestamp = probe_data.get("pretest_end_timestamp")
 
-            elif pretest_report.get('buildup_slope') is not None:
+            elif pretest_report.get("buildup_slope") is not None:
                 # We might already have seen a stable buildup
-                pretest_end_etim = pretest_report.get('pretest_end_etim')
+                pretest_end_etim = pretest_report.get("pretest_end_etim")
                 reference_event = find_reference_event(pretest_end_etim, event_list, probe_data)
                 reference_event_index = event_list.index(reference_event)
 
-                pretest_end_timestamp = pretest_report.get('pretest_end_timestamp')
-                buildup_slope = pretest_report.get('buildup_slope')
-                average_pressure_after = pretest_report.get('average_pressure_after')
+                pretest_end_timestamp = pretest_report.get("pretest_end_timestamp")
+                buildup_slope = pretest_report.get("buildup_slope")
+                average_pressure_after = pretest_report.get("average_pressure_after")
 
             else:
                 # No buildup found
@@ -282,13 +264,13 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
 
             if average_pressure_after is None:
                 average_pressure_after = {
-                    'value': get_average(
+                    "value": get_average(
                         event_list,
                         pressure_mnemonic,
                         reference_event_index - 10,
-                        reference_event_index
+                        reference_event_index,
                     ),
-                    'uom': get_uom(reference_event, pressure_mnemonic),
+                    "uom": get_uom(reference_event, pressure_mnemonic),
                 }
 
             pretest_report.update(
@@ -300,12 +282,11 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
 
         if pretest_report and isinstance(pretest_report, dict):
             # Send data about the pretest as soon as we get it
-            pretest_uid_base = '{event_type}-{probe_name}-{pretest_begin_timestamp}'.format(
+            pretest_uid_base = "{event_type}-{probe_name}-{pretest_begin_timestamp}".format(
                 **pretest_report
             )
             pretest_report.update(
-                uid=md5(pretest_uid_base.encode('utf-8')).hexdigest(),
-                __overwrite=['uid'],
+                uid=md5(pretest_uid_base.encode("utf-8")).hexdigest(), __overwrite=["uid"]
             )
             event_sender(PRETEST_REPORT_EVENT_TYPE, pretest_report)
 
@@ -313,42 +294,30 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
             # Clear the previous pretest data
             pretest_report = {}
 
-    probe_data.update(
-        process_state=state,
-        pretest_report=pretest_report,
-    )
+    probe_data.update(process_state=state, pretest_report=pretest_report)
 
 
 def find_drawdown(process_name, probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} starts to raise"""
-    index_mnemonic = probe_data['index_mnemonic']
-    pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
+    index_mnemonic = probe_data["index_mnemonic"]
+    pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
 
     # In order to avoid detecting the same event twice we must trim the set of events
     # We also must ignore events without data
-    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    latest_seen_index = probe_data.get("latest_seen_index", 0)
     valid_events = loop.filter_events(
-        event_list,
-        latest_seen_index,
-        index_mnemonic,
-        pretest_volume_mnemonic
+        event_list, latest_seen_index, index_mnemonic, pretest_volume_mnemonic
     )
 
     # Before a drawdown, {pretest_volume_mnemonic} must be zero
     valid_events = list(
-        dropwhile(
-            lambda event: event.get(pretest_volume_mnemonic) > 0,
-            valid_events
-        )
+        dropwhile(lambda event: event.get(pretest_volume_mnemonic) > 0, valid_events)
     )
 
     # Check if the value was zero and has changed
     if valid_events:
         events_during_drawdown = list(
-            dropwhile(
-                lambda event: event.get(pretest_volume_mnemonic) == 0,
-                valid_events
-            )
+            dropwhile(lambda event: event.get(pretest_volume_mnemonic) == 0, valid_events)
         )
         is_drawdown = len(events_during_drawdown) > 0
     else:
@@ -357,53 +326,50 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
 
     # There was a change.
     if is_drawdown:
-        depth_mnemonic = probe_data['depth_mnemonic']
-        pressure_mnemonic = probe_data['pressure_mnemonic']
+        depth_mnemonic = probe_data["depth_mnemonic"]
+        pressure_mnemonic = probe_data["pressure_mnemonic"]
 
         # Drawdown started at the first of these events
         reference_event = events_during_drawdown[0]
         etim = reference_event.get(index_mnemonic, -1)
         pressure = reference_event.get(pressure_mnemonic, -1)
         depth = reference_event.get(depth_mnemonic, -1)
-        pretest_begin_timestamp = reference_event.get('timestamp', timestamp.get_timestamp())
+        pretest_begin_timestamp = reference_event.get("timestamp", timestamp.get_timestamp())
 
-        message = "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"  # NOQA
+        message = (
+            "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"
+        )  # NOQA
         message_sender(
             process_name,
             message.format(probe_name, depth, etim, pressure),
-            timestamp=pretest_begin_timestamp
+            timestamp=pretest_begin_timestamp,
         )
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
-        logging.debug("Probe {}: Pretest began at {:.0f}".format(
-            probe_name,
-            pretest_begin_timestamp
-        ))
+        logging.debug(
+            "Probe {}: Pretest began at {:.0f}".format(probe_name, pretest_begin_timestamp)
+        )
     else:
         detected_state = None
         pretest_begin_timestamp = None
 
     probe_data.update(
-        latest_seen_index=latest_seen_index,
-        pretest_begin_timestamp=pretest_begin_timestamp,
+        latest_seen_index=latest_seen_index, pretest_begin_timestamp=pretest_begin_timestamp
     )
     return detected_state
 
 
 def find_buildup(process_name, probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} stabilizes"""
-    index_mnemonic = probe_data['index_mnemonic']
-    pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
+    index_mnemonic = probe_data["index_mnemonic"]
+    pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
 
     # In order to avoid detecting the same event twice we must trim the set of events
     # We also must ignore events without data
-    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    latest_seen_index = probe_data.get("latest_seen_index", 0)
     valid_events = loop.filter_events(
-        event_list,
-        latest_seen_index,
-        index_mnemonic,
-        pretest_volume_mnemonic
+        event_list, latest_seen_index, index_mnemonic, pretest_volume_mnemonic
     )
 
     # Check if the value is stable
@@ -412,23 +378,25 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
 
         last_pretest_volume = last_event.get(pretest_volume_mnemonic)
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
-        drawdown_stopped = (last_pretest_volume == prev_pretest_volume)
+        drawdown_stopped = last_pretest_volume == prev_pretest_volume
 
-        logging.debug((
-            "{}: End of drawdown detection: {}; {} -> {}."
-        ).format(process_name, drawdown_stopped, prev_pretest_volume, last_pretest_volume))
+        logging.debug(
+            ("{}: End of drawdown detection: {}; {} -> {}.").format(
+                process_name, drawdown_stopped, prev_pretest_volume, last_pretest_volume
+            )
+        )
     else:
         drawdown_stopped = False
 
     if drawdown_stopped:
-        depth_mnemonic = probe_data['depth_mnemonic']
-        pressure_mnemonic = probe_data['pressure_mnemonic']
+        depth_mnemonic = probe_data["depth_mnemonic"]
+        pressure_mnemonic = probe_data["pressure_mnemonic"]
 
         # Find drawdown end
         events_after_drawdown = list(
             dropwhile(
                 lambda event: event.get(pretest_volume_mnemonic) != last_pretest_volume,
-                valid_events
+                valid_events,
             )
         )
 
@@ -437,7 +405,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
         etim = reference_event.get(index_mnemonic, -1)
         pressure = reference_event.get(pressure_mnemonic, -1)
         depth = reference_event.get(depth_mnemonic, -1)
-        drawdown_end_timestamp = reference_event.get('timestamp')
+        drawdown_end_timestamp = reference_event.get("timestamp")
 
         message = "Probe {}@{:.0f} ft: Drawdown ended at {:.2f} s with pressure {:.2f} psi"  # NOQA
         message_sender(
@@ -453,41 +421,34 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
         drawdown_end_timestamp = None
 
     probe_data.update(
-        latest_seen_index=latest_seen_index,
-        drawdown_end_timestamp=drawdown_end_timestamp,
+        latest_seen_index=latest_seen_index, drawdown_end_timestamp=drawdown_end_timestamp
     )
     return detected_state
 
 
 def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} returns to zero"""
-    index_mnemonic = probe_data['index_mnemonic']
-    pretest_volume_mnemonic = probe_data['pretest_volume_mnemonic']
+    index_mnemonic = probe_data["index_mnemonic"]
+    pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
 
     # In order to avoid detecting the same event twice we must trim the set of events
     # We also must ignore events without data
-    latest_seen_index = probe_data.get('latest_seen_index', 0)
+    latest_seen_index = probe_data.get("latest_seen_index", 0)
     valid_events = loop.filter_events(
-        event_list,
-        latest_seen_index,
-        index_mnemonic,
-        pretest_volume_mnemonic
+        event_list, latest_seen_index, index_mnemonic, pretest_volume_mnemonic
     )
 
     # Before recycling the pump, {pretest_volume_mnemonic} must be higher than zero
     # So, we only care for the first zeroed event
     events_with_volume = list(
-        dropwhile(
-            lambda event: event.get(pretest_volume_mnemonic) > 0,
-            valid_events
-        )
+        dropwhile(lambda event: event.get(pretest_volume_mnemonic) > 0, valid_events)
     )
     is_reset = len(events_with_volume) > 0
 
     # There was a change.
     if is_reset:
-        depth_mnemonic = probe_data['depth_mnemonic']
-        pressure_mnemonic = probe_data['pressure_mnemonic']
+        depth_mnemonic = probe_data["depth_mnemonic"]
+        pressure_mnemonic = probe_data["pressure_mnemonic"]
 
         # Reset finished at the first of these events
         reference_event = events_with_volume[0]
@@ -499,7 +460,7 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
         message_sender(
             process_name,
             message.format(probe_name, depth, etim, pressure),
-            timestamp=reference_event.get('timestamp')
+            timestamp=reference_event.get("timestamp"),
         )
 
         detected_state = PRETEST_STATES.INACTIVE
@@ -512,10 +473,12 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
 
 
 def run_monitor(process_name, probe_name, probe_data, event_list, functions_map):
-    current_state = probe_data.get('process_state', PRETEST_STATES.INACTIVE)
-    logging.debug("{}: Pretest monitor for probe {} at state {}".format(
-        process_name, probe_name, current_state
-    ))
+    current_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
+    logging.debug(
+        "{}: Pretest monitor for probe {} at state {}".format(
+            process_name, probe_name, current_state
+        )
+    )
 
     state_transition_func = functions_map[current_state]
     probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
@@ -524,7 +487,7 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
         probe_name,
         probe_data,
         event_list,
-        message_sender=functions_map['send_message']
+        message_sender=functions_map["send_message"],
     )
 
     if (detected_state is None) and (current_state != PRETEST_STATES.INACTIVE):
@@ -534,28 +497,26 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
             probe_name,
             probe_data,
             event_list,
-            message_sender=functions_map['send_message']
+            message_sender=functions_map["send_message"],
         )
 
     if detected_state and (detected_state != current_state):
-        logging.info("{}: Pretest monitor for probe {}, {} -> {}".format(
-            process_name, probe_name, current_state, detected_state
-        ))
+        logging.info(
+            "{}: Pretest monitor for probe {}, {} -> {}".format(
+                process_name, probe_name, current_state, detected_state
+            )
+        )
         current_state = detected_state
         maybe_create_annotation(
             process_name,
             probe_name,
             probe_data,
             current_state,
-            annotation_func=functions_map['create_annotation']
+            annotation_func=functions_map["create_annotation"],
         )
 
     maybe_update_pretest_report(
-        probe_name,
-        probe_data,
-        current_state,
-        event_list,
-        event_sender=functions_map['send_event']
+        probe_name, probe_data, current_state, event_list, event_sender=functions_map["send_event"]
     )
     return current_state
 
@@ -566,7 +527,7 @@ def start(name, settings, helpers=None, task_id=None):
     if task_id:
         action = Action.continue_task(task_id=task_id)
     else:
-        action = start_action(action_type='pretest_monitor')
+        action = start_action(action_type="pretest_monitor")
 
     with action.context():
         setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
@@ -577,54 +538,36 @@ def start(name, settings, helpers=None, task_id=None):
             PRETEST_STATES.DRAWDOWN_START: find_buildup,
             PRETEST_STATES.DRAWDOWN_END: partial(
                 monitors.find_stable_buildup,
-                targets={
-                    0.01: PRETEST_STATES.INACTIVE,
-                    0.1: PRETEST_STATES.BUILDUP_STABLE,
-                },
+                targets={0.01: PRETEST_STATES.INACTIVE, 0.1: PRETEST_STATES.BUILDUP_STABLE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
             PRETEST_STATES.BUILDUP_STABLE: partial(
                 monitors.find_stable_buildup,
-                targets={
-                    0.01: PRETEST_STATES.INACTIVE,
-                },
+                targets={0.01: PRETEST_STATES.INACTIVE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
-            'send_message': partial(
-                monitors.get_function('send_message', helpers),
-                extra_settings=settings,
+            "send_message": partial(
+                monitors.get_function("send_message", helpers), extra_settings=settings
             ),
-            'create_annotation': partial(
-                monitors.get_function('create_annotation', helpers),
-                extra_settings=settings,
+            "create_annotation": partial(
+                monitors.get_function("create_annotation", helpers), extra_settings=settings
             ),
-            'send_event': partial(
-                monitors.get_function('send_event', helpers),
-                extra_settings=settings,
+            "send_event": partial(
+                monitors.get_function("send_event", helpers), extra_settings=settings
             ),
-            'run_query': monitors.get_function(
-                'run_query', helpers
-            ),
+            "run_query": monitors.get_function("run_query", helpers),
         }
 
-        monitor_settings = settings.get('monitor', {})
-        window_duration = monitor_settings['window_duration']
+        monitor_settings = settings.get("monitor", {})
+        window_duration = monitor_settings["window_duration"]
         probes = monitors.init_probes_data(settings)
 
         def process_events(accumulator):
             for probe_name, probe_data in probes.items():
-                run_monitor(
-                    process_name,
-                    probe_name,
-                    probe_data,
-                    accumulator,
-                    functions_map,
-                )
+                run_monitor(process_name, probe_name, probe_data, accumulator, functions_map)
 
-        results_process, results_queue = functions_map.get('run_query')(
-            monitors.prepare_query(settings),
-            span=f"last {window_duration} seconds",
-            realtime=True,
+        results_process, results_queue = functions_map.get("run_query")(
+            monitors.prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
         )
 
         try:
