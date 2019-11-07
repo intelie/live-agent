@@ -1,8 +1,4 @@
-import sys
-
-# TODO: Replace this by an import for release code.
-# The contents of the modules folder shall be installed via pip to be available
-sys.path.append('/data/intelie/projects/dda/repo/src/modules')
+# -*- coding: utf-8 -*-
 
 __all__ = ["get_positive_examples", "get_negative_examples"]
 
@@ -23,7 +19,7 @@ LOGIC_ADAPTERS = [
     'chatbot_modules.adapters.pipes_query.EtimQueryAdapter',
     'chatbot_modules.adapters.pipes_query.CurrentValueQueryAdapter',
     'chatbot_modules.adapters.monitors.MonitorControlAdapter',
-    'torque_and_drag_calibration.adapters.torque_and_drag.TorqueAndDragAdapter',
+    'chatbot_modules.adapters.torque_and_drag.TorqueAndDragAdapter',
 ]
 
 

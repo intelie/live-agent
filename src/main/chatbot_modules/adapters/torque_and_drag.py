@@ -8,22 +8,14 @@ from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt
 
-
-# TODO: Tratar essas dependências (relativas a chatbot_modules)
-# Os módulos externos não podem depender do chatbot concreto.
-# Provavelmente esses adapters básicos precisam também de uma lib a parte.
-from chatbot_modules.adapters.base import (
+from .base import (
     BaseBayesAdapter,
     WithAssetAdapter
 )
-
-# Nossa lib não pode depender diretamente do arquivo constants.
-# Autores de módulos não deve se preocupar com essa dependência.
-from chatbot_modules.constants import (
+from ..constants import (
     get_positive_examples,
     get_negative_examples,
 )
-# Fim TODO.
 
 
 def build_statement(text, confidence):
