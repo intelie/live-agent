@@ -8,13 +8,13 @@ from . import (
     chatbot,
 )
 
-__all__ = ['PROCESS_HANDLERS']
+__all__ = ["PROCESS_HANDLERS"]
 
 PROCESS_HANDLERS = {
-    'las_file': las_replayer.start,
-    'flowrate_monitor': flowrate_monitor.start,
-    'flowrate_linearity_monitor': flowrate_linearity_monitor.start,
-    'pretest_monitor': pretest_monitor.start,
-    'sampling_monitor': sampling_monitor.start,
-    'chatterbot': chatbot.start,
+    "las_file": las_replayer.start,
+    "flowrate_monitor": flowrate_monitor.start,
+    "flowrate_linearity_monitor": flowrate_linearity_monitor.start,
+    "pretest_monitor": pretest_monitor.start,
+    "sampling_monitor": sampling_monitor.start,
+    "chatterbot": chatbot.start,
 }
