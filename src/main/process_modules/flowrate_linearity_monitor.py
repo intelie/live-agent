@@ -83,6 +83,7 @@ def start(name, settings, helpers=None, task_id=None):
             monitors.handle_events(process_events, results_queue, settings, timeout=READ_TIMEOUT)
 
         except queue.Empty:
+            # FIXME Não deveriamos chamar results_process.join() aqui? #<<<<<
             start(name, settings, helpers=helpers, task_id=task_id)
 
         except Exception as e:
