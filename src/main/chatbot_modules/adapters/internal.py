@@ -9,8 +9,8 @@ from chatterbot.adapters import Adapter
 
 from jinja2 import Template
 
-from .base_adapters import WithStateAdapter, BaseBayesAdapter
-from .constants import (
+from .base import WithStateAdapter, BaseBayesAdapter
+from ..constants import (
     get_positive_examples,
     get_negative_examples,
     FEATURES,
