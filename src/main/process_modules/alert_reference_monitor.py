@@ -11,13 +11,6 @@ __all__ = ["start"]
 
 READ_TIMEOUT = 120
 
-class TaskContext:
-    def __init__(self, name, settings, helpers, taskid):
-        self.name = name
-        self.settings = settings
-        self.helpers = helpers
-        self.taskid = taskid
-
 
 class ProcessInfo:
     def __init__(self, process, queue):
@@ -25,63 +18,72 @@ class ProcessInfo:
         self.queue = queue
 
 
-def build_query(settings):
-    query = "annotations __src:rulealert"
-    return query
+class AlertSearchMonitor:
+    def __init__(self, name, settings, helpers=None, task_id=None):
+        self.name = name
+        self.settings = settings
+        self.helpers = helpers
+        self.task_id = task_id
+        self.process_name = f"{name} - alert reference search"
 
-funcs = {}
+        # Configuration:
+        self.run_query = monitors.get_function("run_query", self.helpers)
+        self.send_message = partial(
+            monitors.get_function("send_message", self.helpers),
+            extra_settings=self.settings
+        )
 
-def process_annotation(event):
-    send_message = funcs['send_message']
-    annotation_message = event["message"]
 
-    engine = DuckFirstWordEngine()
-    results = engine.search(annotation_message)
-    message_lines = [f'References found for query "{annotation_message}":']
-    if len(results) > 0:
-        res = results[0]
-        message_lines.append(f'<{res.url}|{res.desc}>')
-    else:
-        message_lines.append('No result found')
-    message = '\n'.join(message_lines)
+    def start(self):
+        action = monitors.get_log_action(self.task_id, "alert_reference_monitor")
+        with action.context():
+            logging.info("{}: Reference search monitor".format(self.process_name))
+            setproctitle('DDA: Reference search monitor "{}"'.format(self.process_name))
 
-    send_message(
-        '!Nome do processo!',
-        f'{message}',
-        timestamp=event["timestamp"],
-    )
+            # Registrar consulta por anotações na API de console:
+            results_process, results_queue = self.run_query(
+                self.build_query(),
+                span="last day",
+                realtime=True
+            )
+            handle_process_queue(
+                self.process_annotation,
+                ProcessInfo(results_process, results_queue),
+                self
+            )
+
+            results_process.join()
+
+        action.finish()
+
+
+    def build_query(self):
+        return "__annotations __src:rulealert"
+
+
+    def process_annotation(self, event):
+        annotation_message = event["message"]
+
+        engine = DuckFirstWordEngine()
+        results = engine.search(annotation_message)
+        message_lines = [f'References found for query "{annotation_message}":']
+        if len(results) > 0:
+            res = results[0]
+            message_lines.append(f'<{res.url}|{res.desc}>')
+        else:
+            message_lines.append('No result found')
+        message = '\n'.join(message_lines)
+
+        self.send_message(
+            self.process_name,
+            f'{message}',
+            timestamp=event["timestamp"],
+        )
 
 
 def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - alert reference search"
-
-    action = monitors.get_log_action(task_id, "alert_reference_monitor")
-    with action.context():
-        logging.info("{}: Reference search monitor".format(process_name))
-        setproctitle('DDA: Reference search monitor "{}"'.format(process_name))
-
-        # Configuration:
-        run_query = monitors.get_function("run_query", helpers)
-        send_message = partial(
-            monitors.get_function("send_message", helpers),
-            extra_settings=settings
-        )
-        funcs['send_message'] = send_message
-
-        # Registrar consulta por anotações na API de console:
-        results_process, results_queue = run_query(
-            "__annotations __src:rulealert",
-            #span="last day",
-            realtime=True
-        )
-        handle_process_queue(
-            process_annotation,
-            ProcessInfo(results_process, results_queue),
-            TaskContext(name, settings, helpers, task_id)
-        )
-        results_process.join()
-
-    action.finish()
+    m = AlertSearchMonitor(name, settings, helpers, task_id)
+    m.start()
 
 
 def handle_process_queue(processor, pinfo, context):
