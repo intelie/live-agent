@@ -11,28 +11,14 @@ __all__ = ["start"]
 
 READ_TIMEOUT = 120
 
-
+# TODO: Mover para o arquivo adequado
 class ProcessInfo:
     def __init__(self, process, queue):
         self.process = process
         self.queue = queue
 
-class Monitor:
-    def __init__(self, asset_name, settings, helpers=None, task_id=None):
-        self.asset_name = asset_name
-        self.settings = settings
-        self.helpers = helpers
-        self.task_id = task_id
 
-        # Methods to wrap external functions:
-        self.run_query = monitors.get_function("run_query", self.helpers)
-        self.send_message = partial(
-            monitors.get_function("send_message", self.helpers),
-            extra_settings=self.settings
-        )
-
-
-class AlertReferenceMonitor(Monitor):
+class AlertReferenceMonitor(monitors.Monitor):
     def __init__(self, asset_name, settings, helpers=None, task_id=None):
         super().__init__(asset_name, settings, helpers, task_id)
 
