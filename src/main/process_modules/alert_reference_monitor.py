@@ -19,14 +19,14 @@ class ProcessInfo:
 
 
 class AlertReferenceMonitor:
-    def __init__(self, name, settings, helpers=None, task_id=None):
-        self.name = name
+    def __init__(self, asset_name, settings, helpers=None, task_id=None):
+        self.asset_name = asset_name
         self.settings = settings
         self.helpers = helpers
         self.task_id = task_id
-        self.process_name = f"{name} - alert reference monitor"
+        self.process_name = f"{self.asset_name} - alert reference monitor"
 
-        # Configuration:
+        # Methods to wrap external functions:
         self.run_query = monitors.get_function("run_query", self.helpers)
         self.send_message = partial(
             monitors.get_function("send_message", self.helpers),
@@ -81,8 +81,8 @@ class AlertReferenceMonitor:
         )
 
 
-def start(name, settings, helpers=None, task_id=None):
-    m = AlertReferenceMonitor(name, settings, helpers, task_id)
+def start(asset_name, settings, helpers=None, task_id=None):
+    m = AlertReferenceMonitor(asset_name, settings, helpers, task_id)
     m.start()
 
 
