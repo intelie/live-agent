@@ -5,7 +5,7 @@ from functools import partial
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckEngine, DuckFirstWordEngine, SearchResult
+from utils.search_engine import DuckFirstWordEngine, SearchResult
 
 __all__ = ["start"]
 
@@ -18,13 +18,13 @@ class ProcessInfo:
         self.queue = queue
 
 
-class AlertSearchMonitor:
+class AlertReferenceMonitor:
     def __init__(self, name, settings, helpers=None, task_id=None):
         self.name = name
         self.settings = settings
         self.helpers = helpers
         self.task_id = task_id
-        self.process_name = f"{name} - alert reference search"
+        self.process_name = f"{name} - alert reference monitor"
 
         # Configuration:
         self.run_query = monitors.get_function("run_query", self.helpers)
@@ -37,8 +37,8 @@ class AlertSearchMonitor:
     def start(self):
         action = monitors.get_log_action(self.task_id, "alert_reference_monitor")
         with action.context():
-            logging.info("{}: Reference search monitor".format(self.process_name))
-            setproctitle('DDA: Reference search monitor "{}"'.format(self.process_name))
+            logging.info("{}: Alert Reference Monitor".format(self.process_name))
+            setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
             # Registrar consulta por anotações na API de console:
             results_process, results_queue = self.run_query(
@@ -82,7 +82,7 @@ class AlertSearchMonitor:
 
 
 def start(name, settings, helpers=None, task_id=None):
-    m = AlertSearchMonitor(name, settings, helpers, task_id)
+    m = AlertReferenceMonitor(name, settings, helpers, task_id)
     m.start()
 
 
