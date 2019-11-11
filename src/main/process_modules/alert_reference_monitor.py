@@ -5,6 +5,7 @@ from functools import partial
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
+from utils.search_engine import DuckEngine, SearchResult
 
 __all__ = ["start"]
 
@@ -35,10 +36,21 @@ def analyze_annotation(event):
     print('!!! Alert Search Executing !!!')
     print(f'Source: {event["__src"]}')
     annotation_message = event["message"]
-    print(f'Message: {annotation_message}')
+
+    engine = DuckEngine()
+    results = engine.search(annotation_message)
+    message_lines = [f'References found for query "{annotation_message}":']
+    if len(results) > 0:
+        res = results[0]
+        message_lines.append(f'<{res.url}|{res.desc}>')
+    else:
+        message_lines.append('No result found')
+    message = '\n'.join(message_lines)
+
+    print(f'Message: {message}')
     send_message(
-        '!Acertar esse nome!',
-        f'Got the following annotation message: {annotation_message}',
+        '!Nome do processo!',
+        f'{message}',
         timestamp=event["timestamp"],
     )
 
@@ -62,7 +74,7 @@ def start(name, settings, helpers=None, task_id=None):
         # Registrar consulta por anotações na API de console:
         results_process, results_queue = run_query(
             "__annotations __src:rulealert",
-            #span="last day", <<<<<
+            #span="last day", #<<<<<
             realtime=True
         )
         #handle_process_queue(analyze_annotation, results_queue, helpers, task_id)
