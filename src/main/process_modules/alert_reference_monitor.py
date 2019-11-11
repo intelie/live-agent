@@ -17,16 +17,12 @@ class ProcessInfo:
         self.process = process
         self.queue = queue
 
-
-class AlertReferenceMonitor:
+class Monitor:
     def __init__(self, asset_name, settings, helpers=None, task_id=None):
         self.asset_name = asset_name
         self.settings = settings
         self.helpers = helpers
         self.task_id = task_id
-        self.process_name = f"{self.asset_name} - alert reference monitor"
-
-        self.span = settings['monitor'].get('span')
 
         # Methods to wrap external functions:
         self.run_query = monitors.get_function("run_query", self.helpers)
@@ -34,6 +30,14 @@ class AlertReferenceMonitor:
             monitors.get_function("send_message", self.helpers),
             extra_settings=self.settings
         )
+
+
+class AlertReferenceMonitor(Monitor):
+    def __init__(self, asset_name, settings, helpers=None, task_id=None):
+        super().__init__(asset_name, settings, helpers, task_id)
+
+        self.process_name = f"{self.asset_name} - alert reference monitor"
+        self.span = settings['monitor'].get('span')
 
 
     def start(self):
