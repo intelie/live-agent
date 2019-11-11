@@ -5,7 +5,7 @@ from functools import partial
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckEngine, SearchResult
+from utils.search_engine import DuckEngine, DuckFirstWordEngine, SearchResult
 
 __all__ = ["start"]
 
@@ -31,13 +31,11 @@ def build_query(settings):
 
 funcs = {}
 
-def analyze_annotation(event):
+def process_annotation(event):
     send_message = funcs['send_message']
-    print('!!! Alert Search Executing !!!')
-    print(f'Source: {event["__src"]}')
     annotation_message = event["message"]
 
-    engine = DuckEngine()
+    engine = DuckFirstWordEngine()
     results = engine.search(annotation_message)
     message_lines = [f'References found for query "{annotation_message}":']
     if len(results) > 0:
@@ -47,7 +45,6 @@ def analyze_annotation(event):
         message_lines.append('No result found')
     message = '\n'.join(message_lines)
 
-    print(f'Message: {message}')
     send_message(
         '!Nome do processo!',
         f'{message}',
@@ -74,12 +71,11 @@ def start(name, settings, helpers=None, task_id=None):
         # Registrar consulta por anotações na API de console:
         results_process, results_queue = run_query(
             "__annotations __src:rulealert",
-            #span="last day", #<<<<<
+            #span="last day",
             realtime=True
         )
-        #handle_process_queue(analyze_annotation, results_queue, helpers, task_id)
         handle_process_queue(
-            analyze_annotation,
+            process_annotation,
             ProcessInfo(results_process, results_queue),
             TaskContext(name, settings, helpers, task_id)
         )
@@ -111,7 +107,6 @@ def handle_process_queue(processor, pinfo, context):
 
 def process_accumulator_last_result(processor):
     def process(accumulator):
-        print(f'Accumulator: {accumulator} !!!!!!!!!!') #<<<<<
         latest_event = accumulator[-1]
         processor(latest_event)
         return accumulator

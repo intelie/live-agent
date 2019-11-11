@@ -35,6 +35,12 @@ class DuckEngine(SearchEngine):
         return res
 
 
+class DuckFirstWordEngine(DuckEngine):
+    def search(self, phrase):
+        first_annotation_word = phrase.split(' ')[0]
+        return super().search(first_annotation_word)
+
+
 if __name__ == "__main__":
     engine = DuckEngine()
     res = engine.search('python')
