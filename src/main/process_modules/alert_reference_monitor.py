@@ -26,6 +26,8 @@ class AlertReferenceMonitor:
         self.task_id = task_id
         self.process_name = f"{self.asset_name} - alert reference monitor"
 
+        self.span = settings['monitor'].get('span')
+
         # Methods to wrap external functions:
         self.run_query = monitors.get_function("run_query", self.helpers)
         self.send_message = partial(
@@ -43,8 +45,8 @@ class AlertReferenceMonitor:
             # Registrar consulta por anotações na API de console:
             results_process, results_queue = self.run_query(
                 self.build_query(),
-                span="last day",
-                realtime=True
+                span = self.span,
+                realtime = True
             )
             handle_process_queue(
                 self.process_annotation,
