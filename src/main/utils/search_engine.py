@@ -1,12 +1,13 @@
 from duckduckapi import api
 
+
 class SearchResult:
     def __init__(self, url, desc):
         self.url = url
         self.desc = desc
 
     def __str__(self):
-        return f'{self.desc}\n{self.url}'
+        return f"{self.desc}\n{self.url}"
 
 
 class SearchEngine:
@@ -31,19 +32,19 @@ class DuckEngine(SearchEngine):
 
     def to_result(self, duck_result):
         res = list(map(self.from_duck_result, duck_result.related_topics))
-        res = list(filter(lambda item: item.url.strip() != '', res))
+        res = list(filter(lambda item: item.url.strip() != "", res))
         return res
 
 
 class DuckFirstWordEngine(DuckEngine):
     def search(self, phrase):
-        first_annotation_word = phrase.split(' ')[0]
+        first_annotation_word = phrase.split(" ")[0]
         return super().search(first_annotation_word)
 
 
 if __name__ == "__main__":
     engine = DuckEngine()
-    res = engine.search('python')
+    res = engine.search("python")
     for r in res:
         print(r)
         print()

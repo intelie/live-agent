@@ -1,15 +1,15 @@
 import queue
 import traceback
 
-from functools import partial
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckFirstWordEngine, SearchResult
+from utils.search_engine import DuckFirstWordEngine
 
 __all__ = ["start"]
 
 READ_TIMEOUT = 120
+
 
 # TODO: Mover para o arquivo adequado
 class ProcessInfo:
@@ -23,8 +23,7 @@ class AlertReferenceMonitor(monitors.Monitor):
         super().__init__(asset_name, settings, helpers, task_id)
 
         self.process_name = f"{self.asset_name} - alert reference monitor"
-        self.span = settings['monitor'].get('span')
-
+        self.span = settings["monitor"].get("span")
 
     def start(self):
         action = monitors.get_log_action(self.task_id, "alert_reference_monitor")
@@ -34,24 +33,18 @@ class AlertReferenceMonitor(monitors.Monitor):
 
             # Registrar consulta por anotações na API de console:
             results_process, results_queue = self.run_query(
-                self.build_query(),
-                span = self.span,
-                realtime = True
+                self.build_query(), span=self.span, realtime=True
             )
             handle_process_queue(
-                self.process_annotation,
-                ProcessInfo(results_process, results_queue),
-                self
+                self.process_annotation, ProcessInfo(results_process, results_queue), self
             )
 
             results_process.join()
 
         action.finish()
 
-
     def build_query(self):
         return "__annotations __src:rulealert"
-
 
     def process_annotation(self, event):
         annotation_message = event["message"]
@@ -61,16 +54,12 @@ class AlertReferenceMonitor(monitors.Monitor):
         message_lines = [f'References found for query "{annotation_message}":']
         if len(results) > 0:
             res = results[0]
-            message_lines.append(f'<{res.url}|{res.desc}>')
+            message_lines.append(f"<{res.url}|{res.desc}>")
         else:
-            message_lines.append('No result found')
-        message = '\n'.join(message_lines)
+            message_lines.append("No result found")
+        message = "\n".join(message_lines)
 
-        self.send_message(
-            self.process_name,
-            f'{message}',
-            timestamp=event["timestamp"],
-        )
+        self.send_message(self.process_name, f"{message}", timestamp=event["timestamp"])
 
 
 def start(asset_name, settings, helpers=None, task_id=None):
@@ -81,10 +70,10 @@ def start(asset_name, settings, helpers=None, task_id=None):
 def handle_process_queue(processor, pinfo, context):
     try:
         monitors.handle_events(
-            processor_func = process_accumulator_last_result(processor),
-            results_queue = pinfo.queue,
-            settings = context.settings,
-            timeout=READ_TIMEOUT
+            processor_func=process_accumulator_last_result(processor),
+            results_queue=pinfo.queue,
+            settings=context.settings,
+            timeout=READ_TIMEOUT,
         )
 
     except queue.Empty:
@@ -104,4 +93,5 @@ def process_accumulator_last_result(processor):
         latest_event = accumulator[-1]
         processor(latest_event)
         return accumulator
+
     return process

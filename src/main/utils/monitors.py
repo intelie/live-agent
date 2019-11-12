@@ -406,6 +406,7 @@ def get_log_action(task_id, action_type):
 
 class Monitor:
     """Base class to implement monitors"""
+
     def __init__(self, asset_name, settings, helpers=None, task_id=None):
         self.asset_name = asset_name
         self.settings = settings
@@ -415,9 +416,8 @@ class Monitor:
         # Methods to wrap external functions:
         self.run_query = get_function("run_query", self.helpers)
         self.send_message = partial(
-            get_function("send_message", self.helpers),
-            extra_settings=self.settings
+            get_function("send_message", self.helpers), extra_settings=self.settings
         )
 
     def start(self):
-        raise NotImplementedError('Monitors must define a start method')
+        raise NotImplementedError("Monitors must define a start method")
