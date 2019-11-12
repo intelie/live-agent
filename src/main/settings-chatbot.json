@@ -160,6 +160,18 @@
               "author": {"id": 2, "name": "🤖  Flowrate Linearity monitor"}
             }
           }
+        },
+        "Zatko": {
+          "alert_reference": {
+            "type": "alert_reference_monitor",
+            "enabled": true,
+            "monitor": {
+              "span": null
+            },
+            "destination": {
+              "author": {"id": 2, "name": "🤖  Alert Reference Monitor"}
+            }
+          }
         }
       },
       "destination": {
