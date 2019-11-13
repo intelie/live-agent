@@ -18,6 +18,10 @@ def build_statement(text, confidence):
     return statement
 
 
+def build_handler_statement(handler, confidence):
+    return build_statement(get_handler_name(handler), confidence)
+
+
 tnd_query_template = """
 -- custom functions
 def @custom_batch():
@@ -88,9 +92,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if not params:
-            return build_statement(
-                "Sorry, I can't read the calibration parameters from your message", confidence
-            )
+            return build_handler_statement(handle_cant_read_params, confidence)
 
         # Parameters read, so we believe it's ours.
         confidence = 1
@@ -98,9 +100,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
-            return build_statement(
-                "Please, select an asset before performing the calibration", confidence
-            )
+            return build_handler_statement(handle_no_asset_selected, confidence)
 
         # Retrieve the points to calculate the regression:
         MIN_POINT_COUNT = 2
@@ -290,3 +290,42 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         except:
             raise Exception(error_message)
         return timestamp
+
+
+# TODO: Mover 'get_handler_name' para um lugar comum a todos os adapters (ou chatbot).
+def get_handler_name(handler):
+    return f"::{handler.__module__}.{handler.__name__}"
+
+
+def handle_cant_read_params(chatbot_context, *args, **kwargs):
+    message = "Sorry, I can't read the calibration parameters from your message"
+    print(f"{chatbot_context['process_name']}: {message}.")
+    #logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
+    logging.info('{}: Bot response is "{}"'.format(
+        chatbot_context['process_name'],
+        message
+    ))
+    chatbot_context['maybe_send_message'](
+        chatbot_context['process_name'],
+        chatbot_context['process_settings'],
+        chatbot_context['output_info'],
+        chatbot_context['room_id'],
+        Statement(message)
+    )
+
+
+def handle_no_asset_selected(chatbot_context, *args, **kwargs):
+    message = "Please, select an asset before performing the calibration"
+    print(f"{chatbot_context['process_name']}: {message}.")
+    #logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
+    logging.info('{}: Bot response is "{}"'.format(
+        chatbot_context['process_name'],
+        message
+    ))
+    chatbot_context['maybe_send_message'](
+        chatbot_context['process_name'],
+        chatbot_context['process_settings'],
+        chatbot_context['output_info'],
+        chatbot_context['room_id'],
+        Statement(message)
+    )

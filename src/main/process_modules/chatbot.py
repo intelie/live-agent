@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from importlib import import_module
 from multiprocessing import Process, Queue
 from functools import partial
 import queue
+import traceback
 
 from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
@@ -109,9 +111,35 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
             else:
                 response = None
 
-            if response:
-                logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-                maybe_send_message(process_name, process_settings, output_info, room_id, response)
+            if response is not None:
+                if response.text.startswith('::'):
+                    handle_response_action(response, {
+                        'process_name': process_name,
+                        'process_settings': process_settings,
+                        'output_info': output_info,
+                        'room_id': room_id,
+                        'maybe_send_message': maybe_send_message,
+                    })
+                else:
+                    logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
+                    maybe_send_message(process_name, process_settings, output_info, room_id, response)
+
+
+def handle_response_action(response, chatbot_context):
+    # Temos que achar a função que trata a resposta selecionada:
+    # Ex: "::chatbot_modules.adapters.torque_and_drag.handle_cant_read_params"
+    parts = response.text[2:].split(".")
+    module_name = '.'.join(parts[:-1])
+    fn_name = parts[-1]
+    m = import_module(module_name)
+    try:
+        fn = getattr(m, fn_name)
+        # Mover para depois deste bloco try: <<<<<
+        # TODO: Handle parameters contained in original message: <<<<<
+        fn(chatbot_context)
+    except:
+        traceback.print_exc()
+        raise
 
 
 @preserve_context
