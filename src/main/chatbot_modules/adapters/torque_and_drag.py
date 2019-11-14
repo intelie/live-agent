@@ -1,3 +1,4 @@
+import json
 import queue
 import re
 import requests
@@ -18,8 +19,8 @@ def build_statement(text, confidence):
     return statement
 
 
-def build_handler_statement(handler, confidence):
-    return build_statement(get_handler_name(handler), confidence)
+def build_handler_statement(confidence, handler, params = None):
+    return build_statement(build_handler_call_str(handler, params), confidence)
 
 
 tnd_query_template = """
@@ -92,7 +93,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if not params:
-            return build_handler_statement(handle_cant_read_params, confidence)
+            return build_handler_statement(confidence, handle_cant_read_params, params)
 
         # Parameters read, so we believe it's ours.
         confidence = 1
@@ -100,56 +101,16 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
-            return build_handler_statement(handle_no_asset_selected, confidence)
-
-        # Retrieve the points to calculate the regression:
-        MIN_POINT_COUNT = 2
+            return build_handler_statement(confidence, handle_no_asset_selected, params)
         params["event_type"] = self.get_event_type(asset)
-        if params.get("start_time") == None:
-            try:
-                self.infer_time_range(params)
-            except Exception as e:
-                return build_statement(f"{str(e)} Please select another range.", confidence)
 
-        points = self.live_retrieve_regression_points(params)
-        if len(points) < MIN_POINT_COUNT:
-            return build_statement(
-                "There are not enough data points to perform the calibration. Please select another range.",
-                confidence,
-            )
-        well_id = points[0]["wellId"]
-
-        # Perform calibration:
-        try:
-            calibration_result = self.request_calibration(well_id, points)
-        except:
-            return build_statement(
-                "I'm not able to get data from calibration service. Please, check dda and live configuration.",
-                confidence,
-            )
-
-        # Return a response:
-        response = self.build_success_response(
-            confidence, {"wellId": well_id, "calibration_result": calibration_result}
-        )
-        return response
+        return build_handler_statement(confidence, handle_perform_calibration, params)
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
         found_keywords = [word for word in statement.text.lower().split() if word in keywords]
         has_required_terms = sorted(found_keywords) == sorted(keywords)
         return has_required_terms and super().can_process(statement)
-
-    def build_success_response(self, confidence, context):
-        message = f"""Calibration Results:
--  Well ID: {context["wellId"]}
--  Regression method: {context["calibration_result"]["calibrationMethod"]}
--  Travelling Block Weight: {context["calibration_result"]["travellingBlockWeight"]}
--  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
-"""
-        response = Statement(message)
-        response.confidence = confidence
-        return response
 
     # TODO: Melhorar a maneira de obter os parâmetros para ficar mais fácil para o usuário:
     def extract_calibration_params(self, message):
@@ -171,8 +132,22 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         if m is not None:
             return {"min_depth": m.group(1), "max_depth": m.group(2)}
 
+
+class TorqueAndDragCalibrator:
+
+    query_timeout = 60
+
+    def __init__(self, liveclient):
+        self.liveclient = liveclient
+        self.process_settings = liveclient.process_settings
+        self.live_host = self.process_settings["live"]["host"]
+        self.username = self.process_settings["live"]["username"]
+        self.password = self.process_settings["live"]["password"]
+
+
     def run_query(self, query_str, realtime=False, span=None, callback=None):
-        results_process, results_queue = self.query_runner(query_str, realtime=realtime, span=span)
+        #results_process, results_queue = self.query_runner(query_str, realtime=realtime, span=span)
+        results_process, results_queue = self.liveclient.run_query(query_str, realtime=realtime, span=span)
 
         result = []
         while True:
@@ -292,18 +267,65 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         return timestamp
 
 
-# TODO: Mover 'get_handler_name' para um lugar comum a todos os adapters (ou chatbot).
-def get_handler_name(handler):
-    return f"::{handler.__module__}.{handler.__name__}"
+    def build_success_response(self, context):
+        message = f"""Calibration Results:
+-  Well ID: {context["wellId"]}
+-  Regression method: {context["calibration_result"]["calibrationMethod"]}
+-  Travelling Block Weight: {context["calibration_result"]["travellingBlockWeight"]}
+-  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
+"""
+        response = Statement(message)
+        return response
 
 
-def handle_cant_read_params(*args, **kwargs):
+# TODO: Mover 'build_handler_call_str' para um lugar comum a todos os adapters (ou chatbot).  <<<<<
+def build_handler_call_str(handler, params = None):
+    fn_fully_qualified_name = f"{handler.__module__}.{handler.__name__}"
+    fn_params = json.dumps(params or {})
+    return f"::{fn_fully_qualified_name}\n{fn_params}"
+
+
+#TODO: Handlers should return a string and not a Statement <<<<<
+def handle_cant_read_params(params, liveclient):
     message = "Sorry, I can't read the calibration parameters from your message"
     print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
     return Statement(message)
 
 
-def handle_no_asset_selected(*args, **kwargs):
+def handle_no_asset_selected(params, liveclient):
     message = "Please, select an asset before performing the calibration"
     print(f"[Collateral Effect - handle_no_asset_selected]: {message}.")
     return Statement(message)
+
+
+def handle_perform_calibration(params, liveclient):
+    calibrator = TorqueAndDragCalibrator(liveclient)
+
+    # Gather all needed data to retrieve the data points:
+    MIN_POINT_COUNT = 2
+    if params.get("start_time") == None:
+        try:
+            calibrator.infer_time_range(params)
+        except Exception as e:
+            return Statement(f"{str(e)} Please select another range.")
+
+    # Retrieve the points to calculate the regression:
+    points = calibrator.live_retrieve_regression_points(params)
+    if len(points) < MIN_POINT_COUNT:
+        return Statement(
+            "There are not enough data points to perform the calibration. Please select another range."
+        )
+    well_id = points[0]["wellId"]
+
+    # Perform calibration:
+    try:
+        calibration_result = calibrator.request_calibration(well_id, points)
+    except:
+        return Statement("I'm not able to get data from calibration service. Please, check dda and live configuration.")
+
+    # Return a response:
+    response = calibrator.build_success_response({
+        "wellId": well_id,
+        "calibration_result": calibration_result
+    })
+    return response

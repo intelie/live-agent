@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 from importlib import import_module
 from multiprocessing import Process, Queue
 from functools import partial
+import json
 import queue
+import re
 import traceback
 
 from eliot import start_action, preserve_context, Action
@@ -113,7 +114,8 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
 
             if response is not None:
                 if is_action_response(response):
-                    response = handle_response_action(response)
+                    liveclient = LiveClient(process_name, process_settings, output_info, room_id)
+                    response = handle_action_response(response, liveclient)
 
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
                 maybe_send_message(process_name, process_settings, output_info, room_id, response)
@@ -123,21 +125,25 @@ def is_action_response(response):
     return response.text.startswith('::')
 
 
-def handle_response_action(response):
-    # Temos que achar a função que trata a resposta selecionada:
-    # Ex: "::chatbot_modules.adapters.torque_and_drag.handle_cant_read_params"
-    parts = response.text[2:].split(".")
-    module_name = '.'.join(parts[:-1])
-    fn_name = parts[-1]
-    m = import_module(module_name)
+def handle_action_response(response, liveclient):
+    module_name, function_name, params = parse_action_response(response)
+    module = import_module(module_name)
     try:
-        fn = getattr(m, fn_name)
-        # Mover para depois deste bloco try: <<<<<
-        # TODO: Handle parameters contained in original message: <<<<<
-        return fn()
+        fn = getattr(module, function_name)
+        return fn(params, liveclient)
     except:
         traceback.print_exc()
         raise
+
+
+def parse_action_response(response):
+    lines = response.text.split("\n")
+    parts = lines[0][2:].split(".")
+    module_name = '.'.join(parts[:-1])
+    function_name = parts[-1]
+
+    params = json.loads(lines[1])
+    return (module_name, function_name, params)
 
 
 @preserve_context
@@ -323,3 +329,37 @@ def start(process_name, process_settings, output_info, _settings, task_id):
         for bot in bot_processes:
             bot.join()
     return
+
+
+# TODO: Move this class to a better file: <<<<<
+# BEWARE: This class happens to be highly coupled to the functions it uses here (run_query,
+# send_message, etc). This means that we have to be careful when moving this class elsewhere
+class LiveClient:
+    def __init__(self, process_name, process_settings, output_info, room_id):
+        self.process_name = process_name
+        self.process_settings = process_settings
+        self.output_info = output_info
+        self.room_id = room_id
+
+        self.run_query = partial(
+            query.run,
+            process_name,
+            process_settings,
+            timeout=request_timeout,
+            max_retries=max_retries,
+        )
+        self.annotate = partial(
+            create_annotation,
+            process_settings=process_settings,
+            output_info=output_info,
+            room={"id": room_id},
+        )
+        self.messenger = partial(
+            send_message,
+            process_settings=process_settings,
+            output_info=output_info,
+            room={"id": room_id},
+        )
+        self.send_event = partial(
+            send_event, process_settings=process_settings, output_info=output_info
+        )
