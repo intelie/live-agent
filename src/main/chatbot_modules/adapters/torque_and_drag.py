@@ -297,35 +297,13 @@ def get_handler_name(handler):
     return f"::{handler.__module__}.{handler.__name__}"
 
 
-def handle_cant_read_params(chatbot_context, *args, **kwargs):
+def handle_cant_read_params(*args, **kwargs):
     message = "Sorry, I can't read the calibration parameters from your message"
-    print(f"{chatbot_context['process_name']}: {message}.")
-    #logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-    logging.info('{}: Bot response is "{}"'.format(
-        chatbot_context['process_name'],
-        message
-    ))
-    chatbot_context['maybe_send_message'](
-        chatbot_context['process_name'],
-        chatbot_context['process_settings'],
-        chatbot_context['output_info'],
-        chatbot_context['room_id'],
-        Statement(message)
-    )
+    print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
+    return Statement(message)
 
 
-def handle_no_asset_selected(chatbot_context, *args, **kwargs):
+def handle_no_asset_selected(*args, **kwargs):
     message = "Please, select an asset before performing the calibration"
-    print(f"{chatbot_context['process_name']}: {message}.")
-    #logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-    logging.info('{}: Bot response is "{}"'.format(
-        chatbot_context['process_name'],
-        message
-    ))
-    chatbot_context['maybe_send_message'](
-        chatbot_context['process_name'],
-        chatbot_context['process_settings'],
-        chatbot_context['output_info'],
-        chatbot_context['room_id'],
-        Statement(message)
-    )
+    print(f"[Collateral Effect - handle_no_asset_selected]: {message}.")
+    return Statement(message)
