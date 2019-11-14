@@ -3,7 +3,6 @@ from multiprocessing import Process, Queue
 from functools import partial
 import json
 import queue
-import re
 import traceback
 
 from eliot import start_action, preserve_context, Action
@@ -122,7 +121,7 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
 
 
 def is_action_response(response):
-    return response.text.startswith('::')
+    return response.text.startswith("::")
 
 
 def handle_action_response(response, liveclient):
@@ -131,7 +130,7 @@ def handle_action_response(response, liveclient):
     try:
         fn = getattr(module, function_name)
         return fn(params, liveclient)
-    except:
+    except Exception:
         traceback.print_exc()
         raise
 
@@ -139,7 +138,7 @@ def handle_action_response(response, liveclient):
 def parse_action_response(response):
     lines = response.text.split("\n")
     parts = lines[0][2:].split(".")
-    module_name = '.'.join(parts[:-1])
+    module_name = ".".join(parts[:-1])
     function_name = parts[-1]
 
     params = json.loads(lines[1])

@@ -4,7 +4,6 @@ import re
 import requests
 
 from chatterbot.conversation import Statement
-from eliot import start_action
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt
@@ -19,7 +18,7 @@ def build_statement(text, confidence):
     return statement
 
 
-def build_handler_statement(confidence, handler, params = None):
+def build_handler_statement(confidence, handler, params=None):
     return build_statement(build_handler_call_str(handler, params), confidence)
 
 
@@ -115,7 +114,6 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
     def extract_calibration_params(self, message):
         # NOTE: Eu usaria o mesmo mecanismo de `EtimQueryAdapter.find_index_value`
-        ret = None
         m = re.search(
             r"(\d+).+?(\d+).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2}).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2})\s*$",
             message,
@@ -144,9 +142,10 @@ class TorqueAndDragCalibrator:
         self.username = self.process_settings["live"]["username"]
         self.password = self.process_settings["live"]["password"]
 
-
     def run_query(self, query_str, realtime=False, span=None, callback=None):
-        results_process, results_queue = self.liveclient.run_query(query_str, realtime=realtime, span=span)
+        results_process, results_queue = self.liveclient.run_query(
+            query_str, realtime=realtime, span=span
+        )
 
         result = []
         while True:
@@ -260,10 +259,9 @@ class TorqueAndDragCalibrator:
         try:
             candidates = self.live_timestamps_from_depth_range(event_type, depth_range, span=span)
             timestamp = fn(map(lambda val: int(val["timestamp"]), candidates))
-        except:
+        except Exception:
             raise Exception(error_message)
         return timestamp
-
 
     def build_success_response(self, context):
         message = f"""Calibration Results:
@@ -277,13 +275,13 @@ class TorqueAndDragCalibrator:
 
 
 # TODO: Mover 'build_handler_call_str' para um lugar comum a todos os adapters (ou chatbot).  <<<<<
-def build_handler_call_str(handler, params = None):
+def build_handler_call_str(handler, params=None):
     fn_fully_qualified_name = f"{handler.__module__}.{handler.__name__}"
     fn_params = json.dumps(params or {})
     return f"::{fn_fully_qualified_name}\n{fn_params}"
 
 
-#TODO: Handlers should return a string and not a Statement <<<<<
+# TODO: Handlers should return a string and not a Statement <<<<<
 def handle_cant_read_params(params, liveclient):
     message = "Sorry, I can't read the calibration parameters from your message"
     print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
@@ -301,7 +299,7 @@ def handle_perform_calibration(params, liveclient):
 
     # Gather all needed data to retrieve the data points:
     MIN_POINT_COUNT = 2
-    if params.get("start_time") == None:
+    if params.get("start_time") is None:
         try:
             calibrator.infer_time_range(params)
         except Exception as e:
@@ -318,12 +316,13 @@ def handle_perform_calibration(params, liveclient):
     # Perform calibration:
     try:
         calibration_result = calibrator.request_calibration(well_id, points)
-    except:
-        return Statement("I'm not able to get data from calibration service. Please, check dda and live configuration.")
+    except Exception:
+        return Statement(
+            "I'm not able to get data from calibration service. Please, check dda and live configuration."
+        )
 
     # Return a response:
-    response = calibrator.build_success_response({
-        "wellId": well_id,
-        "calibration_result": calibration_result
-    })
+    response = calibrator.build_success_response(
+        {"wellId": well_id, "calibration_result": calibration_result}
+    )
     return response
