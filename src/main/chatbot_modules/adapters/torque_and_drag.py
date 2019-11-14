@@ -104,6 +104,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
             return build_handler_statement(confidence, handle_no_asset_selected, params)
         params["event_type"] = self.get_event_type(asset)
 
+        # Calibration shall be executed:
         return build_handler_statement(confidence, handle_perform_calibration, params)
 
     def can_process(self, statement):
@@ -112,7 +113,6 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         has_required_terms = sorted(found_keywords) == sorted(keywords)
         return has_required_terms and super().can_process(statement)
 
-    # TODO: Melhorar a maneira de obter os parâmetros para ficar mais fácil para o usuário:
     def extract_calibration_params(self, message):
         # NOTE: Eu usaria o mesmo mecanismo de `EtimQueryAdapter.find_index_value`
         ret = None
@@ -146,7 +146,6 @@ class TorqueAndDragCalibrator:
 
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
-        #results_process, results_queue = self.query_runner(query_str, realtime=realtime, span=span)
         results_process, results_queue = self.liveclient.run_query(query_str, realtime=realtime, span=span)
 
         result = []
@@ -185,9 +184,8 @@ class TorqueAndDragCalibrator:
 
         s = requests.Session()
         s.auth = (self.username, self.password)
-        travelling_block_weight = (
-            0
-        )  # This value is ignored for LINEAR_REGRESSION (the only supported right now)
+        # This variable is ignored for LINEAR_REGRESSION (the only supported right now)
+        travelling_block_weight = 0
         calibration_data = self.build_calibration_data(well_id, travelling_block_weight, points)
         response = s.post(url, json=calibration_data)
         try:
