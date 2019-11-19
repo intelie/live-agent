@@ -60,7 +60,7 @@ def convert_to_custom_unit(mnemonic, uom, value):
 => @filter values['DBTM'] < {max_depth}
 
 -- filtering by low hook load values
-=> @filter values['HKLA'] > 900000
+=> @filter values['HKLA'] > {min_hookload}
 
 -- printing data
 => newmap('flowRate', values['MFIA'], 'hookLoad', values['HKLA'], 'bitDepth', values['DBTM'], 'wellId', well_id)
@@ -91,7 +91,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Try to read params from the chat:
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
-        if not params:
+        if params is None:
             return build_handler_statement(confidence, handle_cant_read_params, params)
 
         # Parameters read, so we believe it's ours.
@@ -114,21 +114,35 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
 
     def extract_calibration_params(self, message):
         # NOTE: Eu usaria o mesmo mecanismo de `EtimQueryAdapter.find_index_value`
+        time_pat = r"\d{4}-\d\d-\d\d \d{1,2}:\d{2}"
+
         m = re.search(
-            r"(\d+).+?(\d+).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2}).+?(\d{4}-\d\d-\d\d \d{1,2}:\d{2})\s*$",
+            fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat}).+?(\d+)\s*$",
+            message,
+        ) or re.search(
+            fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat})\s*$",
             message,
         )
         if m is not None:
+            min_hookload = None
+            try:
+                min_hookload = m.group(5)
+            except:
+                pass
+
             return {
                 "min_depth": m.group(1),
                 "max_depth": m.group(2),
                 "start_time": m.group(3),
                 "end_time": m.group(4),
+                "min_hookload": min_hookload,
             }
 
-        m = re.search(r"(\d+) *m *and *(\d+) *m.*?$", message)
+        m = re.search(r"(\d+) *m *(?:and|to) *(\d+) *m.*?$", message)
         if m is not None:
             return {"min_depth": m.group(1), "max_depth": m.group(2)}
+
+        return None
 
 
 class TorqueAndDragCalibrator:
@@ -198,11 +212,7 @@ class TorqueAndDragCalibrator:
 
     def live_retrieve_regression_points(self, params):
         points = []
-        pipes_query = tnd_query_template.format(
-            event_type=params["event_type"],
-            min_depth=params["min_depth"],
-            max_depth=params["max_depth"],
-        )
+        pipes_query = tnd_query_template.format(**params)
 
         start_time = params["start_time"]
         end_time = params["end_time"]
@@ -295,10 +305,12 @@ def handle_no_asset_selected(params, liveclient):
 
 
 def handle_perform_calibration(params, liveclient):
+    MIN_POINT_COUNT = 2
+    MIN_HOOKLOAD = 900000
+
     calibrator = TorqueAndDragCalibrator(liveclient)
 
     # Gather all needed data to retrieve the data points:
-    MIN_POINT_COUNT = 2
     if params.get("start_time") is None:
         try:
             calibrator.infer_time_range(params)
@@ -306,6 +318,7 @@ def handle_perform_calibration(params, liveclient):
             return Statement(f"{str(e)} Please select another range.")
 
     # Retrieve the points to calculate the regression:
+    params['min_hookload'] = params['min_hookload'] or MIN_HOOKLOAD
     points = calibrator.live_retrieve_regression_points(params)
     if len(points) < MIN_POINT_COUNT:
         return Statement(
