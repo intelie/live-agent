@@ -117,17 +117,13 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         time_pat = r"\d{4}-\d\d-\d\d \d{1,2}:\d{2}"
 
         m = re.search(
-            fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat}).+?(\d+)\s*$",
-            message,
-        ) or re.search(
-            fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat})\s*$",
-            message,
-        )
+            fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat}).+?(\d+)\s*$", message
+        ) or re.search(fr"(\d+).+?(\d+).+?({time_pat}).+?({time_pat})\s*$", message)
         if m is not None:
             min_hookload = None
             try:
                 min_hookload = m.group(5)
-            except:
+            except Exception:
                 pass
 
             return {
@@ -318,7 +314,7 @@ def handle_perform_calibration(params, liveclient):
             return Statement(f"{str(e)} Please select another range.")
 
     # Retrieve the points to calculate the regression:
-    params['min_hookload'] = params['min_hookload'] or MIN_HOOKLOAD
+    params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
     points = calibrator.live_retrieve_regression_points(params)
     if len(points) < MIN_POINT_COUNT:
         return Statement(
