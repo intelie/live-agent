@@ -419,5 +419,5 @@ class Monitor:
             get_function("send_message", self.helpers), extra_settings=self.settings
         )
 
-    def start(self):
+    def run(self):
         raise NotImplementedError("Monitors must define a start method")

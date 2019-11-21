@@ -1,5 +1,6 @@
-from duckduckapi import api
+import traceback
 
+from duckduckapi import api
 
 class SearchResult:
     def __init__(self, url, desc):
@@ -24,8 +25,16 @@ class DuckEngine(SearchEngine):
         super().__init__()
 
     def search(self, phrase):
-        results = self.client.search(phrase)
-        return self.to_result(results)
+        try:
+            # NOTE: Important !! phrase.upper() is required because query string values like 'AaA'
+            # fail in lib requests. (is it a bug in requests?)
+            # The real case was this: http://api.duckduckgo.com/?q=Diff_WOB&format=json
+            # Converting the param to uppercase solves the problem for our use case.
+            results = self.client.search(phrase.upper())
+            return self.to_result(results)
+        except Exception:
+            traceback.print_exc()
+            raise
 
     def from_duck_result(self, item):
         return SearchResult(item.first_url, item.text)
