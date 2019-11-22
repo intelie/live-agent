@@ -58,8 +58,8 @@ $ eliot-tree -l 0 /tmp/live-agent.log
 In order to generate an installable package you will need to use `docker`.
 
 - Install docker (check the documentation for your system: <https://docs.docker.com/install/>)
-- Add your user to the group `docker`.
-- Log off and log on again for the group to be recognized. (or you can simply `su - <your_username>` on your terminal)
+- Add your user to the group `docker`: `$ usermod -aG docker <username>`.
+- Log off and log on again for the group to be recognized. (or you can simply `$ su - <username>` on your terminal)
 
 The packager requires packages `fabric` and `virtualenv`. It will generate a rpm file for installation on the target system.
 
