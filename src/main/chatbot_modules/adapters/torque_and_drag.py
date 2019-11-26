@@ -286,7 +286,6 @@ def build_handler_call_str(handler, params=None):
     return f"::{fn_fully_qualified_name}\n{fn_params}"
 
 
-# TODO: Handlers should return a string and not a Statement <<<<<
 def handle_cant_read_params(params, liveclient):
     message = "Sorry, I can't read the calibration parameters from your message"
     print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
