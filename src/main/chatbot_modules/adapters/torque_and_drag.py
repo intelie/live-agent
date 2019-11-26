@@ -6,6 +6,7 @@ import requests
 from chatterbot.conversation import Statement
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
+from live_client.utils.timestamp import get_timestamp
 from utils.util import attempt
 
 from .base import BaseBayesAdapter, WithAssetAdapter
@@ -270,14 +271,12 @@ class TorqueAndDragCalibrator:
         return timestamp
 
     def build_success_response(self, context):
-        message = f"""Calibration Results:
+        return f"""Calibration Results:
 -  Well ID: {context["wellId"]}
 -  Regression method: {context["calibration_result"]["calibrationMethod"]}
 -  Travelling Block Weight: {context["calibration_result"]["travellingBlockWeight"]}
 -  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
 """
-        response = Statement(message)
-        return response
 
 
 # TODO: Mover 'build_handler_call_str' para um lugar comum a todos os adapters (ou chatbot).  <<<<<
@@ -291,13 +290,13 @@ def build_handler_call_str(handler, params=None):
 def handle_cant_read_params(params, liveclient):
     message = "Sorry, I can't read the calibration parameters from your message"
     print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
-    return Statement(message)
+    return message
 
 
 def handle_no_asset_selected(params, liveclient):
     message = "Please, select an asset before performing the calibration"
     print(f"[Collateral Effect - handle_no_asset_selected]: {message}.")
-    return Statement(message)
+    return message
 
 
 def handle_perform_calibration(params, liveclient):
@@ -311,24 +310,21 @@ def handle_perform_calibration(params, liveclient):
         try:
             calibrator.infer_time_range(params)
         except Exception as e:
-            return Statement(f"{str(e)} Please select another range.")
+            return f"{str(e)} Please select another range."
 
     # Retrieve the points to calculate the regression:
     params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
     points = calibrator.live_retrieve_regression_points(params)
     if len(points) < MIN_POINT_COUNT:
-        return Statement(
-            "There are not enough data points to perform the calibration. Please select another range."
-        )
+        return "There are not enough data points to perform the calibration. Please select another range."
+
     well_id = points[0]["wellId"]
 
     # Perform calibration:
     try:
         calibration_result = calibrator.request_calibration(well_id, points)
     except Exception:
-        return Statement(
-            "I'm not able to get data from calibration service. Please, check dda and live configuration."
-        )
+        return "I'm not able to get data from calibration service. Please, check dda and live configuration."
 
     # Return a response:
     response = calibrator.build_success_response(

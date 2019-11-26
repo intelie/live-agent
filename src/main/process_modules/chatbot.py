@@ -7,6 +7,7 @@ import traceback
 
 from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
+from chatterbot.conversation import Statement
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
@@ -102,6 +103,7 @@ def maybe_mention(process_settings, message):
 
 @preserve_context
 def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
+    liveclient = LiveClient(process_name, process_settings, output_info, room_id)
     for message in messages:
         with start_action(action_type="process_message", message=message.get("text")):
             is_mention, message = maybe_mention(process_settings, message)
@@ -112,12 +114,14 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
                 response = None
 
             if response is not None:
-                if is_action_response(response):
-                    liveclient = LiveClient(process_name, process_settings, output_info, room_id)
-                    response = handle_action_response(response, liveclient)
-
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-                maybe_send_message(process_name, process_settings, output_info, room_id, response)
+                response_message = (
+                    handle_action_response(response, liveclient)
+                    if is_action_response(response)
+                    else response.text
+                )
+
+                maybe_send_message(process_name, process_settings, output_info, room_id, response_message)
 
 
 def is_action_response(response):
@@ -146,7 +150,7 @@ def parse_action_response(response):
 
 
 @preserve_context
-def maybe_send_message(process_name, process_settings, output_info, room_id, bot_response):
+def maybe_send_message(process_name, process_settings, output_info, room_id, response_message):
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get("alias", "Intelie")
     bot_settings["destination"]["room"] = {"id": room_id}
@@ -155,7 +159,7 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
 
     messenger.send_message(
         process_name,
-        bot_response.text,
+        response_message,
         get_timestamp(),
         process_settings=bot_settings,
         output_info=output_info,
