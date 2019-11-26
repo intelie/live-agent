@@ -310,24 +310,26 @@ def handle_perform_calibration(params, liveclient):
         try:
             calibrator.infer_time_range(params)
         except Exception as e:
-            return f"{str(e)} Please select another range."
+            return f"[T&D]: {str(e)} Please select another range."
 
     # Retrieve the points to calculate the regression:
+    liveclient.send_message("[T&D]: Retrieving data points")
     params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
     points = calibrator.live_retrieve_regression_points(params)
     if len(points) < MIN_POINT_COUNT:
-        return "There are not enough data points to perform the calibration. Please select another range."
+        return "[T&D]: There are not enough data points to perform the calibration. Please select another range."
 
     well_id = points[0]["wellId"]
 
     # Perform calibration:
+    liveclient.send_message("[T&D]: Starting calibration")
     try:
         calibration_result = calibrator.request_calibration(well_id, points)
     except Exception:
-        return "I'm not able to get data from calibration service. Please, check dda and live configuration."
+        return "[T&D]: I'm not able to get data from calibration service. Please, check dda and live configuration."
 
     # Return a response:
     response = calibrator.build_success_response(
         {"wellId": well_id, "calibration_result": calibration_result}
     )
-    return response
+    return f"[T&D]: {response}"

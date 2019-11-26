@@ -351,18 +351,24 @@ class LiveClient:
             timeout=request_timeout,
             max_retries=max_retries,
         )
+
         self.annotate = partial(
             create_annotation,
             process_settings=process_settings,
             output_info=output_info,
             room={"id": room_id},
         )
-        self.messenger = partial(
-            send_message,
-            process_settings=process_settings,
-            output_info=output_info,
-            room={"id": room_id},
-        )
+
         self.send_event = partial(
             send_event, process_settings=process_settings, output_info=output_info
         )
+
+    def send_message(self, message):
+        send = partial(
+            send_message,
+            self.process_name,
+            process_settings=self.process_settings,
+            output_info=self.output_info,
+            room={"id": self.room_id},
+        )
+        return send(message, get_timestamp())
