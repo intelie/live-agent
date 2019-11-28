@@ -4,6 +4,7 @@ import re
 import requests
 
 from chatterbot.conversation import Statement
+from dda.chatbot.adapters.utils import build_action_statement
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from live_client.utils.timestamp import get_timestamp
@@ -11,16 +12,6 @@ from utils.util import attempt
 
 from .base import BaseBayesAdapter, WithAssetAdapter
 from ..constants import get_positive_examples, get_negative_examples
-
-
-def build_statement(text, confidence):
-    statement = Statement(text)
-    statement.confidence = confidence
-    return statement
-
-
-def build_handler_statement(confidence, handler, params=None):
-    return build_statement(build_handler_call_str(handler, params), confidence)
 
 
 tnd_query_template = """
@@ -93,7 +84,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if params is None:
-            return build_handler_statement(confidence, handle_cant_read_params, params)
+            return build_action_statement(confidence, handle_cant_read_params, params)
 
         # Parameters read, so we believe it's ours.
         confidence = 1
@@ -101,11 +92,11 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
-            return build_handler_statement(confidence, handle_no_asset_selected, params)
+            return build_action_statement(confidence, handle_no_asset_selected, params)
         params["event_type"] = self.get_event_type(asset)
 
         # Calibration shall be executed:
-        return build_handler_statement(confidence, handle_perform_calibration, params)
+        return build_action_statement(confidence, handle_perform_calibration, params)
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
@@ -277,13 +268,6 @@ class TorqueAndDragCalibrator:
 -  Travelling Block Weight: {context["calibration_result"]["travellingBlockWeight"]}
 -  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
 """
-
-
-# TODO: Mover 'build_handler_call_str' para um lugar comum a todos os adapters (ou chatbot).  <<<<<
-def build_handler_call_str(handler, params=None):
-    fn_fully_qualified_name = f"{handler.__module__}.{handler.__name__}"
-    fn_params = json.dumps(params or {})
-    return f"::{fn_fully_qualified_name}\n{fn_params}"
 
 
 def handle_cant_read_params(params, liveclient):
