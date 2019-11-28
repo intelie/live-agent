@@ -82,7 +82,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         return active_monitors
 
-    def process(self, statement, additional_response_selection_parameters=None):
+    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
         confidence = self.get_confidence(statement)
 
         if confidence > self.confidence_threshold:

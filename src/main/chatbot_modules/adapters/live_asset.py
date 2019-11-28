@@ -83,7 +83,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             fetch_asset_settings, process_name, process_settings, output_info
         )
 
-    def process(self, statement, additional_response_selection_parameters=None):
+    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
         self.load_state()
         self.confidence = self.get_confidence(statement)
 

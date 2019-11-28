@@ -103,7 +103,7 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
         return initialize_class(adapter, self.chatbot, **self.bot_kwargs)
 
-    def process(self, statement, additional_response_selection_parameters=None):
+    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
         for adapter_instance in self.chatbot.logic_adapters:
             del adapter_instance
 
