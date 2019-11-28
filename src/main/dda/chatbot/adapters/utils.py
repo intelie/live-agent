@@ -2,6 +2,7 @@ import json
 
 from chatterbot.conversation import Statement
 
+
 def build_statement(text, confidence):
     statement = Statement(text)
     statement.confidence = confidence

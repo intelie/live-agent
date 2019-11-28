@@ -1,13 +1,10 @@
-import json
 import queue
 import re
 import requests
 
-from chatterbot.conversation import Statement
 from dda.chatbot.adapters.utils import build_action_statement
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
-from live_client.utils.timestamp import get_timestamp
 from utils.util import attempt
 
 from .base import BaseBayesAdapter, WithAssetAdapter
@@ -270,19 +267,17 @@ class TorqueAndDragCalibrator:
 """
 
 
-def handle_cant_read_params(params, liveclient):
+def handle_cant_read_params(params, chatbot, liveclient):
     message = "Sorry, I can't read the calibration parameters from your message"
-    print(f"[Collateral Effect - handle_cant_read_params]: {message}.")
     return message
 
 
-def handle_no_asset_selected(params, liveclient):
+def handle_no_asset_selected(params, chatbot, liveclient):
     message = "Please, select an asset before performing the calibration"
-    print(f"[Collateral Effect - handle_no_asset_selected]: {message}.")
     return message
 
 
-def handle_perform_calibration(params, liveclient):
+def handle_perform_calibration(params, chatbot, liveclient):
     MIN_POINT_COUNT = 2
     MIN_HOOKLOAD = 900000
 

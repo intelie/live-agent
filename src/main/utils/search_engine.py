@@ -2,6 +2,7 @@ import traceback
 
 from duckduckapi import api
 
+
 class SearchResult:
     def __init__(self, url, desc):
         self.url = url

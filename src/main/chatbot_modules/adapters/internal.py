@@ -6,6 +6,7 @@ from chatterbot.conversation import Statement  # NOQA
 from chatterbot.utils import validate_adapter_class, initialize_class
 from chatterbot.logic import LogicAdapter
 from chatterbot.adapters import Adapter
+from dda.chatbot.adapters.utils import build_action_statement
 
 from jinja2 import Template
 
@@ -77,7 +78,34 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        self.bot_kwargs = kwargs
+
+    def process(self, statement, additional_response_selection_parameters=None):
+        return build_action_statement(1, action_reload_adapters)
+
+    def can_process(self, statement):
+        return self.keyphrase in statement.text.lower()
+
+
+class AdapterReloader:
+    def __init__(self, chatbot):
+        self.chatbot = chatbot
+
+    def reload(self):
+        self.delete_all_adapters()
+
+        # Reload the list of logic adapters
+        constants = importlib.import_module("chatbot_modules.constants")
+        constants = importlib.reload(constants)
+
+        self.chatbot.logic_adapters = [
+            self.initialize_class(adapter)
+            for adapter in constants.LOGIC_ADAPTERS
+            if self.validate_adapter(adapter)
+        ]
+
+    def delete_all_adapters(self):
+        for adapter_instance in self.chatbot.logic_adapters:
+            del adapter_instance
 
     def validate_adapter(self, adapter):
         try:
@@ -101,32 +129,14 @@ class AdapterReloaderAdapter(WithStateAdapter):
         module = importlib.import_module(module_path)
         module = importlib.reload(module)
 
-        return initialize_class(adapter, self.chatbot, **self.bot_kwargs)
+        return initialize_class(adapter, self.chatbot, **self.chatbot.context)
 
-    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
-        for adapter_instance in self.chatbot.logic_adapters:
-            del adapter_instance
 
-        try:
-            # Reload the list of logic adapters
-            constants = importlib.import_module("chatbot_modules.constants")
-            constants = importlib.reload(constants)
-
-            self.chatbot.logic_adapters = [
-                self.initialize_class(adapter)
-                for adapter in constants.LOGIC_ADAPTERS
-                if self.validate_adapter(adapter)
-            ]
-
-            response_text = "{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
-
-        except Exception as e:
-            response_text = "Error reloading adapters: {} {}".format(e, type(e))
-
-        response = Statement(text=response_text)
-        response.confidence = 1
-
-        return response
-
-    def can_process(self, statement):
-        return self.keyphrase in statement.text.lower()
+def action_reload_adapters(params, chatbot, liveclient):
+    reloader = AdapterReloader(chatbot)
+    try:
+        reloader.reload()
+        response_text = "{} logic adapters reloaded".format(len(chatbot.logic_adapters))
+    except Exception as e:
+        response_text = "Error reloading adapters: {} {}".format(e, type(e))
+    return response_text

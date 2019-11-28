@@ -11,6 +11,7 @@ __all__ = ["start"]
 
 READ_TIMEOUT = 120
 
+
 def clean_term(term):
     m = re.search(r"\w+", term)
     if m is None:
@@ -61,7 +62,7 @@ class AlertReferenceMonitor(monitors.Monitor):
         results = engine.search(search_term)
         message_lines = [
             f'References found for query "{annotation_message}":',
-            f'Search term: {search_term}',
+            f"Search term: {search_term}",
         ]
         if len(results) > 0:
             res = results[0]
@@ -75,7 +76,7 @@ class AlertReferenceMonitor(monitors.Monitor):
     def _extract_search_term(self, annotation_message):
         parts = annotation_message.split(":")
         part = parts[1] if len(parts) > 1 else parts[0]
-        words = part.strip().split(' ')
+        words = part.strip().split(" ")
         word = None
         for w in words:
             word = clean_term(w)

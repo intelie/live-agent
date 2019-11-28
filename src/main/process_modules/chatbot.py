@@ -7,7 +7,6 @@ import traceback
 
 from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
-from chatterbot.conversation import Statement
 from chatterbot.trainers import ChatterBotCorpusTrainer
 from setproctitle import setproctitle
 
@@ -116,7 +115,7 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
             if response is not None:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
                 response_message = (
-                    handle_action_response(response, liveclient)
+                    handle_action_response(response, chatbot, liveclient)
                     if is_action_response(response)
                     else response.text
                 )
@@ -128,12 +127,12 @@ def is_action_response(response):
     return response.text.startswith("::")
 
 
-def handle_action_response(response, liveclient):
+def handle_action_response(response, chatbot, liveclient):
     module_name, function_name, params = parse_action_response(response)
     module = import_module(module_name)
     try:
         fn = getattr(module, function_name)
-        return fn(params, liveclient)
+        return fn(params, chatbot, liveclient)
     except Exception:
         traceback.print_exc()
         raise
@@ -209,14 +208,8 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         )
 
         bot_alias = process_settings.get("alias", "Intelie")
-
-        chatbot = ChatBot(
-            bot_alias,
-            filters=[],
-            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
-            logic_adapters=LOGIC_ADAPTERS,
-            read_only=True,
-            functions={
+        context = {
+            "functions": {
                 "load_state": load_state_func,
                 "share_state": share_state_func,
                 "run_query": run_query_func,
@@ -224,11 +217,20 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
                 "send_message": messenger_func,
                 "send_event": send_event_func,
             },
-            process_name=process_name,
-            process_settings=process_settings,
-            output_info=output_info,
-            room_id=room_id,
+            "process_name": process_name,
+            "process_settings": process_settings,
+            "output_info": output_info,
+            "room_id": room_id,
+        }
+        chatbot = ChatBot(
+            bot_alias,
+            filters=[],
+            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
+            logic_adapters=LOGIC_ADAPTERS,
+            read_only=True,
+            **context,
         )
+        chatbot.context = context
         train_bot(process_name, chatbot)
 
         while True:
