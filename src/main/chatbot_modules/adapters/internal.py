@@ -6,6 +6,7 @@ from chatterbot.conversation import Statement  # NOQA
 from chatterbot.utils import validate_adapter_class, initialize_class
 from chatterbot.logic import LogicAdapter
 from chatterbot.adapters import Adapter
+from dda.chatbot.actions.base import Action
 from dda.chatbot.adapters.utils import build_action_statement
 
 from jinja2 import Template
@@ -80,7 +81,7 @@ class AdapterReloaderAdapter(WithStateAdapter):
         super().__init__(chatbot, **kwargs)
 
     def process(self, statement, additional_response_selection_parameters=None):
-        return build_action_statement(1, action_reload_adapters)
+        return build_action_statement(1, ReloadAdaptersAction)
 
     def can_process(self, statement):
         return self.keyphrase in statement.text.lower()
@@ -132,11 +133,12 @@ class AdapterReloader:
         return initialize_class(adapter, self.chatbot, **self.chatbot.context)
 
 
-def action_reload_adapters(params, chatbot, liveclient):
-    reloader = AdapterReloader(chatbot)
-    try:
-        reloader.reload()
-        response_text = "{} logic adapters reloaded".format(len(chatbot.logic_adapters))
-    except Exception as e:
-        response_text = "Error reloading adapters: {} {}".format(e, type(e))
-    return response_text
+class ReloadAdaptersAction(Action):
+    def run(self, params):
+        reloader = AdapterReloader(self.chatbot)
+        try:
+            reloader.reload()
+            response_text = "{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
+        except Exception as e:
+            response_text = "Error reloading adapters: {} {}".format(e, type(e))
+        return response_text
