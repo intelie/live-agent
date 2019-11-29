@@ -2,8 +2,7 @@ import queue
 import re
 import requests
 
-from dda.chatbot.actions.base import Action
-from dda.chatbot.adapters.utils import build_action_statement
+from dda.chatbot.base import ActionStatement, NoTextAction, ShowTextAction
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt
@@ -82,7 +81,11 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if params is None:
-            return build_action_statement(confidence, CantReadParamsAction, params)
+            ret = ShowTextAction(
+                "[T&D]: Sorry, I can't read the calibration parameters from your message",
+                confidence = confidence
+            )
+            return ret
 
         # Parameters read, so we believe it's ours.
         confidence = 1
@@ -90,11 +93,14 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
-            return build_action_statement(confidence, NoAssetSelectedAction, params)
+            return ShowTextAction(
+                "[T&D]: Please, select an asset before performing the calibration",
+                confidence = confidence
+            )
         params["event_type"] = self.get_event_type(asset)
 
         # Calibration shall be executed:
-        return build_action_statement(confidence, PerformCalibrationAction, params)
+        return PerformCalibrationAction(confidence = confidence, **params)
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
@@ -267,21 +273,16 @@ class TorqueAndDragCalibrator:
 -  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
 """
 
+class PerformCalibrationAction(NoTextAction):
+    #def __init__(self, in_response_to = None, confidence=None, **kwargs):
+    #    super().__init__("", in_response_to, confidence, **kwargs)
+    #    self.params = kwargs
 
-class CantReadParamsAction(Action):
-    message = "[T&D]: Sorry, I can't read the calibration parameters from your message"
-
-
-class NoAssetSelectedAction(Action):
-    message = "[T&D]: Please, select an asset before performing the calibration"
-
-
-class PerformCalibrationAction(Action):
-
-    def run(self, params):
+    def run(self):
         MIN_POINT_COUNT = 2
         MIN_HOOKLOAD = 900000
 
+        params = self.params
         calibrator = TorqueAndDragCalibrator(self.liveclient)
 
         # Gather all needed data to retrieve the data points:

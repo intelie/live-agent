@@ -7,24 +7,17 @@ import json
 import queue
 import traceback
 
-from eliot import start_action, preserve_context, Action
-from chatterbot import ChatBot
+from chatbot_modules.constants import LOGIC_ADAPTERS
 from chatterbot.trainers import ChatterBotCorpusTrainer
-from dda.chatbot.actions.base import Action as DDAAction
-from dda.chatbot.actions.utils import(
-    is_action_response,
-    get_action_handler,
-)
-from setproctitle import setproctitle
-
+from dda.chatbot.base import ChatBot, ActionStatement
+from eliot import start_action, preserve_context, Action
 from live_client import query
 from live_client.events import messenger, annotation, raw
 from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
 from live_client.utils import logging
-
-from chatbot_modules.constants import LOGIC_ADAPTERS
+from setproctitle import setproctitle
 
 
 __all__ = ["start"]
@@ -121,29 +114,14 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
 
             if response is not None:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-                response_message = (
-                    handle_action_response(response, chatbot, liveclient)
-                    if is_action_response(response)
-                    else response.text
-                )
+                if isinstance(response, ActionStatement):
+                    response.chatbot = chatbot
+                    response.liveclient = liveclient
+                    response_message = response.run()
+                else:
+                    response_message = response.text
 
                 maybe_send_message(process_name, process_settings, output_info, room_id, response_message)
-
-
-def handle_action_response(response, chatbot, liveclient):
-    try:
-        handler, params = get_action_handler(response)
-    except:
-        traceback.print_exc()
-        raise
-
-    if issubclass(handler, DDAAction):
-        handler = handler(chatbot, liveclient)
-        return handler.run(params)
-    elif isinstance(handler, DDAAction):
-        return handler.run(params)
-
-    return handler(params, chatbot, liveclient)
 
 
 @preserve_context
