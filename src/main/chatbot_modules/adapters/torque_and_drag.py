@@ -2,6 +2,7 @@ import queue
 import re
 import requests
 
+from dda.chatbot.actions.base import Action
 from dda.chatbot.adapters.utils import build_action_statement
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
@@ -81,7 +82,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = self.get_confidence(statement)
         params = self.extract_calibration_params(statement.text)
         if params is None:
-            return build_action_statement(confidence, handle_cant_read_params, params)
+            return build_action_statement(confidence, CantReadParamsAction, params)
 
         # Parameters read, so we believe it's ours.
         confidence = 1
@@ -89,11 +90,11 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         # Do we have a selected asset?
         asset = self.get_selected_asset()
         if asset == {}:
-            return build_action_statement(confidence, handle_no_asset_selected, params)
+            return build_action_statement(confidence, NoAssetSelectedAction, params)
         params["event_type"] = self.get_event_type(asset)
 
         # Calibration shall be executed:
-        return build_action_statement(confidence, handle_perform_calibration, params)
+        return build_action_statement(confidence, PerformCalibrationAction, params)
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
@@ -267,47 +268,47 @@ class TorqueAndDragCalibrator:
 """
 
 
-def handle_cant_read_params(params, chatbot, liveclient):
-    message = "Sorry, I can't read the calibration parameters from your message"
-    return message
+class CantReadParamsAction(Action):
+    message = "[T&D]: Sorry, I can't read the calibration parameters from your message"
 
 
-def handle_no_asset_selected(params, chatbot, liveclient):
-    message = "Please, select an asset before performing the calibration"
-    return message
+class NoAssetSelectedAction(Action):
+    message = "[T&D]: Please, select an asset before performing the calibration"
 
 
-def handle_perform_calibration(params, chatbot, liveclient):
-    MIN_POINT_COUNT = 2
-    MIN_HOOKLOAD = 900000
+class PerformCalibrationAction(Action):
 
-    calibrator = TorqueAndDragCalibrator(liveclient)
+    def run(self, params):
+        MIN_POINT_COUNT = 2
+        MIN_HOOKLOAD = 900000
 
-    # Gather all needed data to retrieve the data points:
-    if params.get("start_time") is None:
+        calibrator = TorqueAndDragCalibrator(self.liveclient)
+
+        # Gather all needed data to retrieve the data points:
+        if params.get("start_time") is None:
+            try:
+                calibrator.infer_time_range(params)
+            except Exception as e:
+                return f"[T&D]: {str(e)} Please select another range."
+
+        # Retrieve the points to calculate the regression:
+        self.liveclient.send_message("[T&D]: Retrieving data points")
+        params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
+        points = calibrator.live_retrieve_regression_points(params)
+        if len(points) < MIN_POINT_COUNT:
+            return "[T&D]: There are not enough data points to perform the calibration. Please select another range."
+
+        well_id = points[0]["wellId"]
+
+        # Perform calibration:
+        self.liveclient.send_message("[T&D]: Starting calibration")
         try:
-            calibrator.infer_time_range(params)
-        except Exception as e:
-            return f"[T&D]: {str(e)} Please select another range."
+            calibration_result = calibrator.request_calibration(well_id, points)
+        except Exception:
+            return "[T&D]: I'm not able to get data from calibration service. Please, check dda and live configuration."
 
-    # Retrieve the points to calculate the regression:
-    liveclient.send_message("[T&D]: Retrieving data points")
-    params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
-    points = calibrator.live_retrieve_regression_points(params)
-    if len(points) < MIN_POINT_COUNT:
-        return "[T&D]: There are not enough data points to perform the calibration. Please select another range."
-
-    well_id = points[0]["wellId"]
-
-    # Perform calibration:
-    liveclient.send_message("[T&D]: Starting calibration")
-    try:
-        calibration_result = calibrator.request_calibration(well_id, points)
-    except Exception:
-        return "[T&D]: I'm not able to get data from calibration service. Please, check dda and live configuration."
-
-    # Return a response:
-    response = calibrator.build_success_response(
-        {"wellId": well_id, "calibration_result": calibration_result}
-    )
-    return f"[T&D]: {response}"
+        # Return a response:
+        response = calibrator.build_success_response(
+            {"wellId": well_id, "calibration_result": calibration_result}
+        )
+        return f"[T&D]: {response}"

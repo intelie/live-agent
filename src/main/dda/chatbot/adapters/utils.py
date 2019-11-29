@@ -2,6 +2,8 @@ import json
 
 from chatterbot.conversation import Statement
 
+from ..actions.utils import build_action_response
+
 
 def build_statement(text, confidence):
     statement = Statement(text)
@@ -10,10 +12,4 @@ def build_statement(text, confidence):
 
 
 def build_action_statement(confidence, handler, params=None):
-    return build_statement(build_action_call_str(handler, params), confidence)
-
-
-def build_action_call_str(handler, params=None):
-    fn_fully_qualified_name = f"{handler.__module__}.{handler.__name__}"
-    fn_params = json.dumps(params or {})
-    return f"::{fn_fully_qualified_name}\n{fn_params}"
+    return build_statement(build_action_response(handler, params), confidence)

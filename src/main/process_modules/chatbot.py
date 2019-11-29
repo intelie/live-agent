@@ -1,6 +1,8 @@
 from importlib import import_module
 from multiprocessing import Process, Queue
 from functools import partial
+
+import eliot
 import json
 import queue
 import traceback
@@ -8,6 +10,11 @@ import traceback
 from eliot import start_action, preserve_context, Action
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
+from dda.chatbot.actions.base import Action as DDAAction
+from dda.chatbot.actions.utils import(
+    is_action_response,
+    get_action_handler,
+)
 from setproctitle import setproctitle
 
 from live_client import query
@@ -123,29 +130,20 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
                 maybe_send_message(process_name, process_settings, output_info, room_id, response_message)
 
 
-def is_action_response(response):
-    return response.text.startswith("::")
-
-
 def handle_action_response(response, chatbot, liveclient):
-    module_name, function_name, params = parse_action_response(response)
-    module = import_module(module_name)
     try:
-        fn = getattr(module, function_name)
-        return fn(params, chatbot, liveclient)
-    except Exception:
+        handler, params = get_action_handler(response)
+    except:
         traceback.print_exc()
         raise
 
+    if issubclass(handler, DDAAction):
+        handler = handler(chatbot, liveclient)
+        return handler.run(params)
+    elif isinstance(handler, DDAAction):
+        return handler.run(params)
 
-def parse_action_response(response):
-    lines = response.text.split("\n")
-    parts = lines[0][2:].split(".")
-    module_name = ".".join(parts[:-1])
-    function_name = parts[-1]
-
-    params = json.loads(lines[1])
-    return (module_name, function_name, params)
+    return handler(params, chatbot, liveclient)
 
 
 @preserve_context
