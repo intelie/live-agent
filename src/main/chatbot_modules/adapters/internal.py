@@ -6,7 +6,7 @@ from chatterbot.conversation import Statement  # NOQA
 from chatterbot.utils import validate_adapter_class, initialize_class
 from chatterbot.logic import LogicAdapter
 from chatterbot.adapters import Adapter
-from dda.chatbot import NoTextAction
+from dda.chatbot.actions import NoTextAction
 
 from jinja2 import Template
 

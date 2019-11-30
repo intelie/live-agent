@@ -3,7 +3,7 @@ from functools import partial
 
 from chatterbot.conversation import Statement  # NOQA
 
-from dda.chatbot import CallbackAction
+from dda.chatbot.actions import CallbackAction
 from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
 from live_client.utils import logging

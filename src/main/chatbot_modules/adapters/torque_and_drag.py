@@ -2,7 +2,7 @@ import queue
 import re
 import requests
 
-from dda.chatbot import ActionStatement, NoTextAction, ShowTextAction
+from dda.chatbot.actions import NoTextAction, ShowTextAction
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt
@@ -274,9 +274,6 @@ class TorqueAndDragCalibrator:
 """
 
 class PerformCalibrationAction(NoTextAction):
-    #def __init__(self, in_response_to = None, confidence=None, **kwargs):
-    #    super().__init__("", in_response_to, confidence, **kwargs)
-    #    self.params = kwargs
 
     def run(self):
         MIN_POINT_COUNT = 2
