@@ -3,6 +3,7 @@ from functools import partial
 
 from chatterbot.conversation import Statement  # NOQA
 
+from dda.chatbot import CallbackAction
 from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
 from live_client.utils import logging
@@ -83,62 +84,74 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             fetch_asset_settings, process_name, process_settings, output_info
         )
 
-    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
+    def was_asset_mentioned(self, asset, statement):
+        return asset.get("name", "INVALID ASSET NAME").lower() in statement.text.lower()
+
+    def extract_asset_names(self, statement):
+        asset_list = self.shared_state.get("asset-list", {})
+        assets = list(filter(
+            lambda asset: self.was_asset_mentioned(asset, statement),
+            asset_list.get("assets", [{}])
+        ))
+        return assets
+
+    def process(self, statement, additional_response_selection_parameters=None):
         self.load_state()
         self.confidence = self.get_confidence(statement)
 
-        def asset_was_mentioned(asset):
-            return asset.get("name", "INVALID ASSET NAME").lower() in statement.text.lower()
-
+        response = None
         if self.confidence > self.confidence_threshold:
-            asset_list = self.shared_state.get("asset-list", {})
-            selected_assets = list(filter(asset_was_mentioned, asset_list.get("assets", [{}])))
-
+            selected_assets = self.extract_asset_names(statement)
             num_selected_assets = len(selected_assets)
 
             if num_selected_assets == 0:
-                self.confidence_threshold *= 0.7
-                response_text = "I didn't get the asset name. Can you repeat please?"
-
-            elif num_selected_assets == 1:
-                selected_asset = selected_assets[0]
-                selected_asset_name = selected_asset.get("name")
-
-                asset_name = selected_asset.get("name")
-                asset_id = selected_asset.get("id", 0)
-                asset_type = selected_asset.get("asset_type", "rig")
-                asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
-
-                if asset_config:
-                    self.state = {
-                        "asset_id": asset_id,
-                        "asset_type": asset_type,
-                        "asset_name": asset_name,
-                        "asset_config": asset_config,
-                    }
-                    self.share_state()
-
-                    event_type = asset_config.get("event_type", None)
-                    asset_curves = only_enabled_curves(asset_config.get("curves", {}))
-
-                    text_templ = (
-                        "Ok, the asset {} was selected."
-                        '\nIt uses the event_type "{}" and has {} curves'
-                    )
-                    response_text = text_templ.format(
-                        selected_asset_name, event_type, len(asset_curves.keys())
-                    )
-                else:
-                    response_text = f"Error fetching information about {selected_asset_name}"
-
-            elif num_selected_assets > 1:
-                response_text = "I didn't understand, which of the assets you meant?{}{}".format(
-                    ITEM_PREFIX, ITEM_PREFIX.join(item.get("name") for item in selected_assets)
+                self.confidence_threshold *= 0.7 # <<<<< Porque essa operação?
+                response = ShowTextAction(
+                    "I didn't get the asset name. Can you repeat please?",
+                    self.confidence
                 )
 
-            response = Statement(text=response_text)
-            response.confidence = self.confidence
-        else:
-            response = None
+            elif num_selected_assets == 1:
+                response = CallbackAction(
+                    self.handle_select_asset,
+                    self.confidence,
+                    selected_asset = selected_assets[0]
+                )
 
+            elif num_selected_assets > 1:
+                response = ShowTextAction(
+                    "I didn't understand, which of the assets you meant?{}{}".format(
+                        ITEM_PREFIX,
+                        ITEM_PREFIX.join(item.get("name") for item in selected_assets)
+                    ),
+                    self.confidence
+                )
         return response
+
+    def handle_select_asset(self, selected_asset):
+        selected_asset_name = selected_asset.get("name")
+
+        asset_name = selected_asset.get("name")
+        asset_id = selected_asset.get("id", 0)
+        asset_type = selected_asset.get("asset_type", "rig")
+        asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
+
+        if asset_config is None:
+            return f"Error fetching information about {selected_asset_name}"
+
+        self.state = {
+            "asset_id": asset_id,
+            "asset_type": asset_type,
+            "asset_name": asset_name,
+            "asset_config": asset_config,
+        }
+        self.share_state()
+
+        event_type = asset_config.get("event_type", None)
+        asset_curves = only_enabled_curves(asset_config.get("curves", {}))
+
+        text_templ = (
+            "Ok, the asset {} was selected."
+            '\nIt uses the event_type "{}" and has {} curves'
+        )
+        return text_templ.format(selected_asset_name, event_type, len(asset_curves.keys()))
