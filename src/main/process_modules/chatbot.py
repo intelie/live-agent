@@ -9,7 +9,7 @@ import traceback
 
 from chatbot_modules.constants import LOGIC_ADAPTERS
 from chatterbot.trainers import ChatterBotCorpusTrainer
-from dda.chatbot.base import ChatBot, ActionStatement
+from dda.chatbot import ChatBot, ActionStatement
 from eliot import start_action, preserve_context, Action
 from live_client import query
 from live_client.events import messenger, annotation, raw

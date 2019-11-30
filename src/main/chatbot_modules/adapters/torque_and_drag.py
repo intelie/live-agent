@@ -2,7 +2,7 @@ import queue
 import re
 import requests
 
-from dda.chatbot.base import ActionStatement, NoTextAction, ShowTextAction
+from dda.chatbot import ActionStatement, NoTextAction, ShowTextAction
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt

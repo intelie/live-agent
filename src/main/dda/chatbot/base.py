@@ -1,8 +1,6 @@
 import chatterbot
 from chatterbot.conversation import Statement
 
-from .actions.base import Action
-
 class ChatBot(chatterbot.ChatBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
