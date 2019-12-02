@@ -6,6 +6,7 @@ import json
 from chatterbot.conversation import Statement
 from eliot import start_action
 
+from dda.chatbot.actions import CallbackAction, ShowTextAction
 from live_client.events.constants import UOM_KEY, VALUE_KEY, TIMESTAMP_KEY
 from live_client.utils import logging
 
@@ -81,12 +82,7 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
         return result
 
-    def can_process(self, statement):
-        mentioned_curves = self.list_mentioned_curves(statement)
-        is_valid_query = len(mentioned_curves) >= 1
-        return is_valid_query and super().can_process(statement)
-
-    def process_query(self, statement, selected_asset, confidence=0):
+    def process_query(self, statement, selected_asset):
         selected_curves = self.find_selected_curves(statement)
         num_selected_curves = len(selected_curves)
 
@@ -98,34 +94,29 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
             with start_action(action_type=self.state_key, curve=selected_curve):
                 response_text = self.run_query(selected_curve)
-                confidence = 1
 
         else:
             response_text = "I'm sorry, which of the curves you meant?{}{}".format(
                 ITEM_PREFIX, ITEM_PREFIX.join(selected_curves)
             )
 
-        return response_text, confidence
+        return response_text
 
-    def process(self, statement, additional_response_selection_parameters=None): # !! FIXME: Move Side Effects outside !! <<<<<
+    def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
-        response = None
-
         if confidence > self.confidence_threshold:
             self.load_state()
             selected_asset = self.get_selected_asset()
 
             if selected_asset is None:
-                response_text = "No asset selected. Please select an asset first."
+                return ShowTextAction("No asset selected. Please select an asset first.", confidence)
             else:
-                response_text, confidence = self.process_query(
-                    statement, selected_asset, confidence=confidence
+                return CallbackAction(
+                    self.process_query,
+                    confidence = 1,
+                    statement = statement,
+                    selected_asset = selected_asset
                 )
-
-            response = Statement(text=response_text)
-            response.confidence = confidence
-
-        return response
 
 
 class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
