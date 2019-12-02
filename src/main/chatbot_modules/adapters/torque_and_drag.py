@@ -83,7 +83,7 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         if params is None:
             ret = ShowTextAction(
                 "[T&D]: Sorry, I can't read the calibration parameters from your message",
-                confidence = confidence
+                confidence=confidence,
             )
             return ret
 
@@ -95,12 +95,12 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         if asset == {}:
             return ShowTextAction(
                 "[T&D]: Please, select an asset before performing the calibration",
-                confidence = confidence
+                confidence=confidence,
             )
         params["event_type"] = self.get_event_type(asset)
 
         # Calibration shall be executed:
-        return PerformCalibrationAction(confidence = confidence, **params)
+        return PerformCalibrationAction(confidence=confidence, **params)
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
@@ -273,8 +273,8 @@ class TorqueAndDragCalibrator:
 -  Pipes Weight Multiplier: {context["calibration_result"]["pipesWeightMultiplier"]}
 """
 
-class PerformCalibrationAction(NoTextAction):
 
+class PerformCalibrationAction(NoTextAction):
     def run(self):
         MIN_POINT_COUNT = 2
         MIN_HOOKLOAD = 900000

@@ -3,7 +3,6 @@ from functools import partial
 import time
 import json
 
-from chatterbot.conversation import Statement
 from eliot import start_action
 
 from dda.chatbot.actions import CallbackAction, ShowTextAction
@@ -109,13 +108,15 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             selected_asset = self.get_selected_asset()
 
             if selected_asset == {}:
-                return ShowTextAction("No asset selected. Please select an asset first.", confidence)
+                return ShowTextAction(
+                    "No asset selected. Please select an asset first.", confidence
+                )
             else:
                 return CallbackAction(
                     self.process_query,
-                    confidence = 1,
-                    statement = statement,
-                    selected_asset = selected_asset
+                    confidence=1,
+                    statement=statement,
+                    selected_asset=selected_asset,
                 )
 
 
@@ -236,13 +237,15 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             self.load_state()
             selected_asset = self.get_selected_asset()
             if selected_asset == {}:
-                response = ShowTextAction("No asset selected. Please select an asset first.", confidence)
+                response = ShowTextAction(
+                    "No asset selected. Please select an asset first.", confidence
+                )
             else:
                 response = CallbackAction(
                     self.process_indexed_query,
-                    confidence = 1,
-                    statement = statement,
-                    selected_asset = selected_asset
+                    confidence=1,
+                    statement=statement,
+                    selected_asset=selected_asset,
                 )
 
         return response

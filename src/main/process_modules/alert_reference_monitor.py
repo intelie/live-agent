@@ -5,7 +5,7 @@ import traceback
 from live_client.utils import logging
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckEngine, DuckFirstWordEngine
+from utils.search_engine import DuckEngine
 
 __all__ = ["start"]
 

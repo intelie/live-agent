@@ -1,11 +1,7 @@
-from importlib import import_module
 from multiprocessing import Process, Queue
 from functools import partial
 
-import eliot
-import json
 import queue
-import traceback
 
 from chatbot_modules.constants import LOGIC_ADAPTERS
 from chatterbot.trainers import ChatterBotCorpusTrainer
@@ -122,7 +118,9 @@ def process_messages(process_name, process_settings, output_info, room_id, chatb
                 else:
                     response_message = response.text
 
-                maybe_send_message(process_name, process_settings, output_info, room_id, response_message)
+                maybe_send_message(
+                    process_name, process_settings, output_info, room_id, response_message
+                )
 
 
 @preserve_context

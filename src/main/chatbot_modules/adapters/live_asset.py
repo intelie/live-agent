@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 from functools import partial
 
 from chatterbot.conversation import Statement  # NOQA
 
-from dda.chatbot.actions import CallbackAction
+from dda.chatbot.actions import CallbackAction, ShowTextAction
 from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
 from live_client.utils import logging
@@ -89,10 +88,12 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
     def extract_asset_names(self, statement):
         asset_list = self.shared_state.get("asset-list", {})
-        assets = list(filter(
-            lambda asset: self.was_asset_mentioned(asset, statement),
-            asset_list.get("assets", [{}])
-        ))
+        assets = list(
+            filter(
+                lambda asset: self.was_asset_mentioned(asset, statement),
+                asset_list.get("assets", [{}]),
+            )
+        )
         return assets
 
     def process(self, statement, additional_response_selection_parameters=None):
@@ -105,26 +106,22 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             num_selected_assets = len(selected_assets)
 
             if num_selected_assets == 0:
-                self.confidence_threshold *= 0.7 # <<<<< Porque essa operação?
+                self.confidence_threshold *= 0.7  # <<<<< Porque essa operação?
                 response = ShowTextAction(
-                    "I didn't get the asset name. Can you repeat please?",
-                    self.confidence
+                    "I didn't get the asset name. Can you repeat please?", self.confidence
                 )
 
             elif num_selected_assets == 1:
                 response = CallbackAction(
-                    self.handle_select_asset,
-                    self.confidence,
-                    selected_asset = selected_assets[0]
+                    self.handle_select_asset, self.confidence, selected_asset=selected_assets[0]
                 )
 
             elif num_selected_assets > 1:
                 response = ShowTextAction(
                     "I didn't understand, which of the assets you meant?{}{}".format(
-                        ITEM_PREFIX,
-                        ITEM_PREFIX.join(item.get("name") for item in selected_assets)
+                        ITEM_PREFIX, ITEM_PREFIX.join(item.get("name") for item in selected_assets)
                     ),
-                    self.confidence
+                    self.confidence,
                 )
         return response
 
@@ -151,7 +148,6 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         asset_curves = only_enabled_curves(asset_config.get("curves", {}))
 
         text_templ = (
-            "Ok, the asset {} was selected."
-            '\nIt uses the event_type "{}" and has {} curves'
+            "Ok, the asset {} was selected." '\nIt uses the event_type "{}" and has {} curves'
         )
         return text_templ.format(selected_asset_name, event_type, len(asset_curves.keys()))

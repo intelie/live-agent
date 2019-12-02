@@ -80,14 +80,13 @@ class AdapterReloaderAdapter(WithStateAdapter):
         super().__init__(chatbot, **kwargs)
 
     def process(self, statement, additional_response_selection_parameters=None):
-        return ReloadAdaptersAction(confidence = 1)
+        return ReloadAdaptersAction(confidence=1)
 
     def can_process(self, statement):
         return self.keyphrase in statement.text.lower()
 
 
 class ReloadAdaptersAction(NoTextAction):
-
     def reload(self):
         self.delete_all_adapters()
 

@@ -5,7 +5,7 @@ from uuid import uuid4
 from chatterbot.conversation import Statement
 from eliot import start_action
 
-from dda.chatbot.actions import ShowTextAction, CallbackAction
+from dda.chatbot.actions import CallbackAction
 from live_client.assets import run_analysis
 from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
@@ -151,10 +151,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 realtime=False,
                 span="since ts 0 #partial='1'",
                 callback=partial(
-                    self.prepare_analysis,
-                    asset=asset,
-                    curve=curve,
-                    index_value=index_value,
+                    self.prepare_analysis, asset=asset, curve=curve, index_value=index_value
                 ),
             )
 
@@ -223,16 +220,16 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         confidence = self.get_confidence(statement)
 
         if confidence > self.confidence_threshold:
-            self.load_state() # <<<<< [ECS]: Essa chamada é necessária para chamar 'get_selected_asset' ? Se for ver um modo melhor de garantir esse passo.
+            self.load_state()  # <<<<< [ECS]: Essa chamada é necessária para chamar 'get_selected_asset' ? Se for ver um modo melhor de garantir esse passo.
             selected_asset = self.get_selected_asset()
             if selected_asset == {}:
                 response_text = "No asset selected. Please select an asset first."
             else:
                 return CallbackAction(
                     self.perform_analysis,
-                    confidence = 1,
-                    statement = statement,
-                    selected_asset = selected_asset
+                    confidence=1,
+                    statement=statement,
+                    selected_asset=selected_asset,
                 )
 
             response = Statement(text=response_text)
@@ -244,10 +241,10 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
     def perform_analysis(self, statement, selected_asset):
         mentioned_curves = self.list_mentioned_curves(statement)
-        has_index_mention = (len(mentioned_curves) > 1) and (
-            self.index_curve in mentioned_curves
-        )
+        has_index_mention = (len(mentioned_curves) > 1) and (self.index_curve in mentioned_curves)
 
-        processor = self.process_indexed_analysis if has_index_mention else self.process_direct_analysis
+        processor = (
+            self.process_indexed_analysis if has_index_mention else self.process_direct_analysis
+        )
         response_text = processor(statement, selected_asset)
         return response_text

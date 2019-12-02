@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-from chatterbot.conversation import Statement
 from eliot import start_action  # NOQA
 from multiprocessing import Process
 
 from dda.chatbot.actions import CallbackAction, ShowTextAction
 from live_client.utils import logging
 from process_modules import PROCESS_HANDLERS
+
 from .base import BaseBayesAdapter, WithAssetAdapter
 from ..constants import get_positive_examples, get_negative_examples
 
@@ -92,13 +91,15 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             selected_asset = self.get_selected_asset()
 
             if not selected_asset:
-                response = ShowTextAction("No asset selected. Please select an asset first.", confidence)
+                response = ShowTextAction(
+                    "No asset selected. Please select an asset first.", confidence
+                )
             else:
                 response = CallbackAction(
                     self.handle_start_monitors,
-                    confidence = 1,
-                    selected_asset = selected_asset,
-                    active_monitors = active_monitors
+                    confidence=1,
+                    selected_asset=selected_asset,
+                    active_monitors=active_monitors,
                 )
         else:
             response = None

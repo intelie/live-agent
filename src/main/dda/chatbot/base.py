@@ -1,5 +1,6 @@
 import chatterbot
 
+
 class ChatBot(chatterbot.ChatBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,8 +67,8 @@ class ChatBot(chatterbot.ChatBot):
                 result = most_common.statement
 
         # Update the result to return:
-        result.in_response_to = input_statement.text,
-        result.conversation = input_statement.conversation,
+        result.in_response_to = input_statement.text
+        result.conversation = input_statement.conversation
         result.persona = 'bot:' + self.name
 
         return result
