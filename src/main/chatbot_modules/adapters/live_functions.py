@@ -227,7 +227,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             else:
                 return CallbackAction(
                     self.perform_analysis,
-                    confidence=1,
+                    confidence,
                     statement=statement,
                     selected_asset=selected_asset,
                 )

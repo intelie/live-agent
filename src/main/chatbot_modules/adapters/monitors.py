@@ -97,7 +97,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             else:
                 response = CallbackAction(
                     self.handle_start_monitors,
-                    confidence=1,
+                    confidence,
                     selected_asset=selected_asset,
                     active_monitors=active_monitors,
                 )

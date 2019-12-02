@@ -114,7 +114,7 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             else:
                 return CallbackAction(
                     self.process_query,
-                    confidence=1,
+                    confidence,
                     statement=statement,
                     selected_asset=selected_asset,
                 )
@@ -243,7 +243,7 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             else:
                 response = CallbackAction(
                     self.process_indexed_query,
-                    confidence=1,
+                    confidence,
                     statement=statement,
                     selected_asset=selected_asset,
                 )
