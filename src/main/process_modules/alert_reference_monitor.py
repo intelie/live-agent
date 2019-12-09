@@ -19,13 +19,6 @@ def clean_term(term):
     return m.group(0)
 
 
-# TODO: Mover para o arquivo adequado
-class ProcessInfo:
-    def __init__(self, process, queue):
-        self.process = process
-        self.queue = queue
-
-
 class AlertReferenceMonitor(monitors.Monitor):
     def __init__(self, asset_name, settings, helpers=None, task_id=None):
         super().__init__(asset_name, settings, helpers, task_id)
@@ -43,9 +36,7 @@ class AlertReferenceMonitor(monitors.Monitor):
             results_process, results_queue = self.run_query(
                 self.build_query(), span=self.span, realtime=True
             )
-            handle_process_queue(
-                self.process_annotation, ProcessInfo(results_process, results_queue), self
-            )
+            handle_process_queue(self.process_annotation, results_process, results_queue, self)
 
             results_process.join()
 
@@ -91,17 +82,17 @@ def start(asset_name, settings, helpers=None, task_id=None):
     m.run()
 
 
-def handle_process_queue(processor, pinfo, context):
+def handle_process_queue(processor, process, output_queue, context):
     try:
         monitors.handle_events(
             processor_func=process_accumulator_last_result(processor),
-            results_queue=pinfo.queue,
+            results_queue=output_queue,
             settings=context.settings,
             timeout=READ_TIMEOUT,
         )
 
     except queue.Empty:
-        pinfo.process.join(1)
+        process.join(1)
         start(**context.__dict__)
 
     except Exception as e:
