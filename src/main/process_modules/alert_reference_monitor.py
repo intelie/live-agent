@@ -36,13 +36,28 @@ class AlertReferenceMonitor(monitors.Monitor):
                 logging.info("{}: Alert Reference Monitor".format(self.process_name))
                 setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
-                # Registrar consulta por anotações na API de console:
-                results_process, results_queue = self.run_query(
-                    self.build_query(), span=self.span, realtime=True
-                )
-                handle_process_queue(self.process_annotation, results_process, results_queue, self)
+                while True:
+                    # Register query for annotations in the console API:
+                    results_process, results_queue = self.run_query(
+                        self.build_query(), span=self.span, realtime=True
+                    )
 
-                results_process.join()
+                    # Get and process results:
+                    try:
+                        handle_process_queue(self.process_annotation, results_process, results_queue, self)
+                    except queue.Empty:
+                        continue
+                    except Exception as e:
+                        # Dev log:
+                        print(f"Ocorreu um erro: {e}")
+                        print("Stack trace:")
+                        traceback.print_exc()
+                        # Persistent log:
+                        logging.exception()
+                        logging.error(str(e))
+                        break
+                    finally:
+                        results_process.join()
 
     def build_query(self):
         return "__annotations __src:rulealert"
@@ -85,24 +100,12 @@ def start(asset_name, settings, helpers=None, task_id=None):
 
 
 def handle_process_queue(processor, process, output_queue, context):
-    try:
-        monitors.handle_events(
-            processor_func=process_accumulator_last_result(processor),
-            results_queue=output_queue,
-            settings=context.settings,
-            timeout=READ_TIMEOUT,
-        )
-
-    except queue.Empty:
-        process.join(1)
-        start(**context.__dict__) # <<<<< TODO: Eliminar recursão
-
-    except Exception as e:
-        # TODO: Dar tratamento adequado abaixo: <<<<<
-        print(f"Ocorreu um erro: {e}")
-        print("Stack trace:")
-        traceback.print_exc()
-        raise
+    monitors.handle_events(
+        processor_func=process_accumulator_last_result(processor),
+        results_queue=output_queue,
+        settings=context.settings,
+        timeout=READ_TIMEOUT,
+    )
 
 
 def process_accumulator_last_result(processor):
