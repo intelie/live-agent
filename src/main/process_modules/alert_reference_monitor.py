@@ -3,6 +3,7 @@ import re
 import traceback
 
 from live_client.utils import logging
+from log import eliotx
 from setproctitle import setproctitle
 from utils import monitors
 from utils.search_engine import DuckEngine
@@ -27,20 +28,21 @@ class AlertReferenceMonitor(monitors.Monitor):
         self.span = settings["monitor"].get("span")
 
     def run(self):
-        action = monitors.get_log_action(self.task_id, "alert_reference_monitor")
-        with action.context():
-            logging.info("{}: Alert Reference Monitor".format(self.process_name))
-            setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
+        with eliotx.manage_action(monitors.get_log_action(
+            self.task_id,
+            "alert_reference_monitor"
+        )) as action:
+            with action.context():
+                logging.info("{}: Alert Reference Monitor".format(self.process_name))
+                setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
-            # Registrar consulta por anotações na API de console:
-            results_process, results_queue = self.run_query(
-                self.build_query(), span=self.span, realtime=True
-            )
-            handle_process_queue(self.process_annotation, results_process, results_queue, self)
+                # Registrar consulta por anotações na API de console:
+                results_process, results_queue = self.run_query(
+                    self.build_query(), span=self.span, realtime=True
+                )
+                handle_process_queue(self.process_annotation, results_process, results_queue, self)
 
-            results_process.join()
-
-        action.finish()
+                results_process.join()
 
     def build_query(self):
         return "__annotations __src:rulealert"
@@ -93,7 +95,7 @@ def handle_process_queue(processor, process, output_queue, context):
 
     except queue.Empty:
         process.join(1)
-        start(**context.__dict__)
+        start(**context.__dict__) # <<<<< TODO: Eliminar recursão
 
     except Exception as e:
         # TODO: Dar tratamento adequado abaixo: <<<<<
