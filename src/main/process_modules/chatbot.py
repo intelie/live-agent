@@ -11,6 +11,7 @@ from eliot import start_action, preserve_context, Action
 from live_client import query
 from live_client.events import messenger, annotation, raw
 from live_client.events.constants import EVENT_TYPE_EVENT
+from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
 from live_client.utils import logging
@@ -294,6 +295,7 @@ def start(process_name, process_settings, output_info, _settings, task_id):
                 messenger.join_messenger(process_name, process_settings, output_info)
             except queue.Empty as e:
                 logging.exception(e)
+                # [ECS]: FIXME: We should not do it recursive because python does not perform tail call optimization <<<<<
                 start(process_name, process_settings, output_info, _settings, task_id)
                 break
 
@@ -309,43 +311,3 @@ def start(process_name, process_settings, output_info, _settings, task_id):
         for bot in bot_processes:
             bot.join()
     return
-
-
-# TODO: Move this class to a better file: <<<<<
-# BEWARE: This class happens to be highly coupled to the functions it uses here (run_query,
-# send_message, etc). This means that we have to be careful when moving this class elsewhere
-class LiveClient:
-    def __init__(self, process_name, process_settings, output_info, room_id):
-        self.process_name = process_name
-        self.process_settings = process_settings
-        self.output_info = output_info
-        self.room_id = room_id
-
-        self.run_query = partial(
-            query.run,
-            process_name,
-            process_settings,
-            timeout=request_timeout,
-            max_retries=max_retries,
-        )
-
-        self.annotate = partial(
-            create_annotation,
-            process_settings=process_settings,
-            output_info=output_info,
-            room={"id": room_id},
-        )
-
-        self.send_event = partial(
-            send_event, process_settings=process_settings, output_info=output_info
-        )
-
-    def send_message(self, message):
-        send = partial(
-            send_message,
-            self.process_name,
-            process_settings=self.process_settings,
-            output_info=self.output_info,
-            room={"id": self.room_id},
-        )
-        return send(message, get_timestamp())
