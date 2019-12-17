@@ -1,10 +1,12 @@
 import chatterbot
 
+SELECTED_ASSET_VARIABLE_NAME = 'selected_asset'
 
 class ChatBot(chatterbot.ChatBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.context = kwargs
+        self.session = {}
 
     def generate_response(self, input_statement, additional_response_selection_parameters=None):
         """
@@ -72,3 +74,19 @@ class ChatBot(chatterbot.ChatBot):
         result.persona = 'bot:' + self.name
 
         return result
+
+    def reset_session(self):
+        self.session.clear()
+
+    def setvar(self, name, value):
+        if name == SELECTED_ASSET_VARIABLE_NAME:
+            self.reset_session()
+
+        self.session[name] = value
+        return self
+
+    def getvar(self, name):
+        return self.session.get(name)
+
+    def has_selected_asset(self):
+        return self.getvar(SELECTED_ASSET_VARIABLE_NAME) is not None

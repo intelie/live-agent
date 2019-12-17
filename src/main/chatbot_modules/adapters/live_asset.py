@@ -2,6 +2,7 @@ from functools import partial
 
 from chatterbot.conversation import Statement  # NOQA
 
+import dda.chatbot as cb
 from dda.chatbot.actions import CallbackAction, ShowTextAction
 from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
@@ -113,7 +114,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             elif num_selected_assets == 1:
                 response = CallbackAction(
-                    self.handle_select_asset, self.confidence, selected_asset=selected_assets[0]
+                    self.handle_select_asset, self.confidence, candidate_asset_info=selected_assets[0]
                 )
 
             elif num_selected_assets > 1:
@@ -125,16 +126,14 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
         return response
 
-    def handle_select_asset(self, selected_asset):
-        selected_asset_name = selected_asset.get("name")
-
-        asset_name = selected_asset.get("name")
-        asset_id = selected_asset.get("id", 0)
-        asset_type = selected_asset.get("asset_type", "rig")
+    def handle_select_asset(self, candidate_asset_info):
+        asset_name = candidate_asset_info.get("name")
+        asset_id = candidate_asset_info.get("id", 0)
+        asset_type = candidate_asset_info.get("asset_type", "rig")
         asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
 
         if asset_config is None:
-            return f"Error fetching information about {selected_asset_name}"
+            return f"Error fetching information about {asset_name}"
 
         self.state = {
             "asset_id": asset_id,
@@ -144,10 +143,12 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
         }
         self.share_state()
 
+        self.chatbot.setvar(cb.SELECTED_ASSET_VARIABLE_NAME, self.state)
+
         event_type = asset_config.get("event_type", None)
         asset_curves = only_enabled_curves(asset_config.get("curves", {}))
 
         text_templ = (
             "Ok, the asset {} was selected." '\nIt uses the event_type "{}" and has {} curves'
         )
-        return text_templ.format(selected_asset_name, event_type, len(asset_curves.keys()))
+        return text_templ.format(asset_name, event_type, len(asset_curves.keys()))

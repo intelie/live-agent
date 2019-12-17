@@ -57,7 +57,7 @@ def convert_to_custom_unit(mnemonic, uom, value):
 """
 
 
-class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
+class TorqueAndDragAdapter(BaseBayesAdapter):
     state_key = "torque-drag"
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
@@ -91,13 +91,13 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
         confidence = 1
 
         # Do we have a selected asset?
-        asset = self.get_selected_asset()
-        if asset == {}:
+        asset = self.chatbot.getvar('selected_asset')
+        if asset is None:
             return ShowTextAction(
                 "[T&D]: Please, select an asset before performing the calibration",
                 confidence=confidence,
             )
-        params["event_type"] = self.get_event_type(asset)
+        params["event_type"] = asset.get("asset_config", {}).get("event_type")
 
         # Calibration shall be executed:
         return PerformCalibrationAction(confidence=confidence, **params)

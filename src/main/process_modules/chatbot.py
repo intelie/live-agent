@@ -160,6 +160,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         load_state_func = partial(load_state, process_settings)
         share_state_func = partial(share_state, process_settings)
 
+        # TODO: Replace these functions by an instance of LiveClient.
         run_query_func = partial(
             query.run,
             process_name,
@@ -206,7 +207,6 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             read_only=True,
             **context,
         )
-        chatbot.context = context
         train_bot(process_name, chatbot)
 
         while True:
