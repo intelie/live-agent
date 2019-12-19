@@ -99,22 +99,24 @@ def maybe_mention(process_settings, message):
 
 
 @preserve_context
-def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
-    liveclient = LiveClient(process_name, process_settings, output_info, room_id)
+def process_messages(chatbot, messages):
+    process_name = chatbot.context.get('process_name')
+    process_settings = chatbot.context.get('process_settings')
+    output_info = chatbot.context.get('output_info')
+    room_id = chatbot.context.get('room_id')
+
     for message in messages:
         with start_action(action_type="process_message", message=message.get("text")):
             is_mention, message = maybe_mention(process_settings, message)
 
+            response = None
             if is_mention:
                 response = chatbot.get_response(message)
-            else:
-                response = None
 
             if response is not None:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
                 if isinstance(response, ActionStatement):
                     response.chatbot = chatbot
-                    response.liveclient = liveclient
                     response_message = response.run()
                 else:
                     response_message = response.text
@@ -199,8 +201,10 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
             "output_info": output_info,
             "room_id": room_id,
         }
+        liveclient = LiveClient(process_name, process_settings, output_info, room_id)
         chatbot = ChatBot(
             bot_alias,
+            liveclient,
             filters=[],
             preprocessors=["chatterbot.preprocessors.clean_whitespace"],
             logic_adapters=LOGIC_ADAPTERS,
@@ -212,9 +216,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         while True:
             event = room_queue.get()
             messages = maybe_extract_messages(event)
-            process_messages(
-                process_name, process_settings, output_info, room_id, chatbot, messages
-            )
+            process_messages(chatbot, messages)
 
     return chatbot
 

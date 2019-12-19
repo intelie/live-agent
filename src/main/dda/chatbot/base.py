@@ -3,9 +3,10 @@ import chatterbot
 SELECTED_ASSET_VARIABLE_NAME = 'selected_asset'
 
 class ChatBot(chatterbot.ChatBot):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name, liveclient, **kwargs):
+        super().__init__(name, **kwargs)
         self.context = kwargs
+        self.liveclient = liveclient
         self.session = {}
 
     def generate_response(self, input_statement, additional_response_selection_parameters=None):

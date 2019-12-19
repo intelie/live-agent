@@ -5,11 +5,26 @@ class ActionStatement(Statement):
     def __init__(self, text, confidence=None, in_response_to=None, **kwargs):
         super().__init__(text, in_response_to, **kwargs)
         self.confidence = confidence
-        self.chatbot = kwargs.get("chatbot")
-        self.liveclient = kwargs.get("liveclient")
+        self._chatbot = kwargs.get("chatbot")
 
     def run(self):
         raise NotImplementedError()
+
+    @property
+    def chatbot(self):
+        return self._chatbot
+
+    @chatbot.setter
+    def chatbot(self, value):
+        self.set_chatbot(value)
+
+    def set_chatbot(self, value):
+        self._chatbot = value
+        return self
+
+    @property
+    def liveclient(self):
+        return self._chatbot.liveclient
 
 
 class ShowTextAction(ActionStatement):

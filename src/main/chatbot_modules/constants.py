@@ -20,6 +20,7 @@ LOGIC_ADAPTERS = [
     "chatbot_modules.adapters.pipes_query.CurrentValueQueryAdapter",
     "chatbot_modules.adapters.monitors.MonitorControlAdapter",
     "chatbot_modules.adapters.torque_and_drag.TorqueAndDragAdapter",
+    "dda.chatbot.adapters.BotVariablesAdapter",
 ]
 
 
