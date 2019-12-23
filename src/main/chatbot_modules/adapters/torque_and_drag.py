@@ -2,7 +2,12 @@ import queue
 import re
 import requests
 
-from dda.chatbot.actions import NoTextAction, ShowTextAction
+from dda.chatbot.actions import (
+    CallbackAction,
+    ChainedAction,
+    NoTextAction,
+    ShowTextAction,
+)
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 from utils.util import attempt
@@ -62,6 +67,14 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
 
+    expected_variables = [
+        "start_time",
+        "end_time",
+        "min_depth",
+        "max_depth",
+        "min_hookload",
+    ]
+
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
@@ -77,17 +90,7 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
         )
 
     def process(self, statement, additional_response_selection_parameters=None):
-        # Try to read params from the chat:
         confidence = self.get_confidence(statement)
-        params = self.extract_calibration_params(statement.text)
-        if params is None:
-            ret = ShowTextAction(
-                "[T&D]: Sorry, I can't read the calibration parameters from your message",
-                confidence=confidence,
-            )
-            return ret
-
-        # Parameters read, so we believe it's ours.
         confidence = 1
 
         # Do we have a selected asset?
@@ -97,10 +100,56 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
                 "[T&D]: Please, select an asset before performing the calibration",
                 confidence=confidence,
             )
+
+        # Collect params from message and update variables:
+        cmd_params = self.extract_calibration_params(statement.text)
+        params = dict(cmd_params)
+        for varname in self.expected_variables:
+            # Set or update variables passed in the command body:
+            if varname in cmd_params.keys():
+                self.chatbot.setvar(varname, cmd_params[varname])
+
+            # Read stored vars:
+            value = self.chatbot.getvar(varname)
+            if value is not None:
+                params[varname] = value
+
+        # Try to infer the time range:
+        pending_params = self.list_missing_params(cmd_params)
+        if 'start_time' in pending_params and not ('min_depth' in pending_params or 'max_depth' in pending_params):
+            return ChainedAction(
+                confidence = confidence,
+                actions = [
+                    CallbackAction(self.action_infer_time_range, confidence, params = params),
+                    PerformCalibrationAction(confidence, params)
+                ]
+            )
+
+        # Check if all variables are set:
+        pending_variables = self.list_missing_params(params)
+        if len(pending_variables) > 0:
+            return ShowTextAction(
+                f"[T&D]: The following variables are needed to perform the calibration:\n{str(pending_variables)}",
+                confidence=confidence,
+            )
         params["event_type"] = asset.get("asset_config", {}).get("event_type")
 
         # Calibration shall be executed:
         return PerformCalibrationAction(confidence=confidence, **params)
+
+    def action_infer_time_range(self, params):
+        self.chatbot.liveclient.send_message("[T&D]: Attempting to infer time range ...")
+        calibrator = TorqueAndDragCalibrator(self.chatbot.liveclient)
+        if params.get("start_time") is None:
+            try:
+                calibrator.infer_time_range(params)
+            except Exception as e:
+                raise Exception(f"[T&D]: {str(e)} Please select another range.")
+
+        return f"Time range retrieved: start_time = {params['start_time']}, end_time = {params['end_time']}"
+
+    def list_missing_params(self, params):
+        return list(set(self.expected_variables) - set(params.keys()))
 
     def can_process(self, statement):
         keywords = ["torque", "drag"]
@@ -134,7 +183,7 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
         if m is not None:
             return {"min_depth": m.group(1), "max_depth": m.group(2)}
 
-        return None
+        return {}
 
 
 class TorqueAndDragCalibrator:
@@ -281,13 +330,6 @@ class PerformCalibrationAction(NoTextAction):
 
         params = self.params
         calibrator = TorqueAndDragCalibrator(self.liveclient)
-
-        # Gather all needed data to retrieve the data points:
-        if params.get("start_time") is None:
-            try:
-                calibrator.infer_time_range(params)
-            except Exception as e:
-                return f"[T&D]: {str(e)} Please select another range."
 
         # Retrieve the points to calculate the regression:
         self.liveclient.send_message("[T&D]: Retrieving data points")

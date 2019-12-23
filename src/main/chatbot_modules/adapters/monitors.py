@@ -82,6 +82,9 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         return active_monitors
 
+    def can_process(self, statement):
+        return "monitor" in statement.text.lower()
+
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
 

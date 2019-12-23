@@ -46,3 +46,16 @@ class CallbackAction(ActionStatement):
 
     def run(self):
         return self.callback(**self.params)
+
+
+class ChainedAction(ActionStatement):
+    def __init__(self, actions, confidence=None, in_response_to=None, **kwargs):
+        super().__init__("", confidence, in_response_to, **kwargs)
+        self.actions = actions
+
+    def run(self):
+        for action in self.actions:
+            try:
+                action.run()
+            except Exception as e:
+                return str(e)

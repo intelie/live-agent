@@ -216,6 +216,9 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
         return response_text
 
+    def can_process(self, statement):
+        return "analys" in statement.text.lower()
+
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
 

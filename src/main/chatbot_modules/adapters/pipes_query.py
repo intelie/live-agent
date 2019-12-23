@@ -119,6 +119,10 @@ class CurrentValueQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                     selected_asset=selected_asset,
                 )
 
+    def can_process(self, statement):
+        words = statement.text.lower().split(" ")
+        return ("value" in words) and ("now" in words or "current" in words)
+
 
 class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
     """
@@ -238,6 +242,7 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
             selected_asset = self.get_selected_asset()
             if selected_asset == {}:
                 response = ShowTextAction(
+                    #"[EQA]: No asset selected. Please select an asset first.", confidence
                     "No asset selected. Please select an asset first.", confidence
                 )
             else:
@@ -249,3 +254,6 @@ class EtimQueryAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 )
 
         return response
+
+    def can_process(self, statement):
+        return "ETIM" in statement.text.upper().split(" ")
