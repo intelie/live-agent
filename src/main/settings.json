@@ -37,6 +37,57 @@
         "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
       }
     },
+    "hechicera1_replay": {
+      "type": "las_file",
+      "enabled": true,
+      "cooldown_time": 60,
+      "path_list" : [
+        ["./input_files/RCI_k800g34.las", null],
+        ["./input_files/RCI_k800g35.las", null],
+        ["./input_files/RCI_k800g36.las", null],
+        ["./input_files/RCI_k800j02.las", null],
+        ["./input_files/RCI_k800j03.las", null],
+        ["./input_files/RCI_k800g02.las", null],
+        ["./input_files/RCI_k800g03.las", null],
+        ["./input_files/RCI_k800g04.las", null],
+        ["./input_files/RCI_k800g05.las", null],
+        ["./input_files/RCI_k800g06.las", null],
+        ["./input_files/RCI_k800g07.las", null],
+        ["./input_files/RCI_k800g08.las", null],
+        ["./input_files/RCI_k800g09.las", null],
+        ["./input_files/RCI_k800g10.las", null],
+        ["./input_files/RCI_k800g11.las", null],
+        ["./input_files/RCI_k800g12.las", null],
+        ["./input_files/RCI_k800g13.las", null],
+        ["./input_files/RCI_k800g14.las", null],
+        ["./input_files/RCI_k800g15.las", null],
+        ["./input_files/RCI_k800g16.las", null],
+        ["./input_files/RCI_k800g17.las", null],
+        ["./input_files/RCI_k800g18.las", null],
+        ["./input_files/RCI_k800g19.las", null],
+        ["./input_files/RCI_k800g20.las", null],
+        ["./input_files/RCI_k800g21.las", null],
+        ["./input_files/RCI_k800g22.las", null],
+        ["./input_files/RCI_k800g23.las", null],
+        ["./input_files/RCI_k800g25.las", null],
+        ["./input_files/RCI_k800g26.las", null],
+        ["./input_files/RCI_k800g27.las", null],
+        ["./input_files/RCI_k800g28.las", null],
+        ["./input_files/RCI_k800g29.las", null],
+        ["./input_files/RCI_k800g30.las", null],
+        ["./input_files/RCI_k800g31.las", null],
+        ["./input_files/RCI_k800g32.las", null]
+      ],
+      "index_mnemonic": "TTIM",
+      "destination": {
+        "name": "rest",
+        "event_type": "raw_hechicera1",
+        "author": {"id": 2, "name": "🤖  Data replayer"},
+        "room": {"id": "0o43868ba6giigms9i23i6iert"},
+        "dashboard": {"id": 29, "name": "Hechicera 1"},
+        "message_event": {"event_type": "raw_hechicera1", "mnemonic": "MSG"}
+      }
+    },
     "chatbot": {
       "type": "chatterbot",
       "enabled": true,
@@ -113,6 +164,7 @@
                 "probe1 pressure mnemonic": "QDPRESS_PQ1",
                 "probe1 pretest volume mnemonic": "PQPTV1",
                 "probe1 temperature mnemonic": "PQ1TR",
+
                 "probe2 depth mnemonic": "PQDVP2",
                 "probe2 pressure mnemonic": "QDPRESS_PQ2",
                 "probe2 pretest volume mnemonic": "PQPTV2",
@@ -173,6 +225,31 @@
             },
             "destination": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
+            }
+          }
+        },
+        "Hechicera1": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "monitor": {
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "mnemonics": {
+                "index": "TTIM",
+                "pretest number": "DEPTH",
+                "probe1 depth mnemonic": "DEPTH",
+                "probe1 pressure mnemonic": "APQL",
+                "probe1 pretest volume mnemonic": "PVTV",
+                "probe1 temperature mnemonic": "RTDQL"
+              },
+              "probes": ["1"]
+            },
+            "destination": {
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "dashboard": {"id": 17, "name": "Hechicera 1: Pretest"},
+              "message_event": {"event_type": "raw_hechicera1", "mnemonic": "MSG"}
             }
           }
         }
