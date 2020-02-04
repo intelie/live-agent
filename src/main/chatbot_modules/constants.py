@@ -10,15 +10,17 @@ LOGIC_ADAPTERS = [
         "default_response": "I am sorry, but I do not understand.",
         "maximum_similarity_threshold": 0.90,
     },
-    "chatbot_modules.internal.StateDebugAdapter",
-    "chatbot_modules.internal.AdapterReloaderAdapter",
-    "chatbot_modules.internal.BotFeaturesAdapter",
-    "chatbot_modules.live_asset.AssetListAdapter",
-    "chatbot_modules.live_asset.AssetSelectionAdapter",
-    "chatbot_modules.live_functions.AutoAnalysisAdapter",
-    "chatbot_modules.pipes_query.EtimQueryAdapter",
-    "chatbot_modules.pipes_query.CurrentValueQueryAdapter",
-    "chatbot_modules.monitors.MonitorControlAdapter",
+    "chatbot_modules.adapters.internal.StateDebugAdapter",
+    "chatbot_modules.adapters.internal.AdapterReloaderAdapter",
+    "chatbot_modules.adapters.internal.BotFeaturesAdapter",
+    "chatbot_modules.adapters.live_asset.AssetListAdapter",
+    "chatbot_modules.adapters.live_asset.AssetSelectionAdapter",
+    "chatbot_modules.adapters.live_functions.AutoAnalysisAdapter",
+    "chatbot_modules.adapters.pipes_query.EtimQueryAdapter",
+    "chatbot_modules.adapters.pipes_query.CurrentValueQueryAdapter",
+    "chatbot_modules.adapters.monitors.MonitorControlAdapter",
+    "chatbot_modules.adapters.torque_and_drag.TorqueAndDragAdapter",
+    "dda.chatbot.adapters.BotVariablesAdapter",
 ]
 
 
@@ -93,6 +95,18 @@ FEATURES = {
         "description": "Start the monitors",
         "usage_example": "start the monitors",
         "examples": ["start monitor", "initialize monitor", "run monitor"],
+    },
+    "torque-drag": {
+        "enabled": True,
+        "description": "Start T&D calibration",
+        "usage_example": "calibrate torque and drag",
+        "examples": [
+            "start td",
+            "begin td",
+            "calibrate td",
+            "calibrate torque and drag",
+            "start torque and drag calibration",
+        ],
     },
     "bot-features": {
         "examples": [

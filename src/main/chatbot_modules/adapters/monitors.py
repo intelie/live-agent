@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
-from chatterbot.conversation import Statement
 from eliot import start_action  # NOQA
 from multiprocessing import Process
 
+from dda.chatbot.actions import CallbackAction, ShowTextAction
 from live_client.utils import logging
 from process_modules import PROCESS_HANDLERS
-from .base_adapters import BaseBayesAdapter, WithAssetAdapter
-from .constants import get_positive_examples, get_negative_examples
+
+from .base import BaseBayesAdapter, WithAssetAdapter
+from ..constants import get_positive_examples, get_negative_examples
 
 
 __all__ = ["MonitorControlAdapter"]
@@ -82,36 +82,45 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         return active_monitors
 
+    def can_process(self, statement):
+        return "monitor" in statement.text.lower()
+
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
 
         if confidence > self.confidence_threshold:
-            confidence = 1
             self.load_state()
             active_monitors = self.state.get("active_monitors")
             selected_asset = self.get_selected_asset()
 
-            if selected_asset:
-                active_monitors = self.start_monitors(selected_asset, active_monitors)
-
-                if active_monitors:
-                    self.state = {"active_monitors": active_monitors}
-                    self.share_state()
-
-                    monitor_names = list(active_monitors.keys())
-                    response_text = "{} monitors running ({})".format(
-                        len(monitor_names), ", ".join(monitor_names)
-                    )
-
-                else:
-                    response_text = f'{selected_asset["asset_name"]} has no registered monitors'
-
+            if not selected_asset:
+                response = ShowTextAction(
+                    "No asset selected. Please select an asset first.", confidence
+                )
             else:
-                response_text = "No asset selected. Please select an asset first."
-
-            response = Statement(text=response_text)
-            response.confidence = confidence
+                response = CallbackAction(
+                    self.handle_start_monitors,
+                    confidence,
+                    selected_asset=selected_asset,
+                    active_monitors=active_monitors,
+                )
         else:
             response = None
 
         return response
+
+    def handle_start_monitors(self, selected_asset, active_monitors):
+        active_monitors = self.start_monitors(selected_asset, active_monitors)
+
+        if active_monitors == {}:
+            response_text = f'{selected_asset["asset_name"]} has no registered monitors'
+        else:
+            self.state = {"active_monitors": active_monitors}
+            self.share_state()
+
+            monitor_names = list(active_monitors.keys())
+            response_text = "{} monitors running ({})".format(
+                len(monitor_names), ", ".join(monitor_names)
+            )
+
+        return response_text

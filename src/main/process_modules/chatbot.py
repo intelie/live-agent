@@ -1,21 +1,21 @@
-# -*- coding: utf-8 -*-
 from multiprocessing import Process, Queue
 from functools import partial
+
 import queue
 
-from eliot import start_action, preserve_context, Action
-from chatterbot import ChatBot
+from chatbot_modules.constants import LOGIC_ADAPTERS
 from chatterbot.trainers import ChatterBotCorpusTrainer
-from setproctitle import setproctitle
-
+from dda.chatbot import ChatBot
+from dda.chatbot.actions import ActionStatement
+from eliot import start_action, preserve_context, Action
 from live_client import query
 from live_client.events import messenger, annotation, raw
 from live_client.events.constants import EVENT_TYPE_EVENT
+from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
 from live_client.utils import logging
-
-from chatbot_modules.constants import LOGIC_ADAPTERS
+from setproctitle import setproctitle
 
 
 __all__ = ["start"]
@@ -99,23 +99,35 @@ def maybe_mention(process_settings, message):
 
 
 @preserve_context
-def process_messages(process_name, process_settings, output_info, room_id, chatbot, messages):
+def process_messages(chatbot, messages):
+    process_name = chatbot.context.get('process_name')
+    process_settings = chatbot.context.get('process_settings')
+    output_info = chatbot.context.get('output_info')
+    room_id = chatbot.context.get('room_id')
+
     for message in messages:
         with start_action(action_type="process_message", message=message.get("text")):
             is_mention, message = maybe_mention(process_settings, message)
 
+            response = None
             if is_mention:
                 response = chatbot.get_response(message)
-            else:
-                response = None
 
-            if response:
+            if response is not None:
                 logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
-                maybe_send_message(process_name, process_settings, output_info, room_id, response)
+                if isinstance(response, ActionStatement):
+                    response.chatbot = chatbot
+                    response_message = response.run()
+                else:
+                    response_message = response.text
+
+                maybe_send_message(
+                    process_name, process_settings, output_info, room_id, response_message
+                )
 
 
 @preserve_context
-def maybe_send_message(process_name, process_settings, output_info, room_id, bot_response):
+def maybe_send_message(process_name, process_settings, output_info, room_id, response_message):
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get("alias", "Intelie")
     bot_settings["destination"]["room"] = {"id": room_id}
@@ -124,7 +136,7 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, bot
 
     messenger.send_message(
         process_name,
-        bot_response.text,
+        response_message,
         get_timestamp(),
         process_settings=bot_settings,
         output_info=output_info,
@@ -150,6 +162,7 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         load_state_func = partial(load_state, process_settings)
         share_state_func = partial(share_state, process_settings)
 
+        # TODO: Replace these functions by an instance of LiveClient.
         run_query_func = partial(
             query.run,
             process_name,
@@ -174,14 +187,8 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
         )
 
         bot_alias = process_settings.get("alias", "Intelie")
-
-        chatbot = ChatBot(
-            bot_alias,
-            filters=[],
-            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
-            logic_adapters=LOGIC_ADAPTERS,
-            read_only=True,
-            functions={
+        context = {
+            "functions": {
                 "load_state": load_state_func,
                 "share_state": share_state_func,
                 "run_query": run_query_func,
@@ -189,19 +196,27 @@ def start_chatbot(process_name, process_settings, output_info, room_id, room_que
                 "send_message": messenger_func,
                 "send_event": send_event_func,
             },
-            process_name=process_name,
-            process_settings=process_settings,
-            output_info=output_info,
-            room_id=room_id,
+            "process_name": process_name,
+            "process_settings": process_settings,
+            "output_info": output_info,
+            "room_id": room_id,
+        }
+        liveclient = LiveClient(process_name, process_settings, output_info, room_id)
+        chatbot = ChatBot(
+            bot_alias,
+            liveclient,
+            filters=[],
+            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
+            logic_adapters=LOGIC_ADAPTERS,
+            read_only=True,
+            **context,
         )
         train_bot(process_name, chatbot)
 
         while True:
             event = room_queue.get()
             messages = maybe_extract_messages(event)
-            process_messages(
-                process_name, process_settings, output_info, room_id, chatbot, messages
-            )
+            process_messages(chatbot, messages)
 
     return chatbot
 
@@ -282,6 +297,7 @@ def start(process_name, process_settings, output_info, _settings, task_id):
                 messenger.join_messenger(process_name, process_settings, output_info)
             except queue.Empty as e:
                 logging.exception(e)
+                # [ECS]: FIXME: We should not do it recursive because python does not perform tail call optimization <<<<<
                 start(process_name, process_settings, output_info, _settings, task_id)
                 break
 

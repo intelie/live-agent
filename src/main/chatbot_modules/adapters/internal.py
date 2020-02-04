@@ -6,11 +6,12 @@ from chatterbot.conversation import Statement  # NOQA
 from chatterbot.utils import validate_adapter_class, initialize_class
 from chatterbot.logic import LogicAdapter
 from chatterbot.adapters import Adapter
+from dda.chatbot.actions import NoTextAction
 
 from jinja2 import Template
 
-from .base_adapters import WithStateAdapter, BaseBayesAdapter
-from .constants import (
+from .base import WithStateAdapter, BaseBayesAdapter
+from ..constants import (
     get_positive_examples,
     get_negative_examples,
     FEATURES,
@@ -77,7 +78,31 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        self.bot_kwargs = kwargs
+
+    def process(self, statement, additional_response_selection_parameters=None):
+        return ReloadAdaptersAction(confidence=1)
+
+    def can_process(self, statement):
+        return self.keyphrase in statement.text.lower()
+
+
+class ReloadAdaptersAction(NoTextAction):
+    def reload(self):
+        self.delete_all_adapters()
+
+        # Reload the list of logic adapters
+        constants = importlib.import_module("chatbot_modules.constants")
+        constants = importlib.reload(constants)
+
+        self.chatbot.logic_adapters = [
+            self.initialize_class(adapter)
+            for adapter in constants.LOGIC_ADAPTERS
+            if self.validate_adapter(adapter)
+        ]
+
+    def delete_all_adapters(self):
+        for adapter_instance in self.chatbot.logic_adapters:
+            del adapter_instance
 
     def validate_adapter(self, adapter):
         try:
@@ -101,32 +126,12 @@ class AdapterReloaderAdapter(WithStateAdapter):
         module = importlib.import_module(module_path)
         module = importlib.reload(module)
 
-        return initialize_class(adapter, self.chatbot, **self.bot_kwargs)
+        return initialize_class(adapter, self.chatbot, **self.chatbot.context)
 
-    def process(self, statement, additional_response_selection_parameters=None):
-        for adapter_instance in self.chatbot.logic_adapters:
-            del adapter_instance
-
+    def run(self):
         try:
-            # Reload the list of logic adapters
-            constants = importlib.import_module("chatbot_modules.constants")
-            constants = importlib.reload(constants)
-
-            self.chatbot.logic_adapters = [
-                self.initialize_class(adapter)
-                for adapter in constants.LOGIC_ADAPTERS
-                if self.validate_adapter(adapter)
-            ]
-
+            self.reload()
             response_text = "{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
-
         except Exception as e:
             response_text = "Error reloading adapters: {} {}".format(e, type(e))
-
-        response = Statement(text=response_text)
-        response.confidence = 1
-
-        return response
-
-    def can_process(self, statement):
-        return self.keyphrase in statement.text.lower()
+        return response_text

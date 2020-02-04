@@ -3,11 +3,12 @@ import numpy as np
 import queue
 
 from eliot import Action, start_action
+from functools import partial
 from live_client.utils import timestamp, logging
 from sklearn.linear_model import LinearRegression
 from utils import loop
 
-__all__ = ["find_slope", "find_stable_buildup", "get_function"]
+__all__ = ["find_slope", "find_stable_buildup", "get_function", "Monitor"]
 
 
 def find_slope(
@@ -401,3 +402,22 @@ def get_log_action(task_id, action_type):
         action = start_action(action_type=action_type)
 
     return action
+
+
+class Monitor:
+    """Base class to implement monitors"""
+
+    def __init__(self, asset_name, settings, helpers=None, task_id=None):
+        self.asset_name = asset_name
+        self.settings = settings
+        self.helpers = helpers
+        self.task_id = task_id
+
+        # Methods to wrap external functions:
+        self.run_query = get_function("run_query", self.helpers)
+        self.send_message = partial(
+            get_function("send_message", self.helpers), extra_settings=self.settings
+        )
+
+    def run(self):
+        raise NotImplementedError("Monitors must define a start method")
