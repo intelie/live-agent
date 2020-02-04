@@ -11,16 +11,13 @@ from jinja2 import Template
 
 from .base_adapters import WithStateAdapter, BaseBayesAdapter
 from .constants import (
-    get_positive_examples, get_negative_examples,
+    get_positive_examples,
+    get_negative_examples,
     FEATURES,
     FEATURES_DESCRIPTION_TEMPLATE,
 )
 
-__all__ = [
-    'BotFeaturesAdapter',
-    'StateDebugAdapter',
-    'AdapterReloaderAdapter',
-]
+__all__ = ["BotFeaturesAdapter", "StateDebugAdapter", "AdapterReloaderAdapter"]
 
 
 class BotFeaturesAdapter(BaseBayesAdapter):
@@ -28,7 +25,7 @@ class BotFeaturesAdapter(BaseBayesAdapter):
     Lists the capabilities of the bot
     """
 
-    state_key = 'bot-features'
+    state_key = "bot-features"
     positive_examples = get_positive_examples(state_key)
     negative_examples = get_negative_examples(state_key)
 
@@ -37,19 +34,16 @@ class BotFeaturesAdapter(BaseBayesAdapter):
         response_text = template.render(
             bot_name=self.chatbot.name,
             features=[
-                item for item in FEATURES.values()
-                if item.get('enabled') and (
-                    'description' in item and 'usage_example' in item
-                )
-            ]
+                item
+                for item in FEATURES.values()
+                if item.get("enabled") and ("description" in item and "usage_example" in item)
+            ],
         )
         return response_text
 
     def process(self, statement, additional_response_selection_parameters=None):
         self.confidence = self.get_confidence(statement)
-        response = Statement(
-            text=self.prepare_response()
-        )
+        response = Statement(text=self.prepare_response())
         response.confidence = self.confidence
 
         return response
@@ -60,13 +54,11 @@ class StateDebugAdapter(WithStateAdapter):
     Displays the shared state
     """
 
-    keyphrase = 'show me your inner self'
-    state_key = 'state-debug'
+    keyphrase = "show me your inner self"
+    state_key = "state-debug"
 
     def process(self, statement, additional_response_selection_parameters=None):
-        response = Statement(
-            text=pformat(self.shared_state, depth=3)
-        )
+        response = Statement(text=pformat(self.shared_state, depth=3))
         response.confidence = 1
 
         return response
@@ -80,8 +72,8 @@ class AdapterReloaderAdapter(WithStateAdapter):
     Reloads the code for all the logic adapters
     """
 
-    keyphrase = 'reinvent yourself'
-    state_key = 'adapter-reloader'
+    keyphrase = "reinvent yourself"
+    state_key = "adapter-reloader"
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
@@ -98,14 +90,14 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
     def initialize_class(self, adapter):
         if isinstance(adapter, dict):
-            adapter.pop('logic_adapters', None)
-            adapter_path = adapter.get('import_path')
+            adapter.pop("logic_adapters", None)
+            adapter_path = adapter.get("import_path")
         else:
             adapter_path = adapter
 
         # Reload the logic adapters
-        module_parts = adapter_path.split('.')
-        module_path = '.'.join(module_parts[:-1])
+        module_parts = adapter_path.split(".")
+        module_path = ".".join(module_parts[:-1])
         module = importlib.import_module(module_path)
         module = importlib.reload(module)
 
@@ -113,11 +105,11 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
     def process(self, statement, additional_response_selection_parameters=None):
         for adapter_instance in self.chatbot.logic_adapters:
-            del(adapter_instance)
+            del adapter_instance
 
         try:
             # Reload the list of logic adapters
-            constants = importlib.import_module('chatbot_modules.constants')
+            constants = importlib.import_module("chatbot_modules.constants")
             constants = importlib.reload(constants)
 
             self.chatbot.logic_adapters = [
@@ -126,14 +118,10 @@ class AdapterReloaderAdapter(WithStateAdapter):
                 if self.validate_adapter(adapter)
             ]
 
-            response_text = "{} logic adapters reloaded".format(
-                len(self.chatbot.logic_adapters)
-            )
+            response_text = "{} logic adapters reloaded".format(len(self.chatbot.logic_adapters))
 
         except Exception as e:
-            response_text = "Error reloading adapters: {} {}".format(
-                e, type(e)
-            )
+            response_text = "Error reloading adapters: {} {}".format(e, type(e))
 
         response = Statement(text=response_text)
         response.confidence = 1
