@@ -204,6 +204,7 @@ def start(process_name, process_settings, output_info, settings, task_id):
     with Action.continue_task(task_id=task_id):
         debug_mode = settings.get('DEBUG', False)
         event_type = process_settings['destination']['event_type']
+        cooldown_time = process_settings.get('cooldown_time', 300)
         setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
         if debug_mode:
@@ -243,9 +244,9 @@ def start(process_name, process_settings, output_info, settings, task_id):
                     raise las_data
 
                 loop.await_next_cycle(
-                    60 * 5,
+                    cooldown_time,
                     event_type,
-                    message="Sleeping for 5 minutes between runs",
+                    message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.),
                     log_func=logging.info
                 )
 
