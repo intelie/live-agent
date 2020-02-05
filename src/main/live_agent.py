@@ -9,10 +9,10 @@ from eliot import start_action, to_file, Action
 from setproctitle import setproctitle
 
 from runner.daemon import Daemon
-from process_modules import PROCESS_HANDLERS
 from live_client.connection import CONNECTION_HANDLERS
 from live_client.utils import logging
 from utils.filter import filter_dict
+from utils.importer import load_process_handlers
 
 __all__ = []
 
@@ -28,14 +28,15 @@ class LiveAgent(Daemon):
         setproctitle("DDA:  Main process")
         logfile = get_logfile()
         error_logfile = f"{logfile}.error"
+
         with start_action(action_type="init_daemon") as action:
             task_id = action.serialize_task_id()
             Daemon.__init__(self, pidfile, stdout=logfile, stderr=error_logfile, task_id=task_id)
 
         self.settings_file = settings_file
 
-    def resolve_process_handler(self, process_type):
-        return PROCESS_HANDLERS.get(process_type)
+    def resolve_process_handler(self, process_type, process_handlers):
+        return process_handlers.get(process_type)
 
     def resolve_output_handler(self, output_settings):
         output_type = output_settings.get("type")
@@ -54,7 +55,7 @@ class LiveAgent(Daemon):
 
         return destinations
 
-    def get_processes(self, settings, output_options):
+    def get_processes(self, settings, output_options, process_handlers):
         processes = filter_dict(
             settings.get("processes", {}), lambda _k, v: v.get("enabled") is True
         )
@@ -62,8 +63,8 @@ class LiveAgent(Daemon):
         invalid_processes = filter_dict(
             processes,
             lambda _k, v: (
-                (v.get("type") not in PROCESS_HANDLERS)
-                or (v.get("destination", {}).get("name") not in output_options)  # NOQA
+                (v.get("type") not in process_handlers)
+                or (v.get("destination", {}).get("name") not in output_options)
             ),
         )
 
@@ -75,8 +76,9 @@ class LiveAgent(Daemon):
         return valid_processes
 
     def resolve_handlers(self, settings):
+        process_handlers = load_process_handlers(settings)
         output_options = self.get_output_options(settings)
-        registered_processes = self.get_processes(settings, output_options)
+        registered_processes = self.get_processes(settings, output_options, process_handlers)
 
         output_funcs = dict(
             (name, (self.resolve_output_handler(out_settings), out_settings))
@@ -87,7 +89,7 @@ class LiveAgent(Daemon):
             process_type = process_settings.pop("type")
             output_type = process_settings["destination"]["name"]
             process_settings.update(
-                process_func=self.resolve_process_handler(process_type),
+                process_func=self.resolve_process_handler(process_type, process_handlers),
                 output=output_funcs.get(output_type),
             )
 
@@ -124,6 +126,7 @@ class LiveAgent(Daemon):
 
                 logging.setup_python_logging(settings)
                 logging.setup_live_logging(settings)
+
                 self.start_processes(settings)
             except KeyboardInterrupt:
                 logging.info("Execution interrupted")
