@@ -5,6 +5,8 @@ from setproctitle import setproctitle
 
 from live_client.utils import logging
 from utils import monitors
+from utils.logging import get_log_action
+from live.utils.query import handle_events
 
 
 __all__ = ["start"]
@@ -65,7 +67,7 @@ def build_query(settings):
 def start(name, settings, helpers=None, task_id=None):
     process_name = f"{name} - flowrate"
 
-    action = monitors.get_log_action(task_id, "flowrate_monitor")
+    action = get_log_action(task_id, "flowrate_monitor")
     with action.context():
         logging.info("{}: Flowrate monitor started".format(process_name))
         setproctitle('DDA: Flowrate monitor "{}"'.format(process_name))
@@ -87,7 +89,7 @@ def start(name, settings, helpers=None, task_id=None):
             check_rate(process_name, accumulator, settings, send_message)
 
         try:
-            monitors.handle_events(process_events, results_queue, settings, timeout=read_timeout)
+            handle_events(process_events, results_queue, settings, timeout=read_timeout)
         except queue.Empty:
             # [ECS]: Essa chamada é um problema pois python não faz tail recursion <<<<<
             start(name, settings, helpers=helpers, task_id=task_id)

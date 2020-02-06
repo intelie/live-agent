@@ -7,8 +7,11 @@ from hashlib import md5
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
-from live_client.utils import timestamp, logging
 from utils import loop, monitors
+from live_client.utils import timestamp, logging
+from live.utils.query import prepare_query, handle_events
+from ..utils.buildup import find_stable_buildup
+from ..utils.probes import init_probes_data
 
 __all__ = ["start"]
 
@@ -537,12 +540,12 @@ def start(name, settings, helpers=None, task_id=None):
             PRETEST_STATES.INACTIVE: find_drawdown,
             PRETEST_STATES.DRAWDOWN_START: find_buildup,
             PRETEST_STATES.DRAWDOWN_END: partial(
-                monitors.find_stable_buildup,
+                find_stable_buildup,
                 targets={0.01: PRETEST_STATES.INACTIVE, 0.1: PRETEST_STATES.BUILDUP_STABLE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
             PRETEST_STATES.BUILDUP_STABLE: partial(
-                monitors.find_stable_buildup,
+                find_stable_buildup,
                 targets={0.01: PRETEST_STATES.INACTIVE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
@@ -560,18 +563,18 @@ def start(name, settings, helpers=None, task_id=None):
 
         monitor_settings = settings.get("monitor", {})
         window_duration = monitor_settings["window_duration"]
-        probes = monitors.init_probes_data(settings)
+        probes = init_probes_data(settings)
 
         def process_events(accumulator):
             for probe_name, probe_data in probes.items():
                 run_monitor(process_name, probe_name, probe_data, accumulator, functions_map)
 
         results_process, results_queue = functions_map.get("run_query")(
-            monitors.prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
+            prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
         )
 
         try:
-            monitors.handle_events(process_events, results_queue, settings, timeout=read_timeout)
+            handle_events(process_events, results_queue, settings, timeout=read_timeout)
         except queue.Empty:
             start(name, settings, helpers=helpers, task_id=task_id)
 

@@ -6,9 +6,12 @@ import queue
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
+from utils import loop, monitors
 from live_client.events import messenger
 from live_client.utils import timestamp, logging
-from utils import loop, monitors
+from live.utils.query import prepare_query, handle_events
+from ..utils.buildup import find_stable_buildup as real_find_stable_buildup
+from ..utils.probes import init_probes_data
 
 __all__ = ["start"]
 
@@ -380,7 +383,7 @@ def find_stable_buildup(
     if state in (SAMPLING_STATES.FOCUSED_FLOW, SAMPLING_STATES.SAMPLING):
         detected_state = PUMP_STATES.INACTIVE
     else:
-        detected_state = monitors.find_stable_buildup(
+        detected_state = real_find_stable_buildup(
             process_name,
             probe_name,
             probe_data,
@@ -852,14 +855,14 @@ def start(name, settings, helpers=None, task_id=None):
 
         monitor_settings = settings.get("monitor", {})
         window_duration = monitor_settings["window_duration"]
-        monitor_settings.update(probes=monitors.init_probes_data(settings))
+        monitor_settings.update(probes=init_probes_data(settings))
 
         results_process, results_queue = functions_map.get("run_query")(
-            monitors.prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
+            prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
         )
 
         try:
-            monitors.handle_events(
+            handle_events(
                 lambda accumulator: run_monitor(process_name, settings, accumulator, functions_map),
                 results_queue,
                 settings,
