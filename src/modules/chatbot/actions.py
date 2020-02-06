@@ -23,8 +23,8 @@ class ActionStatement(Statement):
         return self
 
     @property
-    def liveclient(self):
-        return self._chatbot.liveclient
+    def live_client(self):
+        return self._chatbot.live_client
 
 
 class ShowTextAction(ActionStatement):

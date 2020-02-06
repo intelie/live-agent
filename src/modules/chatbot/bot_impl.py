@@ -7,11 +7,11 @@ SELECTED_ASSET_VARIABLE_NAME = "selected_asset"
 
 
 class ChatBot(chatterbot.ChatBot):
-    def __init__(self, name, liveclient, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.live_client = kwargs.pop("live_client", None)
+        self.session = kwargs.pop("session", {})
         self.context = kwargs
-        self.liveclient = liveclient
-        self.session = {}
 
     def generate_response(self, input_statement, additional_response_selection_parameters=None):
         """

@@ -191,8 +191,13 @@ def start_chatbot(
         )
 
         bot_alias = process_settings.get("alias", "Intelie")
-        logic_adapters = process_settings.get("logic_adapters", [])
         context = {
+            "room_id": room_id,
+            "agent_settings": settings,
+            "process_name": process_name,
+            "process_settings": process_settings,
+            "output_info": output_info,
+            "live_client": LiveClient(process_name, process_settings, output_info, room_id),
             "functions": {
                 "load_state": load_state_func,
                 "share_state": share_state_func,
@@ -201,20 +206,13 @@ def start_chatbot(
                 "send_message": messenger_func,
                 "send_event": send_event_func,
             },
-            "process_name": process_name,
-            "process_settings": process_settings,
-            "output_info": output_info,
-            "room_id": room_id,
         }
-        liveclient = LiveClient(process_name, process_settings, output_info, room_id)
         chatbot = ChatBot(
             bot_alias,
-            liveclient,
-            filters=[],
-            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
-            logic_adapters=logic_adapters,
             read_only=True,
-            agent_settings=settings,
+            logic_adapters=process_settings.get("logic_adapters", []),
+            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
+            filters=[],
             **context,
         )
         train_bot(process_name, chatbot)

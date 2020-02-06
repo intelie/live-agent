@@ -144,8 +144,8 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
         return PerformCalibrationAction(confidence=confidence, **params)
 
     def action_infer_time_range(self, params):
-        self.chatbot.liveclient.send_message("[T&D]: Attempting to infer time range ...")
-        calibrator = TorqueAndDragCalibrator(self.chatbot.liveclient)
+        self.chatbot.live_client.send_message("[T&D]: Attempting to infer time range ...")
+        calibrator = TorqueAndDragCalibrator(self.chatbot.live_client)
         if params.get("start_time") is None:
             try:
                 calibrator.infer_time_range(params)
@@ -196,15 +196,15 @@ class TorqueAndDragCalibrator:
 
     query_timeout = 60
 
-    def __init__(self, liveclient):
-        self.liveclient = liveclient
-        self.process_settings = liveclient.process_settings
+    def __init__(self, live_client):
+        self.live_client = live_client
+        self.process_settings = live_client.process_settings
         self.live_host = self.process_settings["live"]["host"]
         self.username = self.process_settings["live"]["username"]
         self.password = self.process_settings["live"]["password"]
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
-        results_process, results_queue = self.liveclient.run_query(
+        results_process, results_queue = self.live_client.run_query(
             query_str, realtime=realtime, span=span
         )
 
@@ -335,10 +335,10 @@ class PerformCalibrationAction(NoTextAction):
         MIN_HOOKLOAD = 900000
 
         params = self.params
-        calibrator = TorqueAndDragCalibrator(self.liveclient)
+        calibrator = TorqueAndDragCalibrator(self.live_client)
 
         # Retrieve the points to calculate the regression:
-        self.liveclient.send_message("[T&D]: Retrieving data points")
+        self.live_client.send_message("[T&D]: Retrieving data points")
         params["min_hookload"] = params["min_hookload"] or MIN_HOOKLOAD
         points = calibrator.live_retrieve_regression_points(params)
         if len(points) < MIN_POINT_COUNT:
@@ -347,7 +347,7 @@ class PerformCalibrationAction(NoTextAction):
         well_id = points[0]["wellId"]
 
         # Perform calibration:
-        self.liveclient.send_message("[T&D]: Starting calibration")
+        self.live_client.send_message("[T&D]: Starting calibration")
         try:
             calibration_result = calibrator.request_calibration(well_id, points)
         except Exception:
