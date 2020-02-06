@@ -3,7 +3,7 @@ from multiprocessing import Process, Queue
 from functools import partial
 import queue
 
-from eliot import start_action, preserve_context, Action
+from eliot import start_action, Action
 from setproctitle import setproctitle
 
 from live_client import query
@@ -29,7 +29,6 @@ max_retries = 5
 
 ##
 # Misc functions
-@preserve_context
 def load_state(container, state_key=None, default=None):
     state = container.get("state", {})
 
@@ -42,7 +41,6 @@ def load_state(container, state_key=None, default=None):
     return state
 
 
-@preserve_context
 def share_state(container, state_key=None, state_data=None):
     if "state" not in container:
         container.update(state={})
@@ -50,7 +48,6 @@ def share_state(container, state_key=None, state_data=None):
     container["state"].update(**{state_key: state_data})
 
 
-@preserve_context
 def allow_extra_settings(func, *args, **kwargs):
     # Allow the caller to override some of the settings
     extra_settings = kwargs.pop("extra_settings", {})
@@ -62,24 +59,20 @@ def allow_extra_settings(func, *args, **kwargs):
     return func(*args, **kwargs)
 
 
-@preserve_context
 def create_annotation(*args, **kwargs):
     return allow_extra_settings(annotation.create, *args, **kwargs)
 
 
-@preserve_context
 def send_message(*args, **kwargs):
     return allow_extra_settings(messenger.send_message, *args, **kwargs)
 
 
-@preserve_context
 def send_event(*args, **kwargs):
     return allow_extra_settings(raw.create, *args, **kwargs)
 
 
 ##
 # Chat message handling
-@preserve_context
 def maybe_extract_messages(event):
     event_content = event.get("data", {}).get("content", [])
 
@@ -90,7 +83,6 @@ def maybe_extract_messages(event):
     ]
 
 
-@preserve_context
 def maybe_mention(process_settings, message):
     bot_alias = process_settings.get("alias", "Intelie")
     is_mention = message.has_mention(bot_alias)
@@ -100,7 +92,6 @@ def maybe_mention(process_settings, message):
     return is_mention, message
 
 
-@preserve_context
 def process_messages(chatbot, messages):
     process_name = chatbot.context.get("process_name")
     process_settings = chatbot.context.get("process_settings")
@@ -128,7 +119,6 @@ def process_messages(chatbot, messages):
                 )
 
 
-@preserve_context
 def maybe_send_message(process_name, process_settings, output_info, room_id, response_message):
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get("alias", "Intelie")
@@ -148,7 +138,6 @@ def maybe_send_message(process_name, process_settings, output_info, room_id, res
 
 ##
 # Room Bot initialization
-@preserve_context
 def train_bot(process_name, chatbot, language="english"):
     trainer = ChatterBotCorpusTrainer(chatbot)
     trainer.train(f"chatterbot.corpus.{language}.conversations")
@@ -225,7 +214,6 @@ def start_chatbot(
     return chatbot
 
 
-@preserve_context
 def route_message(process_name, process_settings, output_info, settings, bots_registry, event):
     logging.debug("{}: Got an event: {}".format(process_name, event))
 
