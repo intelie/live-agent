@@ -71,7 +71,7 @@ assert_ok $?
 
 # Copy python files from the src root and up to une level of subdir
 # This is enough for simple projects
-cp -R ${PROJECT_ROOT}/src/main/* ${RELEASE_DIR}/lib/
+cp -R ${PROJECT_ROOT}/src/* ${RELEASE_DIR}/lib/
 assert_ok $?
 
 find ${RELEASE_DIR}/lib/ -name \*.pyc | xargs rm
@@ -82,7 +82,7 @@ assert_ok $?
 cp -v ${PROJECT_ROOT}/tools/launcher-daemon-control.sh ${RELEASE_DIR}/${DAEMON_SCRIPT_NAME}
 assert_ok $?
 
-cp -v ${PROJECT_ROOT}/src/main/settings.json ${RELEASE_DIR}/sample_settings.json
+cp -v ${PROJECT_ROOT}/src/main/settings/settings.json ${RELEASE_DIR}/sample_settings.json
 assert_ok $?
 
 ##########
