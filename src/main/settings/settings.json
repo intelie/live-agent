@@ -99,22 +99,22 @@
       "enabled": true,
       "alias": "Oliver",
       "logic_adapters": [
-        {
-            "import_path": "chatterbot.logic.BestMatch",
-            "default_response": "I am sorry, but I do not understand.",
-            "maximum_similarity_threshold": 0.90
-        },
         "chatbot.logic_adapters.internal.StateDebugAdapter",
         "chatbot.logic_adapters.internal.AdapterReloaderAdapter",
-        "chatbot.logic_adapters.internal.BotFeaturesAdapter",
-        "live.logic_adapters.live_asset.AssetListAdapter",
         "live.logic_adapters.live_asset.AssetSelectionAdapter",
+        "live.logic_adapters.live_asset.AssetListAdapter",
         "live.logic_adapters.live_functions.AutoAnalysisAdapter",
         "live.logic_adapters.pipes_query.EtimQueryAdapter",
         "live.logic_adapters.pipes_query.CurrentValueQueryAdapter",
         "chatbot.logic_adapters.monitors.MonitorControlAdapter",
+        "chatbot.logic_adapters.internal.BotFeaturesAdapter",
         "torque_and_drag.logic_adapters.torque_and_drag.TorqueAndDragAdapter",
-        "chatbot.logic_adapters.variables.BotVariablesAdapter"
+        "chatbot.logic_adapters.variables.BotVariablesAdapter",
+        {
+            "import_path": "chatterbot.logic.BestMatch",
+            "default_response": "I am sorry, but I do not understand.",
+            "maximum_similarity_threshold": 0.90
+        }
       ],
       "live": {
         "host": "http://localhost:8080",
