@@ -375,7 +375,7 @@ def find_stable_buildup(
     message_sender=None,
     targets=None,
     fallback_state=None,
-):  # NOQA
+):
     # Ignore buildups while sampling
     if state in (SAMPLING_STATES.FOCUSED_FLOW, SAMPLING_STATES.SAMPLING):
         detected_state = PUMP_STATES.INACTIVE

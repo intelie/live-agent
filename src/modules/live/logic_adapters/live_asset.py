@@ -10,7 +10,7 @@ from live_client.utils import logging
 from chatbot.actions import CallbackAction, ShowTextAction
 from chatbot.logic_adapters.base import BaseBayesAdapter, WithStateAdapter
 
-from ..constants import SELECTED_ASSET_VARIABLE_NAME, ITEM_PREFIX
+from ..constants import ITEM_PREFIX, SELECTED_ASSET_VARIABLE_NAME
 
 
 __all__ = ["AssetListAdapter", "AssetSelectionAdapter"]
@@ -77,7 +77,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     Interacts with the user to associate the chatbot to an asset
     """
 
-    state_key = "selected-asset"
+    state_key = SELECTED_ASSET_VARIABLE_NAME
     required_state = ["asset_id", "asset_type", "asset_name", "asset_config"]
     default_state = {}
     positive_examples = [
@@ -129,7 +129,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             num_selected_assets = len(selected_assets)
 
             if num_selected_assets == 0:
-                self.confidence_threshold *= 0.7  # <<<<< Porque essa operação?
+                self.confidence_threshold *= 0.7
                 response = ShowTextAction(
                     "I didn't get the asset name. Can you repeat please?", self.confidence
                 )
@@ -166,8 +166,6 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
             "asset_config": asset_config,
         }
         self.share_state()
-
-        self.chatbot.setvar(SELECTED_ASSET_VARIABLE_NAME, self.state)
 
         event_type = asset_config.get("event_type", None)
         asset_curves = only_enabled_curves(asset_config.get("curves", {}))
