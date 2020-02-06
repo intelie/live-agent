@@ -82,12 +82,9 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     default_state = {}
     positive_examples = [
         "activate asset",
-        "active asset" "select asset",
+        "select asset",
         "set active asset",
-        "set current asset",
-        "set this room's asset",
-        "update this room's asset",
-        "current asset is",
+        "update asset",
         "new asset is",
         "update asset to",
         "change asset to",

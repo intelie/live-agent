@@ -23,18 +23,7 @@ class BaseBayesAdapter(LogicAdapter):
     positive_examples = []
     confidence_threshold = 0.75
     confidence_damping_thresold = 0.9
-
-    def __init__(self, chatbot, **kwargs):
-        super().__init__(chatbot, **kwargs)
-
-        self.positive = kwargs.get("positive", self.positive_examples)
-        self.negative = kwargs.get("negative", self.negative_examples)
-
-        labeled_data = [(name, 0) for name in self.negative] + [(name, 1) for name in self.positive]
-
-        train_set = [(self.analyze_features(text), n) for (text, n) in labeled_data]
-
-        self.classifier = NaiveBayesClassifier.train(train_set)
+    _classifier = None
 
     @property
     def negative_examples(self):
@@ -47,25 +36,42 @@ class BaseBayesAdapter(LogicAdapter):
 
         return examples
 
+    @property
+    def classifier(self):
+        if self._classifier is None:
+            self._classifier = self.prepare_classifier()
+
+        return self._classifier
+
+    def prepare_classifier(self):
+        labeled_data = []
+        labeled_data.extend([(name, 0) for name in self.negative_examples])
+        labeled_data.extend([(name, 1) for name in self.positive_examples])
+
+        train_set = [(self.analyze_features(text), n) for (text, n) in labeled_data]
+        return NaiveBayesClassifier.train(train_set)
+
+    def prepare_features(self):
+        # Extract meaningful features from the examples
+        # A list of all words from the known sentences
+        all_examples = self.positive_examples + self.negative_examples
+        self.all_words = " ".join(all_examples).split()
+
+        # A list of the first word in each of the known sentence
+        self.all_first_words = [sentence.split(" ", 1)[0] for sentence in all_examples]
+
     def analyze_features(self, text):
         """
         Provide an analysis of significant features in the string.
         """
+        self.prepare_features()
         features = {}
 
-        # A list of all words from the known sentences
-        all_words = " ".join(self.positive + self.negative).split()
-
-        # A list of the first word in each of the known sentence
-        all_first_words = []
-        for sentence in self.positive + self.negative:
-            all_first_words.append(sentence.split(" ", 1)[0])
+        for word in text.split():
+            features["first_word({})".format(word)] = word in self.all_first_words
 
         for word in text.split():
-            features["first_word({})".format(word)] = word in all_first_words
-
-        for word in text.split():
-            features["contains({})".format(word)] = word in all_words
+            features["contains({})".format(word)] = word in self.all_words
 
         for letter in "abcdefghijklmnopqrstuvwxyz":
             features["count({})".format(letter)] = text.lower().count(letter)
@@ -94,7 +100,9 @@ class BaseBayesAdapter(LogicAdapter):
         can_process = confidence > self.confidence_threshold
 
         logging.debug(
-            "{} (confidence {}): The 10 most informative features are: {}".format(
+            """{} (confidence {}):
+            The 10 most informative features are: {}
+            """.format(
                 self.__class__.__name__,
                 confidence,
                 ", ".join(
