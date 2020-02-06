@@ -133,9 +133,7 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
 
             elif num_selected_assets == 1:
                 response = CallbackAction(
-                    self.handle_select_asset,
-                    self.confidence,
-                    candidate_asset_info=selected_assets[0],  # NOQA
+                    self.execute_action, self.confidence, asset_info=selected_assets[0]
                 )
 
             elif num_selected_assets > 1:
@@ -147,10 +145,10 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
                 )
         return response
 
-    def handle_select_asset(self, candidate_asset_info):
-        asset_name = candidate_asset_info.get("name")
-        asset_id = candidate_asset_info.get("id", 0)
-        asset_type = candidate_asset_info.get("asset_type", "rig")
+    def execute_action(self, asset_info):
+        asset_name = asset_info.get("name")
+        asset_id = asset_info.get("id", 0)
+        asset_type = asset_info.get("asset_type", "rig")
         asset_config = self.asset_fetcher(asset_id, asset_type=asset_type)
 
         if asset_config is None:

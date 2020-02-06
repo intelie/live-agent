@@ -1,10 +1,11 @@
 from eliot import start_action  # NOQA
 from multiprocessing import Process
+from chatterbot.conversation import Statement
 
 from live_client.utils import logging
 
 from utils.importer import load_process_handlers
-from chatbot.actions import CallbackAction, ShowTextAction
+from chatbot.actions import CallbackAction
 from .base import BaseBayesAdapter, WithAssetAdapter
 
 __all__ = ["MonitorControlAdapter"]
@@ -33,8 +34,9 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
+        self.process_settings = kwargs.get("process_settings", {})
+        self.agent_settings = kwargs.get("agent_settings", {})
 
-        self.process_settings = kwargs["process_settings"]
         self.helpers = dict(
             (name, func)
             for (name, func) in kwargs.get("functions", {}).items()
@@ -43,10 +45,49 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
         self.all_monitors = self.process_settings.get("monitors", {})
 
-    def start_monitors(self, selected_asset, active_monitors):
+    def process(self, statement, additional_response_selection_parameters=None):
+        confidence = self.get_confidence(statement)
+
+        if confidence > self.confidence_threshold:
+            self.load_state()
+            active_monitors = self.state.get("active_monitors")
+            selected_asset = self.get_selected_asset()
+
+            if not selected_asset:
+                response = Statement(text="No asset selected. Please select an asset first.")
+                response.confidence = confidence
+            else:
+                response = CallbackAction(
+                    self.execute_action,
+                    selected_asset=selected_asset,
+                    active_monitors=active_monitors,
+                    confidence=confidence,
+                )
+        else:
+            response = None
+
+        return response
+
+    def execute_action(self, selected_asset, active_monitors):
+        active_monitors = self._start_monitors(selected_asset, active_monitors)
+
+        if active_monitors == {}:
+            response_text = f'{selected_asset["asset_name"]} has no registered monitors'
+        else:
+            self.state = {"active_monitors": active_monitors}
+            self.share_state()
+
+            monitor_names = list(active_monitors.keys())
+            response_text = "{} monitors running ({})".format(
+                len(monitor_names), ", ".join(monitor_names)
+            )
+
+        return response_text
+
+    def _start_monitors(self, selected_asset, active_monitors):
         asset_name = self.get_asset_name(selected_asset)
         asset_monitors = self.all_monitors.get(asset_name, {})
-        process_handlers = load_process_handlers(self.chatbot.agent_settings)
+        process_handlers = load_process_handlers(self.agent_settings)
 
         monitors_to_start = dict(
             (name, settings)
@@ -79,46 +120,3 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 process.start()
 
         return active_monitors
-
-    def can_process(self, statement):
-        return "monitor" in statement.text.lower()
-
-    def process(self, statement, additional_response_selection_parameters=None):
-        confidence = self.get_confidence(statement)
-
-        if confidence > self.confidence_threshold:
-            self.load_state()
-            active_monitors = self.state.get("active_monitors")
-            selected_asset = self.get_selected_asset()
-
-            if not selected_asset:
-                response = ShowTextAction(
-                    "No asset selected. Please select an asset first.", confidence
-                )
-            else:
-                response = CallbackAction(
-                    self.handle_start_monitors,
-                    confidence,
-                    selected_asset=selected_asset,
-                    active_monitors=active_monitors,
-                )
-        else:
-            response = None
-
-        return response
-
-    def handle_start_monitors(self, selected_asset, active_monitors):
-        active_monitors = self.start_monitors(selected_asset, active_monitors)
-
-        if active_monitors == {}:
-            response_text = f'{selected_asset["asset_name"]} has no registered monitors'
-        else:
-            self.state = {"active_monitors": active_monitors}
-            self.share_state()
-
-            monitor_names = list(active_monitors.keys())
-            response_text = "{} monitors running ({})".format(
-                len(monitor_names), ", ".join(monitor_names)
-            )
-
-        return response_text
