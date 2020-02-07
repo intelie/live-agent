@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Process, Queue
 from functools import partial
-import queue
 
 from eliot import start_action, Action
 from setproctitle import setproctitle
 
 from live_client import query
 from live_client.events import messenger, annotation, raw
-from live_client.events.constants import EVENT_TYPE_EVENT
 from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
@@ -264,40 +262,23 @@ def start(process_name, process_settings, output_info, settings, task_id):
         bots_registry = {}
 
         bot_alias = process_settings.get("alias", "Intelie").lower()
-        bootstrap_query = f"""
+        bot_query = f"""
             __message -__delete:*
             => @filter(
                 message:lower():contains("{bot_alias}") &&
                 author->name:lower() != "{bot_alias}"
             )
         """
-        results_process, results_queue = query.run(
-            process_name,
-            process_settings,
-            bootstrap_query,
-            realtime=True,
-            timeout=request_timeout,
-            max_retries=max_retries,
-        )
 
-        while True:
-            try:
-                event = results_queue.get(timeout=read_timeout)
-                messenger.join_messenger(process_name, process_settings, output_info)
-            except queue.Empty as e:
-                logging.exception(e)
-                start(process_name, process_settings, output_info, settings, task_id)
-                break
-
-            event_type = event.get("data", {}).get("type")
-            if event_type != EVENT_TYPE_EVENT:
-                continue
-
-            bot_processes = route_message(
+        @query.on_event(bot_query, process_settings, timeout=read_timeout, max_retries=max_retries)
+        def handle_events(event, *args, **kwargs):
+            messenger.join_messenger(process_name, process_settings, output_info)
+            return route_message(
                 process_name, process_settings, output_info, settings, bots_registry, event
             )
 
-        results_process.join()
+        bot_processes = handle_events(process_settings)
         for bot in bot_processes:
             bot.join()
+
     return
