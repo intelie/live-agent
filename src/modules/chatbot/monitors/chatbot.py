@@ -157,11 +157,7 @@ def start_chatbot(
 
         # TODO: Replace these functions by an instance of LiveClient.
         run_query_func = partial(
-            query.run,
-            process_name,
-            process_settings,
-            timeout=request_timeout,
-            max_retries=max_retries,
+            query.run, process_settings, timeout=request_timeout, max_retries=max_retries
         )
         annotate_func = partial(
             create_annotation,
