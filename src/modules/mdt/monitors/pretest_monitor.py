@@ -524,8 +524,8 @@ def run_monitor(process_name, probe_name, probe_data, event_list, functions_map)
     return current_state
 
 
-def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - pretest"
+def start(settings, helpers=None, task_id=None):
+    process_name = f"pretest monitor"
 
     if task_id:
         action = Action.continue_task(task_id=task_id)

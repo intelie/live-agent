@@ -91,9 +91,7 @@ def maybe_mention(process_settings, message):
 
 
 def process_messages(chatbot, messages):
-    process_name = chatbot.context.get("process_name")
     process_settings = chatbot.context.get("process_settings")
-    output_info = chatbot.context.get("output_info")
     room_id = chatbot.context.get("room_id")
 
     for message in messages:
@@ -105,47 +103,41 @@ def process_messages(chatbot, messages):
                 response = chatbot.get_response(message)
 
             if response is not None:
-                logging.info('{}: Bot response is "{}"'.format(process_name, response.serialize()))
+                logging.info('Bot response is "{}"'.format(response.serialize()))
                 if isinstance(response, ActionStatement):
                     response.chatbot = chatbot
                     response_message = response.run()
                 else:
                     response_message = response.text
 
-                maybe_send_message(
-                    process_name, process_settings, output_info, room_id, response_message
-                )
+                maybe_send_message(process_settings, room_id, response_message)
 
 
-def maybe_send_message(process_name, process_settings, output_info, room_id, response_message):
+def maybe_send_message(process_settings, room_id, response_message):
     bot_settings = process_settings.copy()
     bot_alias = bot_settings.get("alias", "Intelie")
-    bot_settings["destination"]["room"] = {"id": room_id}
-    if "name" not in bot_settings["destination"]["author"]:
-        bot_settings["destination"]["author"]["name"] = bot_alias
+    bot_settings["output"]["room"] = {"id": room_id}
+    if "name" not in bot_settings["output"]["author"]:
+        bot_settings["output"]["author"]["name"] = bot_alias
 
     messenger.send_message(
-        process_name,
         response_message,
         get_timestamp(),
         process_settings=bot_settings,
-        output_info=output_info,
         message_type=messenger.MESSAGE_TYPES.CHAT,
     )
 
 
 ##
 # Room Bot initialization
-def train_bot(process_name, chatbot, language="english"):
+def train_bot(chatbot, language="english"):
     trainer = ChatterBotCorpusTrainer(chatbot)
     trainer.train(f"chatterbot.corpus.{language}.conversations")
     trainer.train(f"chatterbot.corpus.{language}.greetings")
     trainer.train(f"chatterbot.corpus.{language}.humor")
 
 
-def start_chatbot(
-    process_name, process_settings, output_info, settings, room_id, room_queue, task_id
-):
+def start_chatbot(process_settings, room_id, room_queue, task_id):
     setproctitle("DDA: Chatbot for room {}".format(room_id))
 
     with Action.continue_task(task_id=task_id):
@@ -158,29 +150,18 @@ def start_chatbot(
             query.run, process_settings, timeout=request_timeout, max_retries=max_retries
         )
         annotate_func = partial(
-            create_annotation,
-            process_settings=process_settings,
-            output_info=output_info,
-            room={"id": room_id},
+            create_annotation, process_settings=process_settings, room={"id": room_id}
         )
         messenger_func = partial(
-            send_message,
-            process_settings=process_settings,
-            output_info=output_info,
-            room={"id": room_id},
+            send_message, process_settings=process_settings, room={"id": room_id}
         )
-        send_event_func = partial(
-            send_event, process_settings=process_settings, output_info=output_info
-        )
+        send_event_func = partial(send_event, process_settings=process_settings)
 
         bot_alias = process_settings.get("alias", "Intelie")
         context = {
             "room_id": room_id,
-            "agent_settings": settings,
-            "process_name": process_name,
             "process_settings": process_settings,
-            "output_info": output_info,
-            "live_client": LiveClient(process_name, process_settings, output_info, room_id),
+            "live_client": LiveClient(process_settings, room_id),
             "functions": {
                 "load_state": load_state_func,
                 "share_state": share_state_func,
@@ -198,7 +179,7 @@ def start_chatbot(
             filters=[],
             **context,
         )
-        train_bot(process_name, chatbot)
+        train_bot(chatbot)
 
         while True:
             event = room_queue.get()
@@ -208,8 +189,8 @@ def start_chatbot(
     return chatbot
 
 
-def route_message(process_name, process_settings, output_info, settings, bots_registry, event):
-    logging.debug("{}: Got an event: {}".format(process_name, event))
+def route_message(process_settings, bots_registry, event):
+    logging.debug("Got an event: {}".format(event))
 
     messages = maybe_extract_messages(event)
     for message in messages:
@@ -222,25 +203,16 @@ def route_message(process_name, process_settings, output_info, settings, bots_re
         room_bot, room_queue = bots_registry.get(room_id, (None, None))
 
         if room_bot and room_bot.is_alive():
-            logging.debug("{}: Bot for {} is already known".format(process_name, room_id))
+            logging.debug("Bot for {} is already known".format(room_id))
         else:
-            logging.info("{}: New bot for room {}".format(process_name, room_id))
-            messenger.add_to_room(process_name, process_settings, output_info, room_id, sender)
+            logging.info("New bot for room {}".format(room_id))
+            messenger.add_to_room(process_settings, room_id, sender)
 
             with start_action(action_type="start_chatbot", room_id=room_id) as action:
                 task_id = action.serialize_task_id()
                 room_queue = Queue()
                 room_bot = Process(
-                    target=start_chatbot,
-                    args=(
-                        process_name,
-                        process_settings,
-                        output_info,
-                        settings,
-                        room_id,
-                        room_queue,
-                        task_id,
-                    ),
+                    target=start_chatbot, args=(process_settings, room_id, room_queue, task_id)
                 )
 
             room_bot.start()
@@ -254,11 +226,11 @@ def route_message(process_name, process_settings, output_info, settings, bots_re
 
 ##
 # Global process initialization
-def start(process_name, process_settings, output_info, settings, task_id):
+def start(process_settings, task_id):
     setproctitle("DDA: Chatbot main process")
 
     with Action.continue_task(task_id=task_id):
-        logging.info("{}: Chatbot process started".format(process_name))
+        logging.info("Chatbot process started")
         bots_registry = {}
 
         bot_alias = process_settings.get("alias", "Intelie").lower()
@@ -272,10 +244,8 @@ def start(process_name, process_settings, output_info, settings, task_id):
 
         @query.on_event(bot_query, process_settings, timeout=read_timeout, max_retries=max_retries)
         def handle_events(event, *args, **kwargs):
-            messenger.join_messenger(process_name, process_settings, output_info)
-            return route_message(
-                process_name, process_settings, output_info, settings, bots_registry, event
-            )
+            messenger.join_messenger(process_settings)
+            return route_message(process_settings, bots_registry, event)
 
         bot_processes = handle_events()
         for bot in bot_processes:

@@ -83,7 +83,7 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
         super().__init__(chatbot, **kwargs)
 
         self.process_settings = kwargs["process_settings"]
-        self.live_host = self.process_settings["live"]["host"]
+        self.live_url = self.process_settings["live"]["url"]
         self.username = self.process_settings["live"]["username"]
         self.password = self.process_settings["live"]["password"]
 
@@ -199,7 +199,7 @@ class TorqueAndDragCalibrator:
     def __init__(self, live_client):
         self.live_client = live_client
         self.process_settings = live_client.process_settings
-        self.live_host = self.process_settings["live"]["host"]
+        self.live_url = self.process_settings["live"]["url"]
         self.username = self.process_settings["live"]["username"]
         self.password = self.process_settings["live"]["password"]
 
@@ -240,7 +240,7 @@ class TorqueAndDragCalibrator:
 
     def request_calibration(self, well_id, points):
         service_path = "/services/plugin-og-model-torquendrag/calibrate/"
-        url = f"{self.live_host}{service_path}"
+        url = f"{self.live_url}{service_path}"
 
         s = requests.Session()
         s.auth = (self.username, self.password)

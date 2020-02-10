@@ -80,14 +80,10 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-
-        process_name = kwargs["process_name"]
-        process_settings = kwargs["process_settings"]
-        output_info = kwargs["output_info"]
         self.annotator = kwargs.get("functions", {})["create_annotation"]
 
         self.room_id = kwargs["room_id"]
-        self.analyzer = partial(run_analysis, process_name, process_settings, output_info)
+        self.analyzer = partial(run_analysis)
 
     def find_index_value(self, statement):
         tagged_words = self.pos_tag(statement)

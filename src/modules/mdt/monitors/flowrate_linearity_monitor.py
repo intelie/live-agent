@@ -55,8 +55,8 @@ def check_rate(process_name, accumulator, settings, send_message):
 
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
-def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - flowrate linearity"
+def start(settings, helpers=None, task_id=None):
+    process_name = f"flowrate linearity monitor"
 
     action = monitors.get_log_action(task_id, "flowrate_linearity_monitor")
     with action.context():
@@ -84,7 +84,7 @@ def start(name, settings, helpers=None, task_id=None):
 
         except queue.Empty:
             # FIXME Não deveriamos chamar results_process.join() aqui? #<<<<<
-            start(name, settings, helpers=helpers, task_id=task_id)
+            start(settings, helpers=helpers, task_id=task_id)
 
         except Exception as e:
             print(f"Ocorreu um erro: {e}")

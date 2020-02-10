@@ -9,7 +9,6 @@ from eliot import start_action, to_file, Action
 from setproctitle import setproctitle
 
 from runner.daemon import Daemon
-from live_client.connection import CONNECTION_HANDLERS
 from live_client.utils import logging
 from utils.filter import filter_dict
 from utils.importer import load_process_handlers
@@ -38,34 +37,13 @@ class LiveAgent(Daemon):
     def resolve_process_handler(self, process_type, process_handlers):
         return process_handlers.get(process_type)
 
-    def resolve_output_handler(self, output_settings):
-        output_type = output_settings.get("type")
-        return CONNECTION_HANDLERS.get(output_type)
-
-    def get_output_options(self, settings):
-        destinations = settings.get("output", {})
-        invalid_destinations = dict(
-            (name, out_settings)
-            for name, out_settings in destinations.items()
-            if out_settings.get("type") not in CONNECTION_HANDLERS
-        )
-
-        for name, info in invalid_destinations.items():
-            logging.error("Invalid output configured: {}, {}".format(name, info))
-
-        return destinations
-
-    def get_processes(self, settings, output_options, process_handlers):
+    def get_processes(self, settings, process_handlers):
         processes = filter_dict(
             settings.get("processes", {}), lambda _k, v: v.get("enabled") is True
         )
 
         invalid_processes = filter_dict(
-            processes,
-            lambda _k, v: (
-                (v.get("type") not in process_handlers)
-                or (v.get("destination", {}).get("name") not in output_options)
-            ),
+            processes, lambda _k, v: (v.get("type") not in process_handlers)
         )
 
         for name, info in invalid_processes.items():
@@ -77,21 +55,15 @@ class LiveAgent(Daemon):
 
     def resolve_handlers(self, settings):
         process_handlers = load_process_handlers(settings)
-        output_options = self.get_output_options(settings)
-        registered_processes = self.get_processes(settings, output_options, process_handlers)
-
-        output_funcs = dict(
-            (name, (self.resolve_output_handler(out_settings), out_settings))
-            for name, out_settings in output_options.items()
-        )
+        registered_processes = self.get_processes(settings, process_handlers)
 
         for name, process_settings in registered_processes.items():
             process_type = process_settings.pop("type")
-            output_type = process_settings["destination"]["name"]
+            process_func = self.resolve_process_handler(process_type, process_handlers)
             process_settings.update(
-                process_func=self.resolve_process_handler(process_type, process_handlers),
-                output=output_funcs.get(output_type),
+                process_func=process_func,
                 live=settings.get("live", {}),
+                process_handlers=process_handlers,
             )
 
         return registered_processes
@@ -106,14 +78,10 @@ class LiveAgent(Daemon):
         running_processes = []
         for name, process_settings in processes_to_run.items():
             process_func = process_settings.pop("process_func")
-            output_info = process_settings.pop("output")
 
             with start_action(action_type=name) as action:
                 task_id = action.serialize_task_id()
-                process = Process(
-                    target=process_func,
-                    args=(name, process_settings, output_info, settings, task_id),
-                )
+                process = Process(target=process_func, args=(process_settings, task_id))
                 running_processes.append(process)
                 process.start()
 
@@ -125,8 +93,11 @@ class LiveAgent(Daemon):
                 with open(self.settings_file, "r") as fd:
                     settings = json.load(fd)
 
-                logging.setup_python_logging(settings)
-                logging.setup_live_logging(settings)
+                logging_settings = settings.get("logging")
+                live_settings = settings.get("live")
+
+                logging.setup_python_logging(logging_settings)
+                logging.setup_live_logging(logging_settings, live_settings)
 
                 self.start_processes(settings)
             except KeyboardInterrupt:

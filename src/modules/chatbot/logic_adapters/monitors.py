@@ -4,7 +4,6 @@ from chatterbot.conversation import Statement
 
 from live_client.utils import logging
 
-from utils.importer import load_process_handlers
 from chatbot.actions import CallbackAction
 from .base import BaseBayesAdapter, WithAssetAdapter
 
@@ -35,7 +34,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
         self.process_settings = kwargs.get("process_settings", {})
-        self.agent_settings = kwargs.get("agent_settings", {})
+        self.process_handlers = self.process_settings.get("process_handlers")
 
         self.helpers = dict(
             (name, func)
@@ -87,7 +86,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
     def _start_monitors(self, selected_asset, active_monitors):
         asset_name = self.get_asset_name(selected_asset)
         asset_monitors = self.all_monitors.get(asset_name, {})
-        process_handlers = load_process_handlers(self.agent_settings)
 
         monitors_to_start = dict(
             (name, settings)
@@ -99,24 +97,25 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             monitor_settings = settings.copy()
             is_enabled = monitor_settings.get("enabled", False)
             if not is_enabled:
-                logging.info(f"{asset_name}: Ignoring disabled process '{name}'")
+                logging.info(f"Ignoring disabled process '{name}'")
                 continue
 
             process_type = monitor_settings.get("type")
-            if process_type not in process_handlers:
-                logging.error(f"{asset_name}: Ignoring unknown process type '{process_type}'")
+            if process_type not in self.process_handlers:
+                logging.error(f"Ignoring unknown process type '{process_type}'")
                 continue
 
             monitor_settings["event_type"] = self.get_event_type(selected_asset)
-            process_func = process_handlers.get(process_type)
+            process_func = self.process_handlers.get(process_type)
 
             monitor_settings["live"] = self.process_settings["live"]
 
             with start_action(action_type=name) as action:
+                logging.debug(f"Starting {name}")
                 task_id = action.serialize_task_id()
                 process = Process(
                     target=process_func,
-                    args=(asset_name, monitor_settings),
+                    args=(monitor_settings),
                     kwargs={"helpers": self.helpers, "task_id": task_id},
                 )
                 active_monitors[name] = process

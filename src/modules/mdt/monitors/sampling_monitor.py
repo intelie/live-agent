@@ -811,8 +811,8 @@ def run_monitor(process_name, settings, event_list, functions_map):
     return sampling_state
 
 
-def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - sampling"
+def start(settings, helpers=None, task_id=None):
+    process_name = f"sampling monitor"
 
     if task_id:
         action = Action.continue_task(task_id=task_id)
@@ -869,7 +869,7 @@ def start(name, settings, helpers=None, task_id=None):
                 timeout=read_timeout,
             )
         except queue.Empty:
-            start(name, settings, helpers=helpers, task_id=task_id)
+            start(settings, helpers=helpers, task_id=task_id)
 
     action.finish()
 

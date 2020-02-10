@@ -17,8 +17,7 @@
         ["./input_files/well0-MDT_OFA_CMR_106LTP.las", null]
       ],
       "index_mnemonic": "TIME",
-      "destination": {
-        "name": "tcp",
+      "output": {
         "event_type": "raw_well0",
         "author": {"id": 2, "name": "🤖  Data replayer"},
         "room": {"id": "eia02b6rencfqrjfq5um06842o"},
@@ -34,8 +33,7 @@
         ["./input_files/well3-MDT_OFA_030LTP_Sample2.txt", null]
       ],
       "index_mnemonic": "TIME",
-      "destination": {
-        "name": "rest",
+      "output": {
         "event_type": "raw_well3",
         "author": {"id": 2, "name": "🤖  Data replayer"},
         "room": {"id": "f1v7nljg8on2v2h5tm6v9bmdug"},
@@ -85,8 +83,7 @@
         ["./input_files/RCI_k800g32.las", null]
       ],
       "index_mnemonic": "TTIM",
-      "destination": {
-        "name": "rest",
+      "output": {
         "event_type": "raw_hechicera1",
         "author": {"id": 2, "name": "🤖  Data replayer"},
         "room": {"id": "0o43868ba6giigms9i23i6iert"},
@@ -116,11 +113,6 @@
             "maximum_similarity_threshold": 0.90
         }
       ],
-      "live": {
-        "host": "http://localhost:8080",
-        "username": "admin",
-        "password": "admin"
-      },
       "monitors": {
         "ReplayRig0": {
           "pretest": {
@@ -144,7 +136,7 @@
               },
               "probes": ["1", "2"]
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
               "dashboard": {"id": 17, "name": "Well 0: Pretest"},
               "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
@@ -168,7 +160,7 @@
               "sampling_frequency": 5,
               "precision": 0
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
             }
           }
@@ -196,7 +188,7 @@
               },
               "probes": ["1", "2"]
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
               "dashboard": {"id": 18, "name": "Well 3: Pretest"},
               "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
@@ -223,7 +215,7 @@
               "focused_flow_grace_period": 180,
               "probes": ["1", "2"]
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Sampling monitor"},
               "dashboard": {"id": 21, "name": "Well 3: Sampling"},
               "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
@@ -247,7 +239,7 @@
               "sampling_frequency": 5,
               "precision": 0
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Flowrate monitor"}
             }
           }
@@ -270,7 +262,7 @@
               },
               "probes": ["1"]
             },
-            "destination": {
+            "output": {
               "author": {"id": 2, "name": "🤖  Pretest monitor"},
               "dashboard": {"id": 17, "name": "Hechicera 1: Pretest"},
               "message_event": {"event_type": "raw_hechicera1", "mnemonic": "MSG"}
@@ -278,37 +270,25 @@
           }
         }
       },
-      "destination": {
+      "output": {
         "name": "rest-agent",
         "author": {"id": 2, "name": "Oliver"}
       }
     }
   },
-  "output": {
-    "tcp": {
-      "type": "tcp",
-      "ip": "127.0.0.1",
-      "port": 17042
-    },
-    "rest": {
-      "type": "rest",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "admin",
-      "password": "admin"
-    },
-    "rest-agent": {
-      "type": "rest",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "live-agent",
-      "password": "live-agent"
-    },
-    "rest-log": {
-      "type": "rest",
-      "url": "http://localhost:8080/services/plugin-restinput/shell/",
-      "username": "live-agent",
-      "password": "live-agent",
-      "level": "info",
-      "event_type": "dda_log"
-    }
+  "live": {
+    "ip": "127.0.0.1",
+    "port": 17042,
+    "url": "http://localhost:8080",
+    "username": "live-agent",
+    "password": "live-agent",
+    "user_id": 2,
+    "user_name": "🤖  Oliver",
+    "rest_input": "/services/plugin-restinput/shell/"
+  },
+  "logging": {
+    "log_to_live": true,
+    "event_type": "dda_log",
+    "level": "info"
   }
 }

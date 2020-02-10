@@ -17,70 +17,48 @@ __all__ = ["start"]
 READ_MODES = Enum("READ_MODES", "SINGLE_PASS, CONTINUOUS")
 
 
-def maybe_send_chat_message(
-    event_type,
-    chat_data,
-    last_timestamp,
-    next_timestamp,
-    index_mnemonic,
-    process_settings,
-    output_info,
-):  # NOQA
-    if not chat_data:
+def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, process_settings):
+    if not chat:
         return
 
     items_to_send = []
-    for item in chat_data:
+    for item in chat:
         item_index = int(item.get(index_mnemonic, -1))
 
-        if last_timestamp < item_index <= next_timestamp:
+        if last_ts < item_index <= next_ts:
             items_to_send.append(item)
 
-    logging.debug(
-        "{}: {} messages between {} and {}".format(
-            event_type, len(items_to_send), last_timestamp, next_timestamp
-        )
-    )
+    logging.debug("{} messages between {} and {}".format(len(items_to_send), last_ts, next_ts))
 
     for item in items_to_send:
         message = item.get("MESSAGE")
         source = item.get("SOURCE")
         if message and source:
-            messenger.maybe_send_chat_message(
-                event_type,
-                message,
-                author_name=source,
-                process_settings=process_settings,
-                output_info=output_info,
-            )
+            messenger.maybe_send_chat_message(message, process_settings, author_name=source)
 
 
-def send_message(process_name, message, timestamp, process_settings=None, output_info=None):
-    messenger.maybe_send_message_event(
-        process_name, message, timestamp, process_settings=process_settings, output_info=output_info
-    )
-    messenger.maybe_send_chat_message(
-        process_name, message, process_settings=process_settings, output_info=output_info
-    )
+def send_message(message, timestamp, process_settings=None):
+    messenger.maybe_send_message_event(message, timestamp, process_settings)
+    messenger.maybe_send_chat_message(message, process_settings)
 
 
-def delay_output(last_timestamp, next_timestamp, event_type=""):
+def delay_output(last_timestamp, next_timestamp):
     if last_timestamp == 0:
         sleep_time = 0
     else:
         sleep_time = max(next_timestamp - last_timestamp, 0)
 
-    loop.await_next_cycle(sleep_time, event_type)
+    loop.await_next_cycle(sleep_time)
 
 
-def read_next_frame(event_type, values_iterator, curves, curves_data, index_mnemonic):
+def read_next_frame(values_iterator, curves, curves_data, index_mnemonic):
     try:
         index, values = next(values_iterator)
         success = True
     except Exception as e:
         output_frame = {}
         success = False
-        logging.debug("{}: Error reading next value, {}<{}>".format(event_type, e, type(e)))
+        logging.debug("Error reading next value, {}<{}>".format(e, type(e)))
 
     if success:
         output_frame = {index_mnemonic: {"value": index, "uom": "s"}}
@@ -126,31 +104,8 @@ def open_files(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, chat_data, index_mnemonic
 
 
-def export_curves_data(
-    event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings
-):  # NOQA
-    logging.info("Exporting curves for {}".format(event_type))
-    output_dir = settings.get("temp_dir", "/tmp")
-
-    source_name = las_data.version.SOURCE.value
-    output_filename = "{}/{}.csv".format(output_dir, source_name)
-
-    with open(output_filename, "w") as output_file:
-        writer = csv.writer(output_file)
-
-        for curve in las_data.curves:
-            writer.writerow(
-                ["{} - {}".format(curve.mnemonic, curve.descr), curve.mnemonic, curve.unit, "", ""]
-            )
-
-    logging.info("File {} created".format(output_filename))
-
-
-def generate_events(
-    event_type, las_data, chat_data, index_mnemonic, process_settings, output_info, settings
-):  # NOQA
+def generate_events(event_type, las_data, chat_data, index_mnemonic, process_settings):
     logging.info("{}: Event generation started".format(event_type))
-    connection_func, output_settings = output_info
 
     source_name = las_data.version.SOURCE.value
     curves_data = dict((item.mnemonic, item.unit) for item in las_data.curves)
@@ -161,62 +116,32 @@ def generate_events(
     success = True
     last_timestamp = 0
     while success:
-        success, statuses = read_next_frame(
-            event_type, values_iterator, curves, curves_data, index_mnemonic
-        )
-
-        # ##
-        # # well3
-        # # - 3750: before operation start
-        # # - 5200: at focused flow
-        # # - 5600, 6095: before seal loss
-        # etim = statuses['ETIM']['value']
-        # if (event_type == 'raw_well3') and (etim < 5200):
-        #     logging.info('{}: Skipping event with ETIM {:.0f}'.format(event_type, etim))
-        #     continue
+        success, statuses = read_next_frame(values_iterator, curves, curves_data, index_mnemonic)
 
         if success:
             next_timestamp = statuses.get(index_mnemonic, {}).get("value", 0)
 
-            delay_output(last_timestamp, next_timestamp, event_type)
+            delay_output(last_timestamp, next_timestamp)
+
             if last_timestamp == 0:
                 message = "Replay from '{}' started at TIME {}".format(source_name, next_timestamp)
-                send_message(
-                    event_type,
-                    message,
-                    timestamp.get_timestamp(),
-                    process_settings=process_settings,
-                    output_info=output_info,
-                )
+                send_message(message, timestamp.get_timestamp(), process_settings=process_settings)
 
-            raw.format_and_send(
-                event_type, statuses, output_settings, connection_func=connection_func
-            )
+            raw.create(event_type, statuses, process_settings)
+
             maybe_send_chat_message(
-                event_type,
-                chat_data,
-                last_timestamp,
-                next_timestamp,
-                index_mnemonic,
-                process_settings,
-                output_info,
+                chat_data, last_timestamp, next_timestamp, index_mnemonic, process_settings
             )
             last_timestamp = next_timestamp
 
 
-def start(process_name, process_settings, output_info, settings, task_id):
+def start(process_settings, task_id):
     with Action.continue_task(task_id=task_id):
-        debug_mode = settings.get("DEBUG", False)
-        event_type = process_settings["destination"]["event_type"]
+        event_type = process_settings["output"]["event_type"]
         cooldown_time = process_settings.get("cooldown_time", 300)
         setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
-        if debug_mode:
-            read_mode = READ_MODES.SINGLE_PASS
-            handling_func = export_curves_data
-        else:
-            read_mode = READ_MODES.CONTINUOUS
-            handling_func = generate_events
+        read_mode = READ_MODES.CONTINUOUS
 
         iterations = 0
         while True:
@@ -226,22 +151,12 @@ def start(process_name, process_settings, output_info, settings, task_id):
                 )
 
                 if success:
-                    handling_func(
-                        event_type,
-                        las_data,
-                        chat_data,
-                        index_mnemonic,
-                        process_settings,
-                        output_info,
-                        settings,
+                    generate_events(
+                        event_type, las_data, chat_data, index_mnemonic, process_settings
                     )
-                    logging.info("{}: Iteration {} successful".format(event_type, iterations))
-
-                elif read_mode == READ_MODES.SINGLE_PASS:
-                    logging.info("{}: Single pass mode, exiting".format(event_type))
-                    break
+                    logging.info("Iteration {} successful".format(iterations))
                 else:
-                    raise las_data
+                    logging.warn("Could not open files")
 
                 loop.await_next_cycle(
                     cooldown_time,
@@ -251,13 +166,13 @@ def start(process_name, process_settings, output_info, settings, task_id):
                 )
 
             except KeyboardInterrupt:
-                logging.info("{}: Stopping after {} iterations".format(event_type, iterations))
+                logging.info("Stopping after {} iterations".format(iterations))
                 raise
 
             except Exception as e:
                 logging.error(
-                    "{}: Error processing events during iteration {}, {}<{}>".format(
-                        event_type, iterations, e, type(e)
+                    "Error processing events during iteration {}, {}<{}>".format(
+                        iterations, e, type(e)
                     )
                 )
 

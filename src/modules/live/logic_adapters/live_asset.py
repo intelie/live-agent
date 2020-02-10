@@ -40,13 +40,10 @@ class AssetListAdapter(BaseBayesAdapter, WithStateAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
-        available_assets = list_assets(
-            kwargs["process_name"], kwargs["process_settings"], kwargs["output_info"]
-        )
+        available_assets = list_assets(kwargs["process_settings"])
 
         if not available_assets:
-            process_name = kwargs["process_name"]
-            logging.warn(f"{process_name}: No assets available. Check permissions for this user!")
+            logging.warn(f"No assets available. Check permissions for this user!")
 
         self.load_state()
         self.state = {
@@ -95,13 +92,9 @@ class AssetSelectionAdapter(BaseBayesAdapter, WithStateAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
-        process_name = kwargs["process_name"]
         process_settings = kwargs["process_settings"]
-        output_info = kwargs["output_info"]
 
-        self.asset_fetcher = partial(
-            fetch_asset_settings, process_name, process_settings, output_info
-        )
+        self.asset_fetcher = partial(fetch_asset_settings, process_settings)
 
     def was_asset_mentioned(self, asset, statement):
         return asset.get("name", "INVALID ASSET NAME").lower() in statement.text.lower()

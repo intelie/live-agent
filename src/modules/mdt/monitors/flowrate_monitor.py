@@ -64,8 +64,8 @@ def build_query(settings):
     return query
 
 
-def start(name, settings, helpers=None, task_id=None):
-    process_name = f"{name} - flowrate"
+def start(settings, helpers=None, task_id=None):
+    process_name = f"flowrate monitor"
 
     action = get_log_action(task_id, "flowrate_monitor")
     with action.context():
