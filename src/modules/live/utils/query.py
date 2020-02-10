@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import queue
 from live_client.utils import logging
 
 from utils import loop
@@ -34,7 +33,7 @@ def prepare_query(settings):
     return query
 
 
-def handle_events(processor_func, results_queue, settings, timeout=10):
+def handle_events(event, callback, settings, accumulator=None, timeout=10):
     event_type = settings.get("event_type")
     monitor_type = settings.get("type")
     process_name = f"{event_type} {monitor_type}"
@@ -44,45 +43,37 @@ def handle_events(processor_func, results_queue, settings, timeout=10):
     mnemonics = monitor_settings.get("mnemonics", {})
     index_mnemonic = mnemonics.get("index", "timestamp")
 
-    accumulator = []
-    iterations = 0
-    while True:
-        try:
-            event = results_queue.get(timeout=timeout)
+    if accumulator is None:
+        accumulator = []
 
-            latest_data, missing_curves = validate_event(event, settings)
+    try:
+        latest_data, missing_curves = validate_event(event, settings)
 
-            if latest_data:
-                accumulator, start, end = loop.refresh_accumulator(
-                    latest_data, accumulator, index_mnemonic, window_duration
-                )
+        if latest_data:
+            accumulator, start, end = loop.refresh_accumulator(
+                latest_data, accumulator, index_mnemonic, window_duration
+            )
 
-                if accumulator:
-                    processor_func(accumulator)
+            if accumulator:
+                callback(accumulator)
 
-            elif missing_curves:
-                logging.info(
-                    f"{process_name}: Some curves are missing ({missing_curves}). "
-                    f"\nevent was: {event} "
-                    f"\nWaiting for more data"
-                )
+        elif missing_curves:
+            logging.info(
+                f"{process_name}: Some curves are missing ({missing_curves}). "
+                f"\nevent was: {event} "
+                f"\nWaiting for more data"
+            )
 
-            logging.debug(f"{process_name}: Request {iterations} successful")
+        logging.debug(f"{process_name}: Request successful")
 
-        except KeyboardInterrupt:
-            logging.info(f"{process_name}: Stopping after {iterations} iterations")
-            raise
+    except KeyboardInterrupt:
+        logging.info(f"{process_name}: Stopping ")
+        raise
 
-        except queue.Empty as e:
-            logging.exception(e)
-            raise
-
-        except Exception as e:
-            logging.exception(e)
-            handle_events(processor_func, results_queue, settings, timeout=timeout)
-            return
-
-        iterations += 1
+    except Exception as e:
+        logging.exception(e)
+        handle_events(event, callback, settings, timeout=timeout)
+        return
 
 
 def validate_event(event, settings):

@@ -109,6 +109,9 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
 
             monitor_settings["event_type"] = self.get_event_type(selected_asset)
             process_func = process_handlers.get(process_type)
+
+            monitor_settings["live"] = self.process_settings["live"]
+
             with start_action(action_type=name) as action:
                 task_id = action.serialize_task_id()
                 process = Process(

@@ -277,7 +277,7 @@ def start(process_name, process_settings, output_info, settings, task_id):
                 process_name, process_settings, output_info, settings, bots_registry, event
             )
 
-        bot_processes = handle_events(process_settings)
+        bot_processes = handle_events()
         for bot in bot_processes:
             bot.join()
 

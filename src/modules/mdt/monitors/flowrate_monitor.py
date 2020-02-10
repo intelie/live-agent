@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-import queue
 from setproctitle import setproctitle
 
 from live_client.utils import logging
+from live_client.query import on_event
 from utils import monitors
 from utils.logging import get_log_action
-from live.utils.query import handle_events
+from live.utils.query import handle_events as process_event
 
 
 __all__ = ["start"]
@@ -74,24 +74,23 @@ def start(name, settings, helpers=None, task_id=None):
 
         window_duration = settings["monitor"]["window_duration"]
 
-        # Registrar consulta na API de console:
-        run_query = monitors.get_function("run_query", helpers)
-        results_process, results_queue = run_query(
-            build_query(settings), span=f"last {window_duration} seconds", realtime=True
-        )
-
-        # Preparar callback para tratar os eventos vindos da API de console via response_queue:
+        # Preparar callbacks para tratar os eventos
         send_message = partial(
             monitors.get_function("send_message", helpers), extra_settings=settings
         )
 
-        def process_events(accumulator):
+        def update_monitor_state(accumulator):
             check_rate(process_name, accumulator, settings, send_message)
 
-        try:
-            handle_events(process_events, results_queue, settings, timeout=read_timeout)
-        except queue.Empty:
-            # [ECS]: Essa chamada é um problema pois python não faz tail recursion <<<<<
-            start(name, settings, helpers=helpers, task_id=task_id)
+        fr_query = build_query(settings)
+        span = f"last {window_duration} seconds"
+
+        @on_event(fr_query, settings, span=span, timeout=read_timeout)
+        def handle_events(event, callback=None, settings=None, accumulator=None, timeout=None):
+            process_event(event, update_monitor_state, settings, accumulator, timeout=read_timeout)
+
+        handle_events(
+            callback=update_monitor_state, settings=settings, accumulator=[], timeout=read_timeout
+        )
 
     action.finish()

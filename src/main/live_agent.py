@@ -91,6 +91,7 @@ class LiveAgent(Daemon):
             process_settings.update(
                 process_func=self.resolve_process_handler(process_type, process_handlers),
                 output=output_funcs.get(output_type),
+                live=settings.get("live", {}),
             )
 
         return registered_processes
