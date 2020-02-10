@@ -6,7 +6,7 @@ from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 
 from chatbot.actions import CallbackAction, ChainedAction, NoTextAction, ShowTextAction
-from chatbot.logic_adapters.base import BaseBayesAdapter
+from chatbot.logic_adapters.base import BaseBayesAdapter, WithAssetAdapter
 
 
 tnd_query_template = """
@@ -64,7 +64,7 @@ def attempt(fn, *args, **kwargs):
         return None
 
 
-class TorqueAndDragAdapter(BaseBayesAdapter):
+class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
     state_key = "torque-drag"
     positive_examples = [
         "start td",
@@ -98,8 +98,8 @@ class TorqueAndDragAdapter(BaseBayesAdapter):
         confidence = 1
 
         # Do we have a selected asset?
-        asset = self.chatbot.getvar("selected_asset")
-        if asset is None:
+        asset = self.get_selected_asset()
+        if asset is None or asset == {}:
             return ShowTextAction(
                 "[T&D]: Please, select an asset before performing the calibration",
                 confidence=confidence,
