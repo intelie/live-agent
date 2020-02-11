@@ -6,8 +6,9 @@ from hashlib import md5
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
-from utils import loop, monitors
+from utils import loop
 from live_client.utils import timestamp, logging
+from live_client.events import messenger, annotation, raw
 from live_client.query import on_event
 from live.utils.query import prepare_query, handle_events as process_event
 from ..utils.buildup import find_stable_buildup
@@ -53,9 +54,7 @@ request_timeout = (3.05, 5)
 max_retries = 5
 
 
-def maybe_create_annotation(
-    process_name, probe_name, probe_data, current_state, annotation_func=None
-):  # NOQA
+def maybe_create_annotation(probe_name, probe_data, current_state, annotation_func=None):
     begin = probe_data.get("pretest_begin_timestamp", timestamp.get_timestamp())
     end = probe_data.get("pretest_end_timestamp")
 
@@ -69,7 +68,7 @@ def maybe_create_annotation(
 
     annotation_templates = {
         PRETEST_STATES.DRAWDOWN_START: {
-            "message": "Probe {}: Pretest in progress".format(probe_name),
+            "message": f"Probe {probe_name}: Pretest in progress",
             "__color": "#E87919",
         },
         PRETEST_STATES.INACTIVE: {
@@ -83,17 +82,15 @@ def maybe_create_annotation(
     if annotation_data:
         annotation_data.update(
             __src="pretest_monitor",
-            uid="{}-{}-{:.0f}".format(process_name, probe_name, ts),
+            uid="{}-{:.0f}".format(probe_name, ts),
             createdAt=ts,
             begin=begin,
             end=end,
         )
-        annotation_func(probe_name, annotation_data)
+        annotation_func(annotation_data)
 
     else:
-        logging.debug(
-            "{}, probe {}: Cannot create annotation without data".format(process_name, probe_name)
-        )
+        logging.debug(f"Probe {probe_name}: Cannot create annotation without data")
 
     return
 
@@ -300,7 +297,7 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
     probe_data.update(process_state=state, pretest_report=pretest_report)
 
 
-def find_drawdown(process_name, probe_name, probe_data, event_list, message_sender):
+def find_drawdown(probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} starts to raise"""
     index_mnemonic = probe_data["index_mnemonic"]
     pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
@@ -343,9 +340,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
             "Probe {}@{:.0f} ft: Drawdown started at {:.1f} s with pressure {:.2f} psi"
         )  # NOQA
         message_sender(
-            process_name,
-            message.format(probe_name, depth, etim, pressure),
-            timestamp=pretest_begin_timestamp,
+            message.format(probe_name, depth, etim, pressure), timestamp=pretest_begin_timestamp
         )
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
@@ -363,7 +358,7 @@ def find_drawdown(process_name, probe_name, probe_data, event_list, message_send
     return detected_state
 
 
-def find_buildup(process_name, probe_name, probe_data, event_list, message_sender):
+def find_buildup(probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} stabilizes"""
     index_mnemonic = probe_data["index_mnemonic"]
     pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
@@ -384,8 +379,8 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
         drawdown_stopped = last_pretest_volume == prev_pretest_volume
 
         logging.debug(
-            ("{}: End of drawdown detection: {}; {} -> {}.").format(
-                process_name, drawdown_stopped, prev_pretest_volume, last_pretest_volume
+            ("End of drawdown detection: {}; {} -> {}.").format(
+                drawdown_stopped, prev_pretest_volume, last_pretest_volume
             )
         )
     else:
@@ -412,9 +407,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
 
         message = "Probe {}@{:.0f} ft: Drawdown ended at {:.2f} s with pressure {:.2f} psi"  # NOQA
         message_sender(
-            process_name,
-            message.format(probe_name, depth, etim, pressure),
-            timestamp=drawdown_end_timestamp,
+            message.format(probe_name, depth, etim, pressure), timestamp=drawdown_end_timestamp
         )
 
         detected_state = PRETEST_STATES.DRAWDOWN_END
@@ -429,7 +422,7 @@ def find_buildup(process_name, probe_name, probe_data, event_list, message_sende
     return detected_state
 
 
-def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_sender):
+def find_pump_recycle(probe_name, probe_data, event_list, message_sender):
     """State when {pretest_volume_mnemonic} returns to zero"""
     index_mnemonic = probe_data["index_mnemonic"]
     pretest_volume_mnemonic = probe_data["pretest_volume_mnemonic"]
@@ -461,7 +454,6 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
 
         message = "Probe {}@{:.0f} ft: Pump reset at {:.1f} s with pressure {:.2f} psi"  # NOQA
         message_sender(
-            process_name,
             message.format(probe_name, depth, etim, pressure),
             timestamp=reference_event.get("timestamp"),
         )
@@ -475,56 +467,44 @@ def find_pump_recycle(process_name, probe_name, probe_data, event_list, message_
     return detected_state
 
 
-def run_monitor(process_name, probe_name, probe_data, event_list, functions_map):
+def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
     current_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
-    logging.debug(
-        "{}: Pretest monitor for probe {} at state {}".format(
-            process_name, probe_name, current_state
-        )
-    )
+    logging.debug("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
+
+    send_event = partial(raw.create, process_settings=settings)
+    send_message = partial(messenger.send_message, process_settings=settings)
+    create_annotation = partial(annotation.create, process_settings=settings)
 
     state_transition_func = functions_map[current_state]
     probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
     detected_state = state_transition_func(
-        process_name,
-        probe_name,
-        probe_data,
-        event_list,
-        message_sender=functions_map["send_message"],
+        probe_name, probe_data, event_list, message_sender=send_message
     )
 
     if (detected_state is None) and (current_state != PRETEST_STATES.INACTIVE):
         # Did the pretest volume get reset?
         detected_state = find_pump_recycle(
-            process_name,
-            probe_name,
-            probe_data,
-            event_list,
-            message_sender=functions_map["send_message"],
+            probe_name, probe_data, event_list, message_sender=send_message
         )
 
     if detected_state and (detected_state != current_state):
         logging.info(
-            "{}: Pretest monitor for probe {}, {} -> {}".format(
-                process_name, probe_name, current_state, detected_state
+            "Pretest monitor for probe {}, {} -> {}".format(
+                probe_name, current_state, detected_state
             )
         )
         current_state = detected_state
         maybe_create_annotation(
-            process_name,
-            probe_name,
-            probe_data,
-            current_state,
-            annotation_func=functions_map["create_annotation"],
+            probe_name, probe_data, current_state, annotation_func=create_annotation
         )
 
     maybe_update_pretest_report(
-        probe_name, probe_data, current_state, event_list, event_sender=functions_map["send_event"]
+        probe_name, probe_data, current_state, event_list, event_sender=send_event
     )
     return current_state
 
 
-def start(settings, helpers=None, task_id=None):
+def start(settings, task_id=None, **kwargs):
     process_name = f"pretest monitor"
 
     if task_id:
@@ -549,16 +529,6 @@ def start(settings, helpers=None, task_id=None):
                 targets={0.01: PRETEST_STATES.INACTIVE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
-            "send_message": partial(
-                monitors.get_function("send_message", helpers), extra_settings=settings
-            ),
-            "create_annotation": partial(
-                monitors.get_function("create_annotation", helpers), extra_settings=settings
-            ),
-            "send_event": partial(
-                monitors.get_function("send_event", helpers), extra_settings=settings
-            ),
-            "run_query": monitors.get_function("run_query", helpers),
         }
 
         monitor_settings = settings.get("monitor", {})
@@ -569,14 +539,14 @@ def start(settings, helpers=None, task_id=None):
         span = f"last {window_duration} seconds"
 
         @on_event(pretest_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, settings=None, accumulator=None, timeout=None):
+        def handle_events(event, settings=None, accumulator=None):
             def update_monitor_state(accumulator):
                 for probe_name, probe_data in probes.items():
-                    run_monitor(process_name, probe_name, probe_data, accumulator, functions_map)
+                    run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
 
-            process_event(event, update_monitor_state, settings, accumulator, timeout=timeout)
+            process_event(event, update_monitor_state, settings, accumulator)
 
-        handle_events(settings=settings, accumulator=[], timeout=read_timeout)
+        handle_events(settings=settings, accumulator=[])
 
     action.finish()
 

@@ -2,14 +2,14 @@
 from functools import partial
 from itertools import dropwhile
 from enum import Enum
-import queue
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
 from utils import loop, monitors
-from live_client.events import messenger
+from live_client.events import messenger, annotation
 from live_client.utils import timestamp, logging
-from live.utils.query import prepare_query, handle_events
+from live_client.query import on_event
+from live.utils.query import prepare_query, handle_events as process_event
 from ..utils.buildup import find_stable_buildup as real_find_stable_buildup
 from ..utils.probes import init_probes_data
 
@@ -112,21 +112,17 @@ request_timeout = (3.05, 5)
 max_retries = 5
 
 
-def maybe_create_annotation(process_name, current_state, old_state, context, annotation_func=None):
+def maybe_create_annotation(current_state, old_state, context, annotation_func=None):
     if "probe" in context:
         real_func = maybe_create_pump_annotation
         context = context["probe"]
     else:
         real_func = maybe_create_sampling_annotation
 
-    return real_func(
-        process_name, current_state, old_state, context, annotation_func=annotation_func
-    )
+    return real_func(current_state, old_state, context, annotation_func=annotation_func)
 
 
-def maybe_create_pump_annotation(
-    process_name, current_state, old_state, context, annotation_func=None
-):  # NOQA
+def maybe_create_pump_annotation(current_state, old_state, context, annotation_func=None):
     begin = end = None
 
     probe_name = context["probe_name"]
@@ -161,22 +157,16 @@ def maybe_create_pump_annotation(
 
     annotation_data = annotation_templates.get(current_state)
     if annotation_data:
-        annotation_data.update(
-            __src="sampling_monitor", uid="{}-{}-{:.0f}".format(process_name, probe_name, ts)
-        )
-        annotation_func(probe_name, annotation_data)
+        annotation_data.update(__src="sampling_monitor", uid="{}-{:.0f}".format(probe_name, ts))
+        annotation_func(annotation_data)
 
     else:
-        logging.debug(
-            "{}, probe {}: Cannot create annotation without data".format(process_name, probe_name)
-        )
+        logging.debug("probe {}: Cannot create annotation without data".format(probe_name))
 
     return
 
 
-def maybe_create_sampling_annotation(
-    process_name, current_state, old_state, context, annotation_func=None
-):  # NOQA
+def maybe_create_sampling_annotation(current_state, old_state, context, annotation_func=None):
     settings = context
 
     begin = end = None
@@ -224,20 +214,16 @@ def maybe_create_sampling_annotation(
 
     annotation_data = annotation_templates.get(current_state)
     if annotation_data:
-        annotation_data.update(
-            __src="sampling_monitor", uid="{}-{}-{:.0f}".format(process_name, current_state, ts)
-        )
-        annotation_func(process_name, annotation_data)
+        annotation_data.update(__src="sampling_monitor", uid="{}-{:.0f}".format(current_state, ts))
+        annotation_func(annotation_data)
 
     else:
-        logging.debug("{}: Cannot create annotation without data".format(process_name))
+        logging.debug("Cannot create annotation without data")
 
     return
 
 
-def find_rate_change(
-    process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None
-):  # NOQA
+def find_rate_change(probe_name, probe_data, event_list, sampling_state, message_sender=None):
     index_mnemonic = probe_data["index_mnemonic"]
     flow_rate_mnemonic = probe_data["pumpout_flowrate_mnemonic"]
     probe_state = probe_data.get("process_state", PUMP_STATES.INACTIVE)
@@ -327,10 +313,7 @@ def find_rate_change(
             pressure,
         )
         message_sender(
-            process_name,
-            message,
-            timestamp=event_timestamp,
-            message_type=messenger.MESSAGE_TYPES.CHAT,
+            message, timestamp=event_timestamp, message_type=messenger.MESSAGE_TYPES.CHAT
         )
 
         if flow_rate < 1:
@@ -370,7 +353,6 @@ def find_rate_change(
 
 
 def find_stable_buildup(
-    process_name,
     probe_name,
     probe_data,
     event_list,
@@ -384,7 +366,6 @@ def find_stable_buildup(
         detected_state = PUMP_STATES.INACTIVE
     else:
         detected_state = real_find_stable_buildup(
-            process_name,
             probe_name,
             probe_data,
             event_list,
@@ -396,9 +377,7 @@ def find_stable_buildup(
     return detected_state
 
 
-def check_seal_health(
-    process_name, probe_name, probe_data, event_list, sampling_state, message_sender=None
-):  # NOQA
+def check_seal_health(probe_name, probe_data, event_list, sampling_state, message_sender=None):
     index_mnemonic = probe_data["index_mnemonic"]
     flow_rate_mnemonic = probe_data["pumpout_flowrate_mnemonic"]
     motor_speed_mnemonic = probe_data["pump_motor_speed_mnemonic"]
@@ -468,7 +447,7 @@ def check_seal_health(
                         "*Alarm, probable seal loss for probe {}@{:.0f} ft at {:.0f}!*"
                         "\nMotor speed {:.2f} rpm and flow rate {:.2f} cm³/s!"
                     ).format(probe_name, depth, etim, motor_speed, flow_rate)
-                    message_sender(process_name, message, timestamp=event_timestamp)
+                    message_sender(message, timestamp=event_timestamp)
 
                     has_seal = False
                     latest_seen_index = etim
@@ -476,7 +455,7 @@ def check_seal_health(
     probe_data.update(has_seal=has_seal, latest_seen_index=latest_seen_index)
 
 
-def find_commingled_flow(process_name, settings, event_list, message_sender=None):
+def find_commingled_flow(settings, event_list, message_sender=None):
     # When both pumps are started we get to commingled flow
     commingled_flow_start_ts = settings.get("commingled_flow_start_ts", 0)
     commingled_flow_end_ts = settings.get("commingled_flow_end_ts", 0)
@@ -506,7 +485,7 @@ def find_commingled_flow(process_name, settings, event_list, message_sender=None
             detected_state = SAMPLING_STATES.COMMINGLED_FLOW
 
             message = "Commingled flow started at {:.0f}s.".format(first_activation_index)
-            message_sender(process_name, message, timestamp=commingled_flow_start_ts)
+            message_sender(message, timestamp=commingled_flow_start_ts)
             logging.info(message)
 
     settings.update(
@@ -517,7 +496,7 @@ def find_commingled_flow(process_name, settings, event_list, message_sender=None
     return detected_state
 
 
-def find_focused_flow(process_name, settings, event_list, message_sender=None):
+def find_focused_flow(settings, event_list, message_sender=None):
     # When rates of both pumps are stable for more than {focused_flow_grace_period}
     monitor_settings = settings["monitor"]
     index_mnemonic = monitor_settings["mnemonics"]["index"]
@@ -548,10 +527,8 @@ def find_focused_flow(process_name, settings, event_list, message_sender=None):
         current_flow_duration = latest_index - last_activation_index
 
         logging.debug(
-            "{}: {:.0f}s to {}".format(
-                process_name,
-                (focused_flow_grace_period - current_flow_duration),
-                SAMPLING_STATES.FOCUSED_FLOW,
+            "{:.0f}s to {}".format(
+                (focused_flow_grace_period - current_flow_duration), SAMPLING_STATES.FOCUSED_FLOW
             )
         )
         if current_flow_duration >= focused_flow_grace_period:
@@ -574,7 +551,7 @@ def find_focused_flow(process_name, settings, event_list, message_sender=None):
                 motor_speeds[1],
                 (motor_speeds[0] / motor_speeds[1]),
             )
-            message_sender(process_name, message, timestamp=focused_flow_start_ts)
+            message_sender(message, timestamp=focused_flow_start_ts)
             logging.info(message)
     else:
         # COMMINGLED_FLOW stopped
@@ -598,7 +575,7 @@ def find_focused_flow(process_name, settings, event_list, message_sender=None):
     return detected_state
 
 
-def find_sampling_start(process_name, settings, event_list, message_sender=None):
+def find_sampling_start(settings, event_list, message_sender=None):
     # A pump will be stopped in order to collect a sample
     monitor_settings = settings["monitor"]
     sampling_start_index = settings.get("sampling_start_index", 0)
@@ -617,9 +594,7 @@ def find_sampling_start(process_name, settings, event_list, message_sender=None)
         else:
             idle_probes.append(probe_name)
 
-    logging.debug(
-        "{} \nIdle probes: {}\nRunning probes: {}".format(process_name, idle_probes, pumping_probes)
-    )
+    logging.debug("Idle probes: {}\nRunning probes: {}".format(idle_probes, pumping_probes))
 
     # The guard probe should be active and the sampling probe should be idle
     if idle_probes and pumping_probes:
@@ -647,7 +622,7 @@ def find_sampling_start(process_name, settings, event_list, message_sender=None)
             sampling_start_index = rate_change_index
 
             message = "Sample collection started at {:.0f}s.".format(sampling_start_index)
-            message_sender(process_name, message, timestamp=sampling_start_ts)
+            message_sender(message, timestamp=sampling_start_ts)
             logging.info(message)
             detected_state = SAMPLING_STATES.SAMPLING
 
@@ -670,7 +645,7 @@ def find_sampling_start(process_name, settings, event_list, message_sender=None)
     return detected_state
 
 
-def find_sampling_end(process_name, settings, event_list, message_sender=None):
+def find_sampling_end(settings, event_list, message_sender=None):
     # When the second pump gets reactivated
     monitor_settings = settings["monitor"]
     sampling_start_index = settings.get("sampling_start_index", 0)
@@ -701,7 +676,7 @@ def find_sampling_end(process_name, settings, event_list, message_sender=None):
         message = ("Sample collection finished at {:.0f}s, sampling took {:.0f}s").format(
             sampling_end_index, (sampling_end_index - sampling_start_index)
         )
-        message_sender(process_name, message, timestamp=sampling_end_ts)
+        message_sender(message, timestamp=sampling_end_ts)
         logging.info(message)
 
     settings.update(
@@ -713,44 +688,27 @@ def find_sampling_end(process_name, settings, event_list, message_sender=None):
     return detected_state
 
 
-def run_probe_monitor(
-    process_name, probe_name, probe_data, event_list, sampling_state, functions_map
-):  # NOQA
+def run_probe_monitor(probe_name, probe_data, event_list, sampling_state, functions_map):
     pump_functions = functions_map["pump"]
     message_func = functions_map["send_message"]
     annotation_func = functions_map["create_annotation"]
 
     probe_state = probe_data.get("process_state", PUMP_STATES.INACTIVE)
-    logging.debug(
-        "{}: Sampling monitor, probe {} at state {}".format(process_name, probe_name, probe_state)
-    )
+    logging.debug("Sampling monitor, probe {} at state {}".format(probe_name, probe_state))
 
     state_transition_func = pump_functions[probe_state]
     detected_state = state_transition_func(
-        process_name,
-        probe_name,
-        probe_data,
-        event_list,
-        sampling_state,
-        message_sender=message_func,
+        probe_name, probe_data, event_list, sampling_state, message_sender=message_func
     )
     check_seal_health(
-        process_name,
-        probe_name,
-        probe_data,
-        event_list,
-        sampling_state,
-        message_sender=message_func,
+        probe_name, probe_data, event_list, sampling_state, message_sender=message_func
     )
 
     if detected_state and (detected_state != probe_state):
         logging.info(
-            "{}: Sampling monitor, probe {}: {} -> {}".format(
-                process_name, probe_name, probe_state, detected_state
-            )
+            "Sampling monitor, probe {}: {} -> {}".format(probe_name, probe_state, detected_state)
         )
         maybe_create_annotation(
-            process_name,
             detected_state,
             probe_state,
             context={"probe": {"probe_name": probe_name, "probe_data": probe_data}},
@@ -762,36 +720,28 @@ def run_probe_monitor(
     return probe_state
 
 
-def run_sampling_monitor(process_name, settings, event_list, functions_map):
+def run_sampling_monitor(settings, event_list, functions_map):
     sampling_functions = functions_map["sampling"]
     message_func = functions_map["send_message"]
     annotation_func = functions_map["create_annotation"]
 
     sampling_state = settings.get("process_state", SAMPLING_STATES.INACTIVE)
-    logging.debug("{}: Sampling monitor at state {}".format(process_name, sampling_state))
+    logging.debug("Sampling monitor at state {}".format(sampling_state))
 
     sampling_transition_func = sampling_functions[sampling_state]
-    detected_state = sampling_transition_func(
-        process_name, settings, event_list, message_sender=message_func
-    )
+    detected_state = sampling_transition_func(settings, event_list, message_sender=message_func)
 
     if detected_state and (detected_state != sampling_state):
-        logging.info(
-            "{}: Sampling monitor, {} -> {}".format(process_name, sampling_state, detected_state)
-        )
+        logging.info("Sampling monitor, {} -> {}".format(sampling_state, detected_state))
         maybe_create_annotation(
-            process_name,
-            detected_state,
-            sampling_state,
-            context=settings,
-            annotation_func=annotation_func,
+            detected_state, sampling_state, context=settings, annotation_func=annotation_func
         )
         sampling_state = detected_state
 
     settings.update(process_state=sampling_state)
 
 
-def run_monitor(process_name, settings, event_list, functions_map):
+def run_monitor(event_list, settings, functions_map):
     settings.update(**monitors.get_global_mnemonics(settings))
     settings = loop.maybe_reset_latest_index(settings, event_list)
     sampling_state = settings.get("process_state", SAMPLING_STATES.INACTIVE)
@@ -801,27 +751,23 @@ def run_monitor(process_name, settings, event_list, functions_map):
     probes = monitor_settings.get("probes", {})
     for probe_name, probe_data in probes.items():
         probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
-        run_probe_monitor(
-            process_name, probe_name, probe_data, event_list, sampling_state, functions_map
-        )
+        run_probe_monitor(probe_name, probe_data, event_list, sampling_state, functions_map)
 
     # Refresh the state for the sampling process
     probe_data = loop.maybe_reset_latest_index(settings, event_list)
-    sampling_state = run_sampling_monitor(process_name, settings, event_list, functions_map)
+    sampling_state = run_sampling_monitor(settings, event_list, functions_map)
     return sampling_state
 
 
-def start(settings, helpers=None, task_id=None):
-    process_name = f"sampling monitor"
-
+def start(settings, task_id=None, **kwargs):
     if task_id:
         action = Action.continue_task(task_id=task_id)
     else:
         action = start_action(action_type="pretest_monitor")
 
     with action.context():
-        logging.info("{}: Sampling monitor started".format(process_name))
-        setproctitle('DDA: Sampling monitor "{}"'.format(process_name))
+        logging.info("Sampling monitor started")
+        setproctitle("DDA: Sampling monitor")
 
         functions_map = {
             "pump": {
@@ -844,32 +790,25 @@ def start(settings, helpers=None, task_id=None):
                 SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
                 SAMPLING_STATES.SAMPLING: find_sampling_end,
             },
-            "send_message": partial(
-                monitors.get_function("send_message", helpers), extra_settings=settings
-            ),
-            "create_annotation": partial(
-                monitors.get_function("create_annotation", helpers), extra_settings=settings
-            ),
-            "run_query": monitors.get_function("run_query", helpers),
+            "send_message": partial(messenger.send_message, process_settings=settings),
+            "create_annotation": partial(annotation.create, process_settings=settings),
         }
 
         monitor_settings = settings.get("monitor", {})
         window_duration = monitor_settings["window_duration"]
         monitor_settings.update(probes=init_probes_data(settings))
 
-        results_process, results_queue = functions_map.get("run_query")(
-            prepare_query(settings), span=f"last {window_duration} seconds", realtime=True
-        )
+        sampling_query = prepare_query(settings)
+        span = f"last {window_duration} seconds"
 
-        try:
-            handle_events(
-                lambda accumulator: run_monitor(process_name, settings, accumulator, functions_map),
-                results_queue,
-                settings,
-                timeout=read_timeout,
-            )
-        except queue.Empty:
-            start(settings, helpers=helpers, task_id=task_id)
+        @on_event(sampling_query, settings, span=span, timeout=read_timeout)
+        def handle_events(event, settings=None, accumulator=None):
+            def update_monitor_state(accumulator):
+                run_monitor(accumulator, settings, functions_map)
+
+            process_event(event, update_monitor_state, settings, accumulator)
+
+        handle_events(settings=settings, accumulator=[])
 
     action.finish()
 

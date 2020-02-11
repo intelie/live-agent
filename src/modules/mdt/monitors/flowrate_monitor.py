@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 from setproctitle import setproctitle
 
 from live_client.utils import logging
 from live_client.query import on_event
-from utils import monitors
+from live_client.events import messenger
 from utils.logging import get_log_action
 from live.utils.query import handle_events as process_event
 
@@ -16,7 +15,7 @@ request_timeout = (3.05, 5)
 max_retries = 5
 
 
-def check_rate(process_name, accumulator, settings, send_message):
+def check_rate(accumulator, settings):
     if not accumulator:
         return
 
@@ -30,7 +29,7 @@ def check_rate(process_name, accumulator, settings, send_message):
         int((int(latest_event["end"]) - int(latest_event["start"])) / 1000),
         latest_event["values_list"],
     )
-    send_message(process_name, message, timestamp=latest_event["timestamp"])
+    messenger.send_message(message, timestamp=latest_event["timestamp"], process_settings=settings)
 
     return accumulator
 
@@ -64,33 +63,24 @@ def build_query(settings):
     return query
 
 
-def start(settings, helpers=None, task_id=None):
-    process_name = f"flowrate monitor"
-
+def start(settings, task_id=None, **kwargs):
     action = get_log_action(task_id, "flowrate_monitor")
     with action.context():
-        logging.info("{}: Flowrate monitor started".format(process_name))
-        setproctitle('DDA: Flowrate monitor "{}"'.format(process_name))
+        logging.info("Flowrate monitor started")
+        setproctitle("DDA: Flowrate monitor")
 
         window_duration = settings["monitor"]["window_duration"]
-
-        # Preparar callbacks para tratar os eventos
-        send_message = partial(
-            monitors.get_function("send_message", helpers), extra_settings=settings
-        )
-
-        def update_monitor_state(accumulator):
-            check_rate(process_name, accumulator, settings, send_message)
 
         fr_query = build_query(settings)
         span = f"last {window_duration} seconds"
 
         @on_event(fr_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, callback=None, settings=None, accumulator=None, timeout=None):
-            process_event(event, update_monitor_state, settings, accumulator, timeout=read_timeout)
+        def handle_events(event, settings=None, accumulator=None):
+            def update_monitor_state(accumulator):
+                check_rate(accumulator, settings)
 
-        handle_events(
-            callback=update_monitor_state, settings=settings, accumulator=[], timeout=read_timeout
-        )
+            process_event(event, update_monitor_state, settings, accumulator)
+
+        handle_events(settings=settings, accumulator=[])
 
     action.finish()

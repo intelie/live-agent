@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from pprint import pformat
-import queue
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
 from eliot import start_action
@@ -8,8 +7,8 @@ import nltk
 from nltk import NaiveBayesClassifier
 
 from live_client.assets.utils import only_enabled_curves
-from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
+from live_client.query import on_event
 
 
 __all__ = []
@@ -183,7 +182,7 @@ class WithAssetAdapter(WithStateAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        self.query_runner = kwargs.get("functions", {})["run_query"]
+        self.settings = kwargs.get("process_settings", {})
 
     def get_selected_asset(self):
         return self.shared_state.get("selected-asset", {})
@@ -258,24 +257,15 @@ class WithAssetAdapter(WithStateAdapter):
         return selected_curves
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
+        settings = self.settings
+        timeout = self.query_timeout
+
         with start_action(action_type=self.state_key, query=query_str):
-            results_process, results_queue = self.query_runner(
-                query_str, realtime=realtime, span=span
-            )
 
-            result = []
-            while True:
-                try:
-                    event = results_queue.get(timeout=self.query_timeout)
-                    event_data = event.get("data", {})
-                    event_type = event_data.get("type")
-                    if event_type == EVENT_TYPE_EVENT:
-                        result = event_data.get("content", [])
-                    elif event_type != EVENT_TYPE_DESTROY:
-                        continue
-
-                except queue.Empty as e:
-                    logging.exception(e)
-
-                results_process.join(1)
+            @on_event(query_str, settings, span=span, realtime=realtime, timeout=timeout)
+            def handle_events(event, callback, *args, **kwargs):
+                event_data = event.get("data", {})
+                result = event_data.get("content", [])
                 return callback(result)
+
+            handle_events(callback)

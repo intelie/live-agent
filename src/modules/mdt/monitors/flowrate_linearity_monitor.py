@@ -1,9 +1,9 @@
-import queue
-import traceback
-
-from functools import partial
-from live_client.utils import logging
 from setproctitle import setproctitle
+
+from live_client.utils import logging
+from live_client.query import on_event
+from live_client.events import messenger
+from live.utils.query import handle_events as process_event
 from utils import monitors
 
 __all__ = ["start"]
@@ -25,37 +25,36 @@ def build_query(settings):
     # deveria relacionar uma diferença de pressão ou duas pressões (de modo a
     # calcular a diferença)
     query = f"""raw_well3
-=> {flowrate_mnemonic}->value# as flowrate, {pressure_mnemonic}->value# as pressure
-=> flowrate#, pressure#, flowrate#/pressure# as ratio
-=> flowrate#,
-    ratio#,
-    avg(ratio) as mratio
-   every {sampling_interval} seconds
-   over last {window_duration} seconds
-=> @filter(flowrate# > {MIN_FLOWRATE} & (abs(ratio#/mratio# - 1) > {threshold}))
-"""
-    print(query)
+    => {flowrate_mnemonic}->value# as flowrate, {pressure_mnemonic}->value# as pressure
+    => flowrate#, pressure#, flowrate#/pressure# as ratio
+    => flowrate#,
+        ratio#,
+        avg(ratio) as mratio
+       every {sampling_interval} seconds
+       over last {window_duration} seconds
+    => @filter(flowrate# > {MIN_FLOWRATE} & (abs(ratio#/mratio# - 1) > {threshold}))
+    """
     return query
 
 
-def check_rate(process_name, accumulator, settings, send_message):
+def check_rate(accumulator, settings):
     if not accumulator:
         return
 
     # Generate alerts whether the threshold was reached
     # a new event means another threshold breach
     latest_event = accumulator[-1]
-    send_message(
-        process_name,
+    messenger.send_message(
         f'Ratio: {latest_event["ratio"]}, Mean: {latest_event["mratio"]}',
         timestamp=latest_event["timestamp"],
+        process_settings=settings,
     )
 
     return accumulator
 
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
-def start(settings, helpers=None, task_id=None):
+def start(settings, task_id=None, **kwargs):
     process_name = f"flowrate linearity monitor"
 
     action = monitors.get_log_action(task_id, "flowrate_linearity_monitor")
@@ -65,31 +64,16 @@ def start(settings, helpers=None, task_id=None):
 
         window_duration = settings["monitor"]["window_duration"]
 
-        # Registrar consulta na API de console:
-        run_query = monitors.get_function("run_query", helpers)
-        results_process, results_queue = run_query(
-            build_query(settings), span=f"last {window_duration} seconds", realtime=True
-        )
+        fl_query = build_query(settings)
+        span = f"last {window_duration} seconds"
 
-        # Preparar callback para tratar os eventos vindos da API de console via response_queue:
-        send_message = partial(
-            monitors.get_function("send_message", helpers), extra_settings=settings
-        )
+        @on_event(fl_query, settings, span=span, timeout=READ_TIMEOUT)
+        def handle_events(event, settings=None, accumulator=None):
+            def update_monitor_state(accumulator):
+                check_rate(accumulator, settings)
 
-        def process_events(accumulator):
-            check_rate(process_name, accumulator, settings, send_message)
+            process_event(event, update_monitor_state, settings, accumulator)
 
-        try:
-            monitors.handle_events(process_events, results_queue, settings, timeout=READ_TIMEOUT)
-
-        except queue.Empty:
-            # FIXME Não deveriamos chamar results_process.join() aqui? #<<<<<
-            start(settings, helpers=helpers, task_id=task_id)
-
-        except Exception as e:
-            print(f"Ocorreu um erro: {e}")
-            print("Stack trace:")
-            traceback.print_exc()
-            raise
+        handle_events(settings=settings, accumulator=[])
 
     action.finish()

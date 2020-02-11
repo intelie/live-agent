@@ -113,12 +113,14 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             with start_action(action_type=name) as action:
                 logging.debug(f"Starting {name}")
                 task_id = action.serialize_task_id()
-                process = Process(
-                    target=process_func,
-                    args=(monitor_settings),
-                    kwargs={"helpers": self.helpers, "task_id": task_id},
-                )
-                active_monitors[name] = process
-                process.start()
+                try:
+                    process = Process(
+                        target=process_func, args=(monitor_settings,), kwargs={"task_id": task_id}
+                    )
+                    active_monitors[name] = process
+                    process.start()
+
+                except Exception as e:
+                    logging.warn(f"Error starting {name}: {e}")
 
         return active_monitors

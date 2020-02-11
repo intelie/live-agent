@@ -3,6 +3,7 @@ import numpy as np
 
 from functools import partial
 from live_client.utils import logging
+from live_client.events import messenger
 from sklearn.linear_model import LinearRegression
 
 __all__ = ["find_slope", "get_function", "Monitor"]
@@ -142,17 +143,11 @@ def get_function(func_name, context):
 class Monitor:
     """Base class to implement monitors"""
 
-    def __init__(self, asset_name, settings, helpers=None, task_id=None):
-        self.asset_name = asset_name
+    def __init__(self, settings, task_id=None, **kwargs):
         self.settings = settings
-        self.helpers = helpers
         self.task_id = task_id
 
-        # Methods to wrap external functions:
-        self.run_query = get_function("run_query", self.helpers)
-        self.send_message = partial(
-            get_function("send_message", self.helpers), extra_settings=self.settings
-        )
+        self.send_message = partial(messenger.send_message, process_settings=settings)
 
     def run(self):
         raise NotImplementedError("Monitors must define a start method")

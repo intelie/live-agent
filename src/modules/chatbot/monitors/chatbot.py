@@ -6,7 +6,7 @@ from eliot import start_action, Action
 from setproctitle import setproctitle
 
 from live_client import query
-from live_client.events import messenger, annotation, raw
+from live_client.events import messenger
 from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils.timestamp import get_timestamp
@@ -44,29 +44,6 @@ def share_state(container, state_key=None, state_data=None):
         container.update(state={})
 
     container["state"].update(**{state_key: state_data})
-
-
-def allow_extra_settings(func, *args, **kwargs):
-    # Allow the caller to override some of the settings
-    extra_settings = kwargs.pop("extra_settings", {})
-    if extra_settings:
-        process_settings = kwargs.get("process_settings", {})
-        process_settings.update(extra_settings)
-        kwargs["process_settings"] = process_settings
-
-    return func(*args, **kwargs)
-
-
-def create_annotation(*args, **kwargs):
-    return allow_extra_settings(annotation.create, *args, **kwargs)
-
-
-def send_message(*args, **kwargs):
-    return allow_extra_settings(messenger.send_message, *args, **kwargs)
-
-
-def send_event(*args, **kwargs):
-    return allow_extra_settings(raw.create, *args, **kwargs)
 
 
 ##
@@ -145,31 +122,12 @@ def start_chatbot(process_settings, room_id, room_queue, task_id):
         load_state_func = partial(load_state, process_settings)
         share_state_func = partial(share_state, process_settings)
 
-        # TODO: Replace these functions by an instance of LiveClient.
-        run_query_func = partial(
-            query.run, process_settings, timeout=request_timeout, max_retries=max_retries
-        )
-        annotate_func = partial(
-            create_annotation, process_settings=process_settings, room={"id": room_id}
-        )
-        messenger_func = partial(
-            send_message, process_settings=process_settings, room={"id": room_id}
-        )
-        send_event_func = partial(send_event, process_settings=process_settings)
-
         bot_alias = process_settings.get("alias", "Intelie")
         context = {
             "room_id": room_id,
             "process_settings": process_settings,
             "live_client": LiveClient(process_settings, room_id),
-            "functions": {
-                "load_state": load_state_func,
-                "share_state": share_state_func,
-                "run_query": run_query_func,
-                "create_annotation": annotate_func,
-                "send_message": messenger_func,
-                "send_event": send_event_func,
-            },
+            "functions": {"load_state": load_state_func, "share_state": share_state_func},
         }
         chatbot = ChatBot(
             bot_alias,

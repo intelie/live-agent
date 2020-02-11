@@ -220,8 +220,8 @@ class TorqueAndDragCalibrator:
                 if event_type == EVENT_TYPE_DESTROY:
                     break
 
-            except queue.Empty as e:
-                logging.exception(e)
+            except queue.Empty:
+                logging.exception()
 
         results_process.join(1)
 
@@ -250,8 +250,8 @@ class TorqueAndDragCalibrator:
         response = s.post(url, json=calibration_data)
         try:
             response.raise_for_status()
-        except Exception as e:
-            logging.exception(e)
+        except Exception:
+            logging.exception()
             raise
 
         result = response.json()

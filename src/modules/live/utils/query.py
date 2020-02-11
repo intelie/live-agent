@@ -33,7 +33,7 @@ def prepare_query(settings):
     return query
 
 
-def handle_events(event, callback, settings, accumulator=None, timeout=10):
+def handle_events(event, callback, settings, accumulator=None):
     event_type = settings.get("event_type")
     monitor_type = settings.get("type")
     process_name = f"{event_type} {monitor_type}"
@@ -70,9 +70,9 @@ def handle_events(event, callback, settings, accumulator=None, timeout=10):
         logging.info(f"{process_name}: Stopping ")
         raise
 
-    except Exception as e:
-        logging.exception(e)
-        handle_events(event, callback, settings, timeout=timeout)
+    except Exception:
+        logging.exception()
+        handle_events(event, callback, settings)
         return
 
 

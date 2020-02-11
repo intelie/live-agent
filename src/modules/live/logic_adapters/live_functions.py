@@ -5,6 +5,7 @@ from eliot import start_action
 from chatterbot.conversation import Statement
 
 from live_client.assets import run_analysis
+from live_client.events import annotation
 from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
 
@@ -80,7 +81,8 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        self.annotator = kwargs.get("functions", {})["create_annotation"]
+        settings = kwargs.get("process_settings", {})
+        self.annotator = partial(annotation.create, process_settings=settings)
 
         self.room_id = kwargs["room_id"]
         self.analyzer = partial(run_analysis)
@@ -126,7 +128,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
                 room={"id": self.room_id},
             )
             with start_action(action_type="create annotation", curve=curve):
-                self.annotator("{} for {}".format(self.state_key, curve), analysis_results)
+                self.annotator(analysis_results)
 
             response_text = "Analysis of curve {} finished".format(curve)
 

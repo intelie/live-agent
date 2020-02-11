@@ -1,9 +1,9 @@
-import queue
 import re
-import traceback
+
+from log import eliotx
 
 from live_client.utils import logging
-from log import eliotx
+from live_client.query import on_event
 from setproctitle import setproctitle
 from utils import monitors
 from utils.search_engine import DuckEngine
@@ -21,47 +21,22 @@ def clean_term(term):
 
 
 class AlertReferenceMonitor(monitors.Monitor):
-    def __init__(self, settings, helpers=None, task_id=None):
-        super().__init__(settings, helpers, task_id)
-
-        self.process_name = "alert reference monitor"
-        self.span = settings["monitor"].get("span")
-
     def run(self):
         with eliotx.manage_action(
             monitors.get_log_action(self.task_id, "alert_reference_monitor")
         ) as action:
             with action.context():
-                logging.info("{}: Alert Reference Monitor".format(self.process_name))
-                setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
+                logging.info("Alert Reference Monitor")
+                setproctitle("DDA: Alert Reference Monitor")
 
-                while True:
-                    # Register query for annotations in the console API:
-                    results_process, results_queue = self.run_query(
-                        self.build_query(), span=self.span, realtime=True
-                    )
+                alert_query = "__annotations __src:rulealert"
+                span = self.settings["monitor"].get("span")
 
-                    # Get and process results:
-                    try:
-                        handle_process_queue(
-                            self.process_annotation, results_process, results_queue, self
-                        )
-                    except queue.Empty:
-                        continue
-                    except Exception as e:
-                        # Dev log:
-                        print(f"Ocorreu um erro: {e}")
-                        print("Stack trace:")
-                        traceback.print_exc()
-                        # Persistent log:
-                        logging.exception()
-                        logging.error(str(e))
-                        break
-                    finally:
-                        results_process.join()
+                @on_event(alert_query, self.settings, span=span, timeout=READ_TIMEOUT)
+                def handle_events(event):
+                    self.process_annotation(event)
 
-    def build_query(self):
-        return "__annotations __src:rulealert"
+                handle_events()
 
     def process_annotation(self, event):
         annotation_message = event["message"]
@@ -80,7 +55,7 @@ class AlertReferenceMonitor(monitors.Monitor):
             message_lines.append("No result found")
         message = "\n".join(message_lines)
 
-        self.send_message(self.process_name, f"{message}", timestamp=event["timestamp"])
+        self.send_message(f"{message}", timestamp=event["timestamp"])
 
     def _extract_search_term(self, annotation_message):
         parts = annotation_message.split(":")
@@ -95,24 +70,6 @@ class AlertReferenceMonitor(monitors.Monitor):
         return word
 
 
-def start(settings, helpers=None, task_id=None):
-    m = AlertReferenceMonitor(settings, helpers, task_id)
+def start(settings, task_id=None, **kwargs):
+    m = AlertReferenceMonitor(settings, task_id, **kwargs)
     m.run()
-
-
-def handle_process_queue(processor, process, output_queue, context):
-    monitors.handle_events(
-        processor_func=process_accumulator_last_result(processor),
-        results_queue=output_queue,
-        settings=context.settings,
-        timeout=READ_TIMEOUT,
-    )
-
-
-def process_accumulator_last_result(processor):
-    def process(accumulator):
-        latest_event = accumulator[-1]
-        processor(latest_event)
-        return accumulator
-
-    return process
