@@ -7,13 +7,7 @@ __all__ = ["find_stable_buildup"]
 
 
 def find_stable_buildup(
-    process_name,
-    probe_name,
-    probe_data,
-    event_list,
-    message_sender,
-    targets=None,
-    fallback_state=None,
+    probe_name, probe_data, event_list, message_sender, targets=None, fallback_state=None
 ):  # NOQA
     """
     State when the slope of the linear regression of {pressure_mnemonic}
@@ -36,8 +30,8 @@ def find_stable_buildup(
     )
 
     logging.debug(
-        "{}: Trying to detect a buildup with a slope <= {}, watching {} events".format(
-            process_name, ", ".join(str(item) for item in target_slopes), len(valid_events)
+        "Trying to detect a buildup with a slope <= {}, watching {} events".format(
+            ", ".join(str(item) for item in target_slopes), len(valid_events)
         )
     )
 
@@ -52,7 +46,6 @@ def find_stable_buildup(
     ]
 
     regression_results = monitors.find_slope(
-        process_name,
         data,
         index_mnemonic,
         pressure_mnemonic,
@@ -82,7 +75,7 @@ def find_stable_buildup(
         message = (
             "Probe {}@{:.0f} ft: Buildup stabilized within {} ({:.3f}, r²: {:.3f}) at {:.2f} s with pressure {:.2f} psi"  # NOQA
         ).format(probe_name, depth, target_slope, segment_slope, r_score, etim, pressure)
-        message_sender(process_name, message, timestamp=pretest_end_timestamp)
+        message_sender(message, timestamp=pretest_end_timestamp)
 
         detected_state = target_state
         latest_seen_index = etim
@@ -92,8 +85,8 @@ def find_stable_buildup(
     elif data:
         measured_slopes = regression_results.get("measured_slopes", [])
         logging.debug(
-            "{}: Buildup did not stabilize within {}. Measured slopes were: {}".format(
-                process_name, max(target_slopes), measured_slopes
+            "Buildup did not stabilize within {}. Measured slopes were: {}".format(
+                max(target_slopes), measured_slopes
             )
         )
 
@@ -104,9 +97,7 @@ def find_stable_buildup(
         if wait_period > buildup_wait_period:
             message = "Probe {}@{:.0f} ft: Buildup did not stabilize after {:.0f} s"  # NOQA
             message_sender(
-                process_name,
-                message.format(probe_name, depth, wait_period),
-                timestamp=timestamp.get_timestamp(),
+                message.format(probe_name, depth, wait_period), timestamp=timestamp.get_timestamp()
             )
 
             detected_state = fallback_state

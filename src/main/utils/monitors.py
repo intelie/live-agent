@@ -9,15 +9,7 @@ from sklearn.linear_model import LinearRegression
 __all__ = ["find_slope", "get_function", "Monitor"]
 
 
-def find_slope(
-    process_name,
-    event_list,
-    index_mnemonic,
-    value_mnemonic,
-    targets=None,
-    window_size=0,
-    target_r=0,
-):  # NOQA
+def find_slope(event_list, index_mnemonic, value_mnemonic, targets=None, window_size=0, target_r=0):
     """
     State when the slope of the linear regression of {value_mnemonic}
     over {window_size} seconds is <= {target_slope}
@@ -25,8 +17,8 @@ def find_slope(
     target_slopes = sorted(targets)
 
     logging.debug(
-        "{}: Trying to detect linear regression with a slope <= {}, watching {} events".format(
-            process_name, ", ".join(str(item) for item in target_slopes), len(event_list)
+        "Trying to detect linear regression with a slope <= {}, watching {} events".format(
+            ", ".join(str(item) for item in target_slopes), len(event_list)
         )
     )
 
@@ -49,8 +41,8 @@ def find_slope(
 
             if (segment_end - segment_start) < (window_size * 0.9):
                 logging.debug(
-                    "{}: Not enough data, {} s of data available, {} s are needed".format(
-                        process_name, (segment_end - segment_start), (window_size * 0.9)
+                    "Not enough data, {} s of data available, {} s are needed".format(
+                        (segment_end - segment_start), (window_size * 0.9)
                     )
                 )
                 break
@@ -82,8 +74,8 @@ def find_slope(
                 segment_found = segment_to_check
 
                 logging.info(
-                    "{}: Linear regression within {} ({:.3f}, r²: {:.3f}) found between {:.2f} and {:.2f}".format(  # NOQA
-                        process_name, target_slope, segment_slope, r_score, start_index, end_index
+                    "Linear regression within {} ({:.3f}, r²: {:.3f}) found between {:.2f} and {:.2f}".format(  # NOQA
+                        target_slope, segment_slope, r_score, start_index, end_index
                     )
                 )
 
@@ -93,8 +85,8 @@ def find_slope(
 
     if not segment_found:
         logging.debug(
-            "{}: No segment found with slope within {}. Measured slopes were: {}".format(
-                process_name, max(target_slopes), measured_slopes
+            "No segment found with slope within {}. Measured slopes were: {}".format(
+                max(target_slopes), measured_slopes
             )
         )
 

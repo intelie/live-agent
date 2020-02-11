@@ -90,7 +90,7 @@ def maybe_create_annotation(probe_name, probe_data, current_state, annotation_fu
         annotation_func(annotation_data)
 
     else:
-        logging.debug(f"Probe {probe_name}: Cannot create annotation without data")
+        logging.info(f"Probe {probe_name}: Cannot create annotation without data")
 
     return
 
@@ -345,7 +345,7 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
-        logging.debug(
+        logging.info(
             "Probe {}: Pretest began at {:.0f}".format(probe_name, pretest_begin_timestamp)
         )
     else:
@@ -378,7 +378,7 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
         drawdown_stopped = last_pretest_volume == prev_pretest_volume
 
-        logging.debug(
+        logging.info(
             ("End of drawdown detection: {}; {} -> {}.").format(
                 drawdown_stopped, prev_pretest_volume, last_pretest_volume
             )
@@ -469,7 +469,7 @@ def find_pump_recycle(probe_name, probe_data, event_list, message_sender):
 
 def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
     current_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
-    logging.debug("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
+    logging.info("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
 
     send_event = partial(raw.create, process_settings=settings)
     send_message = partial(messenger.send_message, process_settings=settings)
