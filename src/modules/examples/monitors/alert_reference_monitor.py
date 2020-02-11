@@ -21,10 +21,10 @@ def clean_term(term):
 
 
 class AlertReferenceMonitor(monitors.Monitor):
-    def __init__(self, asset_name, settings, helpers=None, task_id=None):
-        super().__init__(asset_name, settings, helpers, task_id)
+    def __init__(self, settings, helpers=None, task_id=None):
+        super().__init__(settings, helpers, task_id)
 
-        self.process_name = f"{self.asset_name} - alert reference monitor"
+        self.process_name = "alert reference monitor"
         self.span = settings["monitor"].get("span")
 
     def run(self):
@@ -95,8 +95,8 @@ class AlertReferenceMonitor(monitors.Monitor):
         return word
 
 
-def start(asset_name, settings, helpers=None, task_id=None):
-    m = AlertReferenceMonitor(asset_name, settings, helpers, task_id)
+def start(settings, helpers=None, task_id=None):
+    m = AlertReferenceMonitor(settings, helpers, task_id)
     m.run()
 
 
