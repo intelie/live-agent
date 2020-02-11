@@ -2,11 +2,12 @@ import queue
 import re
 import traceback
 
+from live.utils import query
 from live_client.utils import logging
-from log import eliotx
+from utils import logging as logx
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckEngine
+from ddg.search import DuckEngine
 
 __all__ = ["start"]
 
@@ -28,40 +29,41 @@ class AlertReferenceMonitor(monitors.Monitor):
         self.span = settings["monitor"].get("span")
 
     def run(self):
-        with eliotx.manage_action(
-            monitors.get_log_action(self.task_id, "alert_reference_monitor")
+        with logx.manage_action(
+            logx.get_log_action(self.task_id, "alert_reference_monitor")
         ) as action:
             with action.context():
-                logging.info("{}: Alert Reference Monitor".format(self.process_name))
-                setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
+                self.execute()
 
-                while True:
-                    # Register query for annotations in the console API:
-                    results_process, results_queue = self.run_query(
-                        self.build_query(), span=self.span, realtime=True
-                    )
+    def execute(self):
+        logging.info("{}: Alert Reference Monitor".format(self.process_name))
+        setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
-                    # Get and process results:
-                    try:
-                        handle_process_queue(
-                            self.process_annotation, results_process, results_queue, self
-                        )
-                    except queue.Empty:
-                        continue
-                    except Exception as e:
-                        # Dev log:
-                        print(f"Ocorreu um erro: {e}")
-                        print("Stack trace:")
-                        traceback.print_exc()
-                        # Persistent log:
-                        logging.exception()
-                        logging.error(str(e))
-                        break
-                    finally:
-                        results_process.join()
+        while True:
+            # Register query for annotations in the console API:
+            results_process, results_queue = self.run_query(
+                self.build_query(), span=self.span, realtime=True
+            )
+
+            # Get and process results:
+            try:
+                handle_process_queue(self.process_annotation, results_process, results_queue, self)
+            except queue.Empty:
+                continue
+            except Exception as e:
+                # Dev log:
+                print(f"Ocorreu um erro: {e}")
+                print("Stack trace:")
+                traceback.print_exc()
+                # Persistent log:
+                logging.exception()
+                logging.error(str(e))
+                break
+            finally:
+                results_process.join()
 
     def build_query(self):
-        return "__annotations __src:rulealert"
+        return "__annotations (__src:rulealert | src:rulealert)"
 
     def process_annotation(self, event):
         annotation_message = event["message"]
@@ -101,7 +103,7 @@ def start(asset_name, settings, helpers=None, task_id=None):
 
 
 def handle_process_queue(processor, process, output_queue, context):
-    monitors.handle_events(
+    query.handle_events(
         processor_func=process_accumulator_last_result(processor),
         results_queue=output_queue,
         settings=context.settings,
