@@ -18,8 +18,8 @@ def update_pythonpath():
 def log_and_import(name, package=None):
     try:
         return importlib.import_module(name)
-    except ImportError:
-        logging.info(f"Importing {name} (from package={package})")
+    except Exception as e:
+        logging.info(f"Error importing {name} (from package={package}): {e}")
 
 
 def load_enabled_modules(settings):
