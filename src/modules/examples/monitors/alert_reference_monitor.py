@@ -1,12 +1,12 @@
 import re
 
-from log import eliotx
-
 from live_client.utils import logging
 from live_client.query import on_event
+
+from utils import logging as logx
 from setproctitle import setproctitle
 from utils import monitors
-from utils.search_engine import DuckEngine
+from ddg.search import DuckEngine
 
 __all__ = ["start"]
 
@@ -22,21 +22,24 @@ def clean_term(term):
 
 class AlertReferenceMonitor(monitors.Monitor):
     def run(self):
-        with eliotx.manage_action(
-            monitors.get_log_action(self.task_id, "alert_reference_monitor")
+        with logx.manage_action(
+            logx.get_log_action(self.task_id, "alert_reference_monitor")
         ) as action:
             with action.context():
-                logging.info("Alert Reference Monitor")
-                setproctitle("DDA: Alert Reference Monitor")
+                self.execute()
 
-                alert_query = "__annotations __src:rulealert"
-                span = self.settings["monitor"].get("span")
+    def execute(self):
+        logging.info("{}: Alert Reference Monitor".format(self.process_name))
+        setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
-                @on_event(alert_query, self.settings, span=span, timeout=READ_TIMEOUT)
-                def handle_events(event):
-                    self.process_annotation(event)
+        alert_query = "__annotations __src:rulealert"
+        span = self.settings["monitor"].get("span")
 
-                handle_events()
+        @on_event(alert_query, self.settings, span=span, timeout=READ_TIMEOUT)
+        def handle_events(event):
+            self.process_annotation(event)
+
+        handle_events()
 
     def process_annotation(self, event):
         annotation_message = event["message"]
