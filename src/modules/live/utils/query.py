@@ -34,10 +34,6 @@ def prepare_query(settings):
 
 
 def handle_events(event, callback, settings, accumulator=None):
-    event_type = settings.get("event_type")
-    monitor_type = settings.get("type")
-    process_name = f"{event_type} {monitor_type}"
-
     monitor_settings = settings.get("monitor", {})
     window_duration = monitor_settings.get("window_duration", 60)
     mnemonics = monitor_settings.get("mnemonics", {})
@@ -59,15 +55,15 @@ def handle_events(event, callback, settings, accumulator=None):
 
         elif missing_curves:
             logging.info(
-                f"{process_name}: Some curves are missing ({missing_curves}). "
+                f"Some curves are missing ({missing_curves}). "
                 f"\nevent was: {event} "
                 f"\nWaiting for more data"
             )
 
-        logging.debug(f"{process_name}: Request successful")
+        logging.debug(f"Request successful")
 
     except KeyboardInterrupt:
-        logging.info(f"{process_name}: Stopping ")
+        logging.info(f"Stopping ")
         raise
 
     except Exception:

@@ -55,12 +55,11 @@ def check_rate(accumulator, settings):
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
 def start(settings, task_id=None, **kwargs):
-    process_name = f"flowrate linearity monitor"
 
     action = monitors.get_log_action(task_id, "flowrate_linearity_monitor")
     with action.context():
-        logging.info("{}: Flowrate linearity monitor started".format(process_name))
-        setproctitle('DDA: Flowrate linearity monitor "{}"'.format(process_name))
+        logging.info("Flowrate linearity monitor started")
+        setproctitle("DDA: Flowrate linearity monitor")
 
         window_duration = settings["monitor"]["window_duration"]
 

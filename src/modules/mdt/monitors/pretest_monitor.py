@@ -132,7 +132,7 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
     reference_index = probe_data.get("latest_seen_index")
     if reference_index and (state != prev_state):
 
-        logging.info(f"maybe_update_pretest_report: state: {state}, prev_state: {prev_state}")
+        logging.debug(f"maybe_update_pretest_report: state: {state}, prev_state: {prev_state}")
 
         reference_event = find_reference_event(reference_index, event_list, probe_data)
         reference_event_index = event_list.index(reference_event)
@@ -469,7 +469,7 @@ def find_pump_recycle(probe_name, probe_data, event_list, message_sender):
 
 def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
     current_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
-    logging.info("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
+    logging.debug("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
 
     send_event = partial(raw.create, process_settings=settings)
     send_message = partial(messenger.send_message, process_settings=settings)
@@ -505,16 +505,14 @@ def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
 
 
 def start(settings, task_id=None, **kwargs):
-    process_name = f"pretest monitor"
-
     if task_id:
         action = Action.continue_task(task_id=task_id)
     else:
         action = start_action(action_type="pretest_monitor")
 
     with action.context():
-        setproctitle('DDA: Pretest monitor "{}"'.format(process_name))
-        logging.info("{}: Pretest monitor started".format(process_name))
+        setproctitle("DDA: Pretest monitor")
+        logging.info("Pretest monitor started")
 
         functions_map = {
             PRETEST_STATES.INACTIVE: find_drawdown,
