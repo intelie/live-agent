@@ -19,7 +19,6 @@
         "live.logic_adapters.live_functions.AutoAnalysisAdapter",
         "live.logic_adapters.pipes_query.EtimQueryAdapter",
         "live.logic_adapters.pipes_query.CurrentValueQueryAdapter",
-        "chatbot.logic_adapters.monitors.MonitorControlAdapter",
         "chatbot.logic_adapters.internal.BotFeaturesAdapter",
         "torque_and_drag.logic_adapters.torque_and_drag.TorqueAndDragAdapter",
         "chatbot.logic_adapters.variables.BotVariablesAdapter",

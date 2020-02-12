@@ -107,8 +107,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 continue
 
             monitor_settings["event_type"] = self.get_event_type(selected_asset)
-            process_func = self.process_handlers.get(process_type)
-
             monitor_settings["live"] = self.process_settings["live"]
             monitor_settings["output"]["room"] = {"id": self.room_id}
 
@@ -116,6 +114,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 logging.debug(f"Starting {name}")
                 task_id = action.serialize_task_id()
                 try:
+                    process_func = self.process_handlers.get(process_type)
                     process = Process(
                         target=process_func, args=(monitor_settings,), kwargs={"task_id": task_id}
                     )

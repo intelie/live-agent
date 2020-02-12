@@ -9,6 +9,7 @@
     "well3_sampling": {
       "type": "sampling_monitor",
       "enabled": true,
+      "event_type": "well3",
       "monitor": {
         "mnemonics": {
           "index": "ETIM",

@@ -9,6 +9,7 @@
     "well0_pretest": {
       "type": "pretest_monitor",
       "enabled": true,
+      "event_type": "well0",
       "monitor": {
         "window_duration": 60,
         "buildup_duration": 30,
@@ -37,6 +38,7 @@
     "well3_pretest": {
       "type": "pretest_monitor",
       "enabled": true,
+      "event_type": "well3",
       "monitor": {
         "window_duration": 60,
         "buildup_duration": 30,

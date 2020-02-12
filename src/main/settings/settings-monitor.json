@@ -9,6 +9,7 @@
     "well0_pretest": {
       "type": "pretest_monitor",
       "enabled": true,
+      "event_type": "well0",
       "monitor": {
         "window_duration": 60,
         "buildup_duration": 30,
@@ -37,6 +38,7 @@
     "well3_pretest": {
       "type": "pretest_monitor",
       "enabled": true,
+      "event_type": "well3",
       "monitor": {
         "window_duration": 60,
         "buildup_duration": 30,
@@ -66,6 +68,7 @@
     "well3_sampling": {
       "type": "sampling_monitor",
       "enabled": true,
+      "event_type": "well3",
       "monitor": {
         "mnemonics": {
           "index": "ETIM",
@@ -94,6 +97,7 @@
     "well0_flowrate": {
       "type": "flowrate_monitor",
       "enabled": false,
+      "event_type": "well0",
       "monitor": {
         "mnemonics": {
           "index": "timestamp",
@@ -117,6 +121,7 @@
     "well3_flowrate": {
       "type": "flowrate_monitor",
       "enabled": false,
+      "event_type": "well3",
       "monitor": {
         "mnemonics": {
           "index": "timestamp",
