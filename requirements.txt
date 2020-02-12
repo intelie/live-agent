@@ -1,6 +1,6 @@
 # live-agent
-eliot==1.10.0
-eliot-tree==18.1.1
+eliot==1.12.0
+eliot-tree==19.0.1
 setproctitle==1.1.10
 
 # live-client
