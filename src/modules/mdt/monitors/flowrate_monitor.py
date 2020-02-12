@@ -5,33 +5,11 @@ from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
 from utils.logging import get_log_action
-from live.utils.query import handle_events as process_event
 
 
 __all__ = ["start"]
 
 read_timeout = 120
-request_timeout = (3.05, 5)
-max_retries = 5
-
-
-def check_rate(accumulator, settings):
-    if not accumulator:
-        return
-
-    # Generate alerts whether the threshold was reached
-    # a new event means another threshold breach
-    template = "Whoa! {} was changed {} times over the last {} seconds, please calm down ({})"
-    latest_event = accumulator[-1]
-    message = template.format(
-        latest_event["mnemonic"],
-        int(latest_event["num_changes"]),
-        int((int(latest_event["end"]) - int(latest_event["start"])) / 1000),
-        latest_event["values_list"],
-    )
-    messenger.send_message(message, timestamp=latest_event["timestamp"], process_settings=settings)
-
-    return accumulator
 
 
 def build_query(settings):
@@ -75,12 +53,20 @@ def start(settings, task_id=None, **kwargs):
         span = f"last {window_duration} seconds"
 
         @on_event(fr_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, settings=None, accumulator=None):
-            def update_monitor_state(accumulator):
-                check_rate(accumulator, settings)
+        def handle_events(event, settings=None):
+            # Generate alerts whether the threshold was reached
+            # a new event means another threshold breach
+            template = "{} was changed {} times over the last {} seconds, please calm down ({})"
+            message = template.format(
+                event["mnemonic"],
+                int(event["num_changes"]),
+                int((int(event["end"]) - int(event["start"])) / 1000),
+                event["values_list"],
+            )
+            messenger.send_message(message, timestamp=event["timestamp"], process_settings=settings)
 
-            process_event(event, update_monitor_state, settings, accumulator)
+            return
 
-        handle_events(settings=settings, accumulator=[])
+        handle_events(settings=settings)
 
     action.finish()
