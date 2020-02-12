@@ -96,7 +96,7 @@
     },
     "well0_flowrate": {
       "type": "flowrate_monitor",
-      "enabled": false,
+      "enabled": true,
       "event_type": "well0",
       "monitor": {
         "mnemonics": {
@@ -120,7 +120,7 @@
     },
     "well3_flowrate": {
       "type": "flowrate_monitor",
-      "enabled": false,
+      "enabled": true,
       "event_type": "well3",
       "monitor": {
         "mnemonics": {

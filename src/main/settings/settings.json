@@ -271,7 +271,6 @@
         }
       },
       "output": {
-        "name": "rest-agent",
         "author": {"id": 2, "name": "Oliver"}
       }
     }
