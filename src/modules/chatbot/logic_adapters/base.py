@@ -268,4 +268,4 @@ class WithAssetAdapter(WithStateAdapter):
                 result = event_data.get("content", [])
                 return callback(result)
 
-            handle_events(callback)
+            return handle_events(callback)
