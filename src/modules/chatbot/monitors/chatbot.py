@@ -9,7 +9,6 @@ from live_client import query
 from live_client.events import messenger
 from live_client.facades import LiveClient
 from live_client.types.message import Message
-from live_client.utils.timestamp import get_timestamp
 from live_client.utils import logging
 
 from chatterbot.trainers import ChatterBotCorpusTrainer
@@ -98,10 +97,7 @@ def maybe_send_message(process_settings, room_id, response_message):
         bot_settings["output"]["author"]["name"] = bot_alias
 
     messenger.send_message(
-        response_message,
-        get_timestamp(),
-        process_settings=bot_settings,
-        message_type=messenger.MESSAGE_TYPES.CHAT,
+        response_message, process_settings=bot_settings, message_type=messenger.MESSAGE_TYPES.CHAT
     )
 
 
