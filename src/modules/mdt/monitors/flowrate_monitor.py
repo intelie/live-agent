@@ -53,7 +53,7 @@ def start(settings, task_id=None, **kwargs):
         span = f"last {window_duration} seconds"
 
         @on_event(fr_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, settings=None):
+        def handle_events(event):
             # Generate alerts whether the threshold was reached
             # a new event means another threshold breach
             template = "{} was changed {} times over the last {} seconds, please calm down ({})"
@@ -67,6 +67,6 @@ def start(settings, task_id=None, **kwargs):
 
             return
 
-        handle_events(settings=settings)
+        handle_events()
 
     action.finish()

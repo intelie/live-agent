@@ -802,13 +802,13 @@ def start(settings, task_id=None, **kwargs):
         span = f"last {window_duration} seconds"
 
         @on_event(sampling_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, settings=None, accumulator=None):
+        def handle_events(event, accumulator=None):
             def update_monitor_state(accumulator):
                 run_monitor(accumulator, settings, functions_map)
 
             process_event(event, update_monitor_state, settings, accumulator)
 
-        handle_events(settings=settings, accumulator=[])
+        handle_events(accumulator=[])
 
     action.finish()
 

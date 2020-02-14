@@ -537,14 +537,14 @@ def start(settings, task_id=None, **kwargs):
         span = f"last {window_duration} seconds"
 
         @on_event(pretest_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, settings=None, accumulator=None):
+        def handle_events(event, accumulator=None):
             def update_monitor_state(accumulator):
                 for probe_name, probe_data in probes.items():
                     run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
 
             process_event(event, update_monitor_state, settings, accumulator)
 
-        handle_events(settings=settings, accumulator=[])
+        handle_events(accumulator=[])
 
     action.finish()
 

@@ -67,12 +67,12 @@ def start(settings, task_id=None, **kwargs):
         span = f"last {window_duration} seconds"
 
         @on_event(fl_query, settings, span=span, timeout=READ_TIMEOUT)
-        def handle_events(event, settings=None, accumulator=None):
+        def handle_events(event, accumulator=None):
             def update_monitor_state(accumulator):
                 check_rate(accumulator, settings)
 
             process_event(event, update_monitor_state, settings, accumulator)
 
-        handle_events(settings=settings, accumulator=[])
+        handle_events(accumulator=[])
 
     action.finish()
