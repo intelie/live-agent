@@ -182,7 +182,7 @@ class WithAssetAdapter(WithStateAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        self.settings = kwargs.get("process_settings", {})
+        self.settings = kwargs.get("settings", {})
 
     def get_selected_asset(self):
         return self.shared_state.get("selected-asset", {})

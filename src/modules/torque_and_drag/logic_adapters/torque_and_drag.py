@@ -82,10 +82,10 @@ class TorqueAndDragAdapter(WithAssetAdapter, BaseBayesAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
 
-        self.process_settings = kwargs["process_settings"]
-        self.live_url = self.process_settings["live"]["url"]
-        self.username = self.process_settings["live"]["username"]
-        self.password = self.process_settings["live"]["password"]
+        self.settings = kwargs["settings"]
+        self.live_url = self.settings["live"]["url"]
+        self.username = self.settings["live"]["username"]
+        self.password = self.settings["live"]["password"]
 
         self.helpers = dict(
             (name, func)
@@ -198,10 +198,10 @@ class TorqueAndDragCalibrator:
 
     def __init__(self, live_client):
         self.live_client = live_client
-        self.process_settings = live_client.process_settings
-        self.live_url = self.process_settings["live"]["url"]
-        self.username = self.process_settings["live"]["username"]
-        self.password = self.process_settings["live"]["password"]
+        self.settings = live_client.settings
+        self.live_url = self.settings["live"]["url"]
+        self.username = self.settings["live"]["username"]
+        self.password = self.settings["live"]["password"]
 
     def run_query(self, query_str, realtime=False, span=None, callback=None):
         results_process, results_queue = self.live_client.run_query(

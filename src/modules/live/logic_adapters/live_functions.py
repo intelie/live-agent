@@ -81,8 +81,8 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        settings = kwargs.get("process_settings", {})
-        self.annotator = partial(annotation.create, process_settings=settings)
+        settings = kwargs.get("settings", {})
+        self.annotator = partial(annotation.create, settings=settings)
 
         self.room_id = kwargs["room_id"]
         self.analyzer = partial(run_analysis)

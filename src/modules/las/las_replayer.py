@@ -17,7 +17,7 @@ __all__ = ["start"]
 READ_MODES = Enum("READ_MODES", "SINGLE_PASS, CONTINUOUS")
 
 
-def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, process_settings):
+def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, settings):
     if not chat:
         return
 
@@ -34,12 +34,12 @@ def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, process_sett
         message = item.get("MESSAGE")
         source = item.get("SOURCE")
         if message and source:
-            messenger.maybe_send_chat_message(message, process_settings, author_name=source)
+            messenger.maybe_send_chat_message(message, settings, author_name=source)
 
 
-def send_message(message, timestamp, process_settings=None):
-    messenger.maybe_send_message_event(message, timestamp, process_settings)
-    messenger.maybe_send_chat_message(message, process_settings)
+def send_message(message, timestamp, settings=None):
+    messenger.maybe_send_message_event(message, timestamp, settings)
+    messenger.maybe_send_chat_message(message, settings)
 
 
 def delay_output(last_timestamp, next_timestamp):
@@ -71,9 +71,9 @@ def read_next_frame(values_iterator, curves, curves_data, index_mnemonic):
     return success, output_frame
 
 
-def open_files(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
-    path_list = process_settings["path_list"]
-    index_mnemonic = process_settings["index_mnemonic"]
+def open_files(settings, iterations, mode=READ_MODES.CONTINUOUS):
+    path_list = settings["path_list"]
+    index_mnemonic = settings["index_mnemonic"]
 
     if mode == READ_MODES.CONTINUOUS:
         path_index = iterations % len(path_list)
@@ -104,7 +104,7 @@ def open_files(process_settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, chat_data, index_mnemonic
 
 
-def generate_events(event_type, las_data, chat_data, index_mnemonic, process_settings):
+def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
     logging.info("{}: Event generation started".format(event_type))
 
     source_name = las_data.version.SOURCE.value
@@ -125,20 +125,20 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, process_set
 
             if last_timestamp == 0:
                 message = "Replay from '{}' started at TIME {}".format(source_name, next_timestamp)
-                send_message(message, timestamp.get_timestamp(), process_settings=process_settings)
+                send_message(message, timestamp.get_timestamp(), settings=settings)
 
-            raw.create(event_type, statuses, process_settings)
+            raw.create(event_type, statuses, settings)
 
             maybe_send_chat_message(
-                chat_data, last_timestamp, next_timestamp, index_mnemonic, process_settings
+                chat_data, last_timestamp, next_timestamp, index_mnemonic, settings
             )
             last_timestamp = next_timestamp
 
 
-def start(process_settings, task_id):
+def start(settings, task_id):
     with Action.continue_task(task_id=task_id):
-        event_type = process_settings["output"]["event_type"]
-        cooldown_time = process_settings.get("cooldown_time", 300)
+        event_type = settings["output"]["event_type"]
+        cooldown_time = settings.get("cooldown_time", 300)
         setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
         read_mode = READ_MODES.CONTINUOUS
@@ -147,13 +147,11 @@ def start(process_settings, task_id):
         while True:
             try:
                 success, las_data, chat_data, index_mnemonic = open_files(
-                    process_settings, iterations, mode=read_mode
+                    settings, iterations, mode=read_mode
                 )
 
                 if success:
-                    generate_events(
-                        event_type, las_data, chat_data, index_mnemonic, process_settings
-                    )
+                    generate_events(event_type, las_data, chat_data, index_mnemonic, settings)
                     logging.info("Iteration {} successful".format(iterations))
                 else:
                     logging.warn("Could not open files")

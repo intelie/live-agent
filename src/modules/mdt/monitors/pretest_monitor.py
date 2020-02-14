@@ -471,9 +471,9 @@ def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
     current_state = probe_data.get("process_state", PRETEST_STATES.INACTIVE)
     logging.debug("Pretest monitor for probe {} at state {}".format(probe_name, current_state))
 
-    send_event = partial(raw.create, process_settings=settings)
-    send_message = partial(messenger.send_message, process_settings=settings)
-    create_annotation = partial(annotation.create, process_settings=settings)
+    send_event = partial(raw.create, settings=settings)
+    send_message = partial(messenger.send_message, settings=settings)
+    create_annotation = partial(annotation.create, settings=settings)
 
     state_transition_func = functions_map[current_state]
     probe_data = loop.maybe_reset_latest_index(probe_data, event_list)

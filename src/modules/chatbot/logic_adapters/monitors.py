@@ -34,8 +34,8 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
         self.room_id = kwargs.get("room_id")
-        self.process_settings = kwargs.get("process_settings", {})
-        self.process_handlers = self.process_settings.get("process_handlers")
+        self.settings = kwargs.get("settings", {})
+        self.process_handlers = self.settings.get("process_handlers")
 
         self.helpers = dict(
             (name, func)
@@ -43,7 +43,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             if "_state" not in name
         )
 
-        self.all_monitors = self.process_settings.get("monitors", {})
+        self.all_monitors = self.settings.get("monitors", {})
 
     def process(self, statement, additional_response_selection_parameters=None):
         confidence = self.get_confidence(statement)
@@ -107,7 +107,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
                 continue
 
             monitor_settings["event_type"] = self.get_event_type(selected_asset)
-            monitor_settings["live"] = self.process_settings["live"]
+            monitor_settings["live"] = self.settings["live"]
             monitor_settings["output"]["room"] = {"id": self.room_id}
 
             with start_action(action_type=name) as action:

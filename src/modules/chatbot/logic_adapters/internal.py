@@ -92,7 +92,7 @@ class AdapterReloaderAdapter(WithStateAdapter):
 
     def __init__(self, chatbot, **kwargs):
         super().__init__(chatbot, **kwargs)
-        settings = kwargs.get("process_settings", {})
+        settings = kwargs.get("settings", {})
         self.logic_adapters = settings.get("logic_adapters", [])
 
     def process(self, statement, additional_response_selection_parameters=None):

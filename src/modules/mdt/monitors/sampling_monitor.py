@@ -790,8 +790,8 @@ def start(settings, task_id=None, **kwargs):
                 SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
                 SAMPLING_STATES.SAMPLING: find_sampling_end,
             },
-            "send_message": partial(messenger.send_message, process_settings=settings),
-            "create_annotation": partial(annotation.create, process_settings=settings),
+            "send_message": partial(messenger.send_message, settings=settings),
+            "create_annotation": partial(annotation.create, settings=settings),
         }
 
         monitor_settings = settings.get("monitor", {})

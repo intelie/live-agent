@@ -63,7 +63,7 @@ def start(settings, task_id=None, **kwargs):
                 int((int(event["end"]) - int(event["start"])) / 1000),
                 event["values_list"],
             )
-            messenger.send_message(message, timestamp=event["timestamp"], process_settings=settings)
+            messenger.send_message(message, timestamp=event["timestamp"], settings=settings)
 
             return
 

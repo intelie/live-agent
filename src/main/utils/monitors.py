@@ -139,7 +139,7 @@ class Monitor:
         self.settings = settings
         self.task_id = task_id
 
-        self.send_message = partial(messenger.send_message, process_settings=settings)
+        self.send_message = partial(messenger.send_message, settings=settings)
 
     def run(self):
         raise NotImplementedError("Monitors must define a start method")

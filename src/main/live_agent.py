@@ -37,9 +37,9 @@ class LiveAgent(Daemon):
     def resolve_process_handler(self, process_type, process_handlers):
         return process_handlers.get(process_type)
 
-    def get_processes(self, settings, process_handlers):
+    def get_processes(self, global_settings, process_handlers):
         processes = filter_dict(
-            settings.get("processes", {}), lambda _k, v: v.get("enabled") is True
+            global_settings.get("processes", {}), lambda _k, v: v.get("enabled") is True
         )
 
         invalid_processes = filter_dict(
@@ -53,35 +53,35 @@ class LiveAgent(Daemon):
 
         return valid_processes
 
-    def resolve_handlers(self, settings):
-        process_handlers = load_process_handlers(settings)
-        registered_processes = self.get_processes(settings, process_handlers)
+    def resolve_handlers(self, global_settings):
+        process_handlers = load_process_handlers(global_settings)
+        registered_processes = self.get_processes(global_settings, process_handlers)
 
-        for name, process_settings in registered_processes.items():
-            process_type = process_settings.pop("type")
+        for name, settings in registered_processes.items():
+            process_type = settings.pop("type")
             process_func = self.resolve_process_handler(process_type, process_handlers)
-            process_settings.update(
+            settings.update(
                 process_func=process_func,
-                live=settings.get("live", {}),
+                live=global_settings.get("live", {}),
                 process_handlers=process_handlers,
             )
 
         return registered_processes
 
-    def start_processes(self, settings):
-        processes_to_run = self.resolve_handlers(settings)
+    def start_processes(self, global_settings):
+        processes_to_run = self.resolve_handlers(global_settings)
         num_processes = len(processes_to_run)
         logging.info(
             "Starting {} processes: {}".format(num_processes, ", ".join(processes_to_run.keys()))
         )
 
         running_processes = []
-        for name, process_settings in processes_to_run.items():
-            process_func = process_settings.pop("process_func")
+        for name, settings in processes_to_run.items():
+            process_func = settings.pop("process_func")
 
             with start_action(action_type=name) as action:
                 task_id = action.serialize_task_id()
-                process = Process(target=process_func, args=(process_settings, task_id))
+                process = Process(target=process_func, args=(settings, task_id))
                 running_processes.append(process)
                 process.start()
 
@@ -91,15 +91,15 @@ class LiveAgent(Daemon):
         with Action.continue_task(task_id=self.task_id):
             try:
                 with open(self.settings_file, "r") as fd:
-                    settings = json.load(fd)
+                    global_settings = json.load(fd)
 
-                logging_settings = settings.get("logging")
-                live_settings = settings.get("live")
+                logging_settings = global_settings.get("logging")
+                live_settings = global_settings.get("live")
 
                 logging.setup_python_logging(logging_settings)
                 logging.setup_live_logging(logging_settings, live_settings)
 
-                self.start_processes(settings)
+                self.start_processes(global_settings)
             except KeyboardInterrupt:
                 logging.info("Execution interrupted")
                 raise

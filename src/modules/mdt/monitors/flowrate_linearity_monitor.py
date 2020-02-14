@@ -47,7 +47,7 @@ def check_rate(accumulator, settings):
     messenger.send_message(
         f'Ratio: {latest_event["ratio"]}, Mean: {latest_event["mratio"]}',
         timestamp=latest_event["timestamp"],
-        process_settings=settings,
+        settings=settings,
     )
 
     return accumulator
