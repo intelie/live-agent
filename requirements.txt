@@ -6,6 +6,9 @@ eliot-tree>=19.0.1
 setproctitle==1.1.10
 
 # modules.chatbot
+# Important!! There's a conflict related to lib PyYAML between ChatterBot(1.0.5)
+# and chatterbot-corpus(1.2.0). By now we're just ignoring the error.
+# ref: https://github.com/gunthercox/chatterbot-corpus/issues/127
 ChatterBot==1.0.5
 chatterbot-corpus==1.2.0
 Jinja2==2.10.1
@@ -18,6 +21,5 @@ enum34==1.1.6
 scikit-learn>=0.20
 
 # modules.mdt
-requests==2.21.0
+requests # Check constraints.txt for version
 scikit-learn>=0.20
-

@@ -11,7 +11,7 @@ Requires python 3.6 or newer
 # 2- Activate the virtualenv
 
 # 3- Install project requirements
-$ pip install -r requirements.txt
+$ pip install -r requirements.txt -c constraints.txt
 
 # 4- Execute the application in one of the modes below:
 
