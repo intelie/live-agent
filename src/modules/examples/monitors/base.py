@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 from eliot import Action, start_action
-
-from live_client.events import messenger
 
 __all__ = ["Monitor"]
 
@@ -15,8 +12,6 @@ class Monitor:
     def __init__(self, settings, task_id=None, **kwargs):
         self.settings = settings
         self.task_id = task_id
-
-        self.send_message = partial(messenger.send_message, settings=settings)
 
     def run(self):
         raise NotImplementedError("Monitors must define a start method")

@@ -2,6 +2,7 @@ import re
 
 from live_client.utils import logging
 from live_client.query import on_event
+from live_client.events import messenger
 
 from setproctitle import setproctitle
 from ddg.search import DuckEngine
@@ -23,10 +24,10 @@ class AlertReferenceMonitor(Monitor):
     monitor_name = "alert_reference_monitor"
 
     def run(self):
-        logging.info("{}: Alert Reference Monitor".format(self.process_name))
-        setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
+        logging.info("Alert reference monitor started")
+        setproctitle("DDA: Alert Reference Monitor")
 
-        alert_query = "__annotations __src:rulealert"
+        alert_query = "__annotations (__src:rulealert|src:rulealert)"
         span = self.settings["monitor"].get("span")
 
         @on_event(alert_query, self.settings, span=span, timeout=READ_TIMEOUT)
@@ -36,7 +37,8 @@ class AlertReferenceMonitor(Monitor):
         handle_events()
 
     def process_annotation(self, event):
-        annotation_message = event["message"]
+        content = event["data"]["content"][0]
+        annotation_message = content["message"]
         search_term = self._extract_search_term(annotation_message)
 
         engine = DuckEngine()
@@ -52,7 +54,7 @@ class AlertReferenceMonitor(Monitor):
             message_lines.append("No result found")
         message = "\n".join(message_lines)
 
-        self.send_message(f"{message}", timestamp=event["timestamp"])
+        messenger.send_message(message, settings=self.settings)
 
     def _extract_search_term(self, annotation_message):
         parts = annotation_message.split(":")
