@@ -1,11 +1,9 @@
 # live-agent
-eliot==1.12.0
-eliot-tree==19.0.1
-setproctitle==1.1.10
-
-# live-client
-aiocometd==0.4.5
+git+https://github.com/intelie/liveclient-python.git@master#egg=live_client # Until we release v1.0
 requests==2.21.0
+eliot>=1.12.0
+eliot-tree>=19.0.1
+setproctitle==1.1.10
 
 # modules.chatbot
 ChatterBot==1.0.5

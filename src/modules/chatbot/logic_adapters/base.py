@@ -6,7 +6,7 @@ from eliot import start_action
 import nltk
 from nltk import NaiveBayesClassifier
 
-from live_client.assets.utils import only_enabled_curves
+from live_client.assets.curves import only_enabled_curves
 from live_client.utils import logging
 from live_client.query import on_event
 
