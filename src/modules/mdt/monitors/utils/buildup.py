@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 
 from live_client.utils import timestamp, logging
 
-from utils import loop
+from . import loop
 
 __all__ = ["find_stable_buildup"]
 
