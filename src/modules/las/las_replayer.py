@@ -158,7 +158,6 @@ def start(settings, task_id):
 
                 loop.await_next_cycle(
                     cooldown_time,
-                    event_type,
                     message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.0),
                     log_func=logging.info,
                 )
