@@ -13,16 +13,18 @@ Requires python 3.6 or newer
 # 3- Install project requirements
 $ pip install -r requirements.txt -c constraints.txt
 
-# 4- Execute the application in one of the modes below:
+# 4- Check is your settings file seems to be correct
+$ check_live_features --settings=<settings_file>
 
-# 4.1- Direct execution
-$ python src/main/live_agent.py console [settings_file]
-
-# 4.2- Shortcut defining the settings file
-$ ./run [settings_file]
-
-# 4.3- Shortcut without defining the settings file
+# 5- Execute the agent
 $ ./run  # then select the settings file from the list
+
+# 5.1- You can also start the agent with an specific settings file
+$ ./run <settings_file>
+
+# 5.2- Or, execute the agent script directly
+$ python src/main/live_agent.py console <settings_file>
+
 ```
 
 The project includes the following sample settings:
