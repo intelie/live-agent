@@ -2,7 +2,7 @@ import re
 
 from chatterbot.logic import LogicAdapter
 
-from ..actions import CallbackAction, ShowTextAction
+from chatbot.src.actions import CallbackAction, ShowTextAction
 
 
 class BotVariablesAdapter(LogicAdapter):

@@ -7,7 +7,7 @@ from live_client.assets import list_assets, fetch_asset_settings
 from live_client.assets.utils import only_enabled_curves
 from live_client.utils import logging
 
-from chatbot.actions import CallbackAction, ShowTextAction
+from chatbot.src.actions import CallbackAction, ShowTextAction
 from chatbot.logic_adapters.base import BaseBayesAdapter, WithStateAdapter
 
 from ..constants import ITEM_PREFIX, SELECTED_ASSET_VARIABLE_NAME

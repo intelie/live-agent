@@ -9,7 +9,7 @@ from live_client.events import annotation
 from live_client.events.constants import TIMESTAMP_KEY
 from live_client.utils.timestamp import get_timestamp
 
-from chatbot.actions import CallbackAction
+from chatbot.src.actions import CallbackAction
 from chatbot.logic_adapters.base import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
 from ..constants import ITEM_PREFIX
 

@@ -8,7 +8,7 @@ from eliot import start_action
 from live_client.events.constants import UOM_KEY, VALUE_KEY, TIMESTAMP_KEY
 from live_client.utils import logging
 
-from chatbot.actions import CallbackAction, ShowTextAction
+from chatbot.src.actions import CallbackAction, ShowTextAction
 from chatbot.logic_adapters.base import BaseBayesAdapter, NLPAdapter, WithAssetAdapter
 from ..constants import ITEM_PREFIX
 

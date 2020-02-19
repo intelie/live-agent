@@ -13,8 +13,8 @@ from live_client.utils import logging
 
 from chatterbot.trainers import ChatterBotCorpusTrainer
 
-from chatbot.bot_impl import ChatBot
-from chatbot.actions import ActionStatement
+from chatbot.src.bot import ChatBot
+from chatbot.src.actions import ActionStatement
 
 
 __all__ = ["start"]

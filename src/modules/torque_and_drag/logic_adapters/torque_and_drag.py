@@ -5,7 +5,7 @@ import requests
 from live_client.events.constants import EVENT_TYPE_EVENT, EVENT_TYPE_DESTROY
 from live_client.utils import logging
 
-from chatbot.actions import CallbackAction, ChainedAction, NoTextAction, ShowTextAction
+from chatbot.src.actions import CallbackAction, ChainedAction, NoTextAction, ShowTextAction
 from chatbot.logic_adapters.base import BaseBayesAdapter, WithAssetAdapter
 
 

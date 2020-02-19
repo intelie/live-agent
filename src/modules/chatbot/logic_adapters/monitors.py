@@ -4,7 +4,7 @@ from chatterbot.conversation import Statement
 
 from live_client.utils import logging
 
-from chatbot.actions import CallbackAction
+from chatbot.src.actions import CallbackAction
 from .base import BaseBayesAdapter, WithAssetAdapter
 
 __all__ = ["MonitorControlAdapter"]
