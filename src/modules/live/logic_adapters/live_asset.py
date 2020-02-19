@@ -4,7 +4,7 @@ from functools import partial
 from chatterbot.conversation import Statement  # NOQA
 
 from live_client.assets import list_assets, fetch_asset_settings
-from live_client.assets.utils import only_enabled_curves
+from live_client.assets.curves import only_enabled_curves
 from live_client.utils import logging
 
 from chatbot.src.actions import CallbackAction, ShowTextAction
