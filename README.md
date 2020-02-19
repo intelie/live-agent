@@ -1,6 +1,25 @@
 Live Agent
 ----------
 
+Coordinates the execution of processes which interact with Intelie Live and simplifies their deployment.
+
+Processes are implemented inside modules, segmented by its objective, The existing processes can be found at `src/modules`
+Each module can have:
+- `actions`: Process which send events to live
+- `monitors`: Processes which respond to the events generateb by queries
+- `logic_adapters`: Classes which handle messages received by the chatbot
+
+The set of active modules is defined using a settings file.
+The project includes the following sample settings:
+
+- `src/main/settings/settings-replay.json` : Continuously replays MDT job files for two wells
+- `src/main/settings/settings-pretest.json` : Pretest monitor
+- `src/main/settings/settings-sampling.json` : Focused sampling monitor
+- `src/main/settings/settings-monitor.json` : Pretest, sampling and flowrate monitors
+- `src/main/settings/settings-chatbot.json` : Chatbot
+- `src/main/settings/settings.json` : All features enabled
+
+
 ## Project setup:
 
 Requires python 3.6 or newer
@@ -26,16 +45,6 @@ $ ./run <settings_file>
 $ python src/main/live_agent.py console <settings_file>
 
 ```
-
-The project includes the following sample settings:
-
-- `src/main/settings/settings-replay.json` : Continuously replays MDT job files for two wells
-- `src/main/settings/settings-pretest.json` : Pretest monitor
-- `src/main/settings/settings-sampling.json` : Focused sampling monitor
-- `src/main/settings/settings-monitor.json` : Pretest, sampling and flowrate monitors
-- `src/main/settings/settings-chatbot.json` : Chatbot
-- `src/main/settings/settings.json` : All features enabled
-
 
 ## Reading logs
 
