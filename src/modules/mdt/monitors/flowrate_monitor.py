@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from setproctitle import setproctitle
+from eliot import Action, start_action
 
 from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
-from utils.logging import get_log_action
 
 
 __all__ = ["start"]
@@ -42,7 +42,11 @@ def build_query(settings):
 
 
 def start(settings, task_id=None, **kwargs):
-    action = get_log_action(task_id, "flowrate_monitor")
+    if task_id:
+        action = Action.continue_task(task_id=task_id)
+    else:
+        action = start_action(action_type="flowrate_monitor")
+
     with action.context():
         logging.info("Flowrate monitor started")
         setproctitle("DDA: Flowrate monitor")

@@ -3,10 +3,9 @@ import re
 from live_client.utils import logging
 from live_client.query import on_event
 
-from utils import logging as logx
 from setproctitle import setproctitle
-from utils import monitors
 from ddg.search import DuckEngine
+from .base import Monitor
 
 __all__ = ["start"]
 
@@ -20,15 +19,10 @@ def clean_term(term):
     return m.group(0)
 
 
-class AlertReferenceMonitor(monitors.Monitor):
-    def run(self):
-        with logx.manage_action(
-            logx.get_log_action(self.task_id, "alert_reference_monitor")
-        ) as action:
-            with action.context():
-                self.execute()
+class AlertReferenceMonitor(Monitor):
+    monitor_name = "alert_reference_monitor"
 
-    def execute(self):
+    def run(self):
         logging.info("{}: Alert Reference Monitor".format(self.process_name))
         setproctitle('DDA: Alert Reference Monitor "{}"'.format(self.process_name))
 
@@ -74,5 +68,4 @@ class AlertReferenceMonitor(monitors.Monitor):
 
 
 def start(settings, task_id=None, **kwargs):
-    m = AlertReferenceMonitor(settings, task_id, **kwargs)
-    m.run()
+    AlertReferenceMonitor.start(settings, task_id, **kwargs)

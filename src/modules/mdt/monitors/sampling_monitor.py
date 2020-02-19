@@ -5,13 +5,12 @@ from enum import Enum
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
-from utils import loop, monitors
 from live_client.events import messenger, annotation
 from live_client.utils import timestamp, logging
 from live_client.query import on_event
 from live.utils.query import prepare_query, handle_events as process_event
-from ..utils.buildup import find_stable_buildup as real_find_stable_buildup
-from ..utils.probes import init_probes_data
+from .utils import loop, probes, buildup
+from .utils.settings import get_global_mnemonics
 
 __all__ = ["start"]
 
@@ -365,7 +364,7 @@ def find_stable_buildup(
     if state in (SAMPLING_STATES.FOCUSED_FLOW, SAMPLING_STATES.SAMPLING):
         detected_state = PUMP_STATES.INACTIVE
     else:
-        detected_state = real_find_stable_buildup(
+        detected_state = buildup.find_stable_buildup(
             probe_name,
             probe_data,
             event_list,
@@ -742,7 +741,7 @@ def run_sampling_monitor(settings, event_list, functions_map):
 
 
 def run_monitor(event_list, settings, functions_map):
-    settings.update(**monitors.get_global_mnemonics(settings))
+    settings.update(**get_global_mnemonics(settings))
     settings = loop.maybe_reset_latest_index(settings, event_list)
     sampling_state = settings.get("process_state", SAMPLING_STATES.INACTIVE)
 
@@ -796,7 +795,7 @@ def start(settings, task_id=None, **kwargs):
 
         monitor_settings = settings.get("monitor", {})
         window_duration = monitor_settings["window_duration"]
-        monitor_settings.update(probes=init_probes_data(settings))
+        monitor_settings.update(probes=probes.init_data(settings))
 
         sampling_query = prepare_query(settings)
         span = f"last {window_duration} seconds"

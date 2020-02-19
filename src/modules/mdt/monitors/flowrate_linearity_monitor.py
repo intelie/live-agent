@@ -1,10 +1,10 @@
 from setproctitle import setproctitle
+from eliot import Action, start_action
 
 from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
 from live.utils.query import handle_events as process_event
-from utils import monitors
 
 __all__ = ["start"]
 
@@ -55,8 +55,11 @@ def check_rate(accumulator, settings):
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
 def start(settings, task_id=None, **kwargs):
+    if task_id:
+        action = Action.continue_task(task_id=task_id)
+    else:
+        action = start_action(action_type="flowrate_linearity_monitor")
 
-    action = monitors.get_log_action(task_id, "flowrate_linearity_monitor")
     with action.context():
         logging.info("Flowrate linearity monitor started")
         setproctitle("DDA: Flowrate linearity monitor")

@@ -6,13 +6,11 @@ from hashlib import md5
 from setproctitle import setproctitle
 from eliot import Action, start_action
 
-from utils import loop
 from live_client.utils import timestamp, logging
 from live_client.events import messenger, annotation, raw
 from live_client.query import on_event
 from live.utils.query import prepare_query, handle_events as process_event
-from ..utils.buildup import find_stable_buildup
-from ..utils.probes import init_probes_data
+from .utils import loop, probes, buildup
 
 __all__ = ["start"]
 
@@ -326,6 +324,9 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
 
     # There was a change.
     if is_drawdown:
+        logging.info(
+            ("Drawdown detected: {} -> {}.").format(valid_events[0], events_during_drawdown[0])
+        )
         depth_mnemonic = probe_data["depth_mnemonic"]
         pressure_mnemonic = probe_data["pressure_mnemonic"]
 
@@ -379,7 +380,7 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
         drawdown_stopped = last_pretest_volume == prev_pretest_volume
 
         logging.info(
-            ("End of drawdown detection: {}; {} -> {}.").format(
+            ("End of drawdown detection: drawdown stopped={}; {} -> {}.").format(
                 drawdown_stopped, prev_pretest_volume, last_pretest_volume
             )
         )
@@ -518,12 +519,12 @@ def start(settings, task_id=None, **kwargs):
             PRETEST_STATES.INACTIVE: find_drawdown,
             PRETEST_STATES.DRAWDOWN_START: find_buildup,
             PRETEST_STATES.DRAWDOWN_END: partial(
-                find_stable_buildup,
+                buildup.find_stable_buildup,
                 targets={0.01: PRETEST_STATES.INACTIVE, 0.1: PRETEST_STATES.BUILDUP_STABLE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
             PRETEST_STATES.BUILDUP_STABLE: partial(
-                find_stable_buildup,
+                buildup.find_stable_buildup,
                 targets={0.01: PRETEST_STATES.INACTIVE},
                 fallback_state=PRETEST_STATES.INACTIVE,
             ),
@@ -531,7 +532,7 @@ def start(settings, task_id=None, **kwargs):
 
         monitor_settings = settings.get("monitor", {})
         window_duration = monitor_settings["window_duration"]
-        probes = init_probes_data(settings)
+        target_probes = probes.init_data(settings)
 
         pretest_query = prepare_query(settings)
         span = f"last {window_duration} seconds"
@@ -539,7 +540,7 @@ def start(settings, task_id=None, **kwargs):
         @on_event(pretest_query, settings, span=span, timeout=read_timeout)
         def handle_events(event, accumulator=None):
             def update_monitor_state(accumulator):
-                for probe_name, probe_data in probes.items():
+                for probe_name, probe_data in target_probes.items():
                     run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
 
             process_event(event, update_monitor_state, settings, accumulator)
