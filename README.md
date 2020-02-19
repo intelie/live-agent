@@ -29,12 +29,12 @@ $ python src/main/live_agent.py console <settings_file>
 
 The project includes the following sample settings:
 
-- `src/main/settings-replay.json` : Continuously replays MDT job files for two wells
-- `src/main/settings-pretest.json` : Pretest monitor
-- `src/main/settings-sampling.json` : Focused sampling monitor
-- `src/main/settings-monitor.json` : Pretest, sampling and flowrate monitors
-- `src/main/settings-chatbot.json` : Chatbot
-- `src/main/settings.json` : All features enabled
+- `src/main/settings/settings-replay.json` : Continuously replays MDT job files for two wells
+- `src/main/settings/settings-pretest.json` : Pretest monitor
+- `src/main/settings/settings-sampling.json` : Focused sampling monitor
+- `src/main/settings/settings-monitor.json` : Pretest, sampling and flowrate monitors
+- `src/main/settings/settings-chatbot.json` : Chatbot
+- `src/main/settings/settings.json` : All features enabled
 
 
 ## Reading logs
@@ -42,16 +42,15 @@ The project includes the following sample settings:
 This project uses `eliot` for logging. Eliot generates log messages as json objects,
 which can be parsed by tools like `eliot-tree` and `eliot-prettyprint` or sent to Intelie Live.
 
-The log file is stored at `/var/log/live-agent.log` by default. When starting this tool from the
-console the log is stored at `/tmp/live-agent.log`.
+The log file is stored at `/var/log/live-agent.log` by default. Make sure the user which will start the agent can write to this file.
 The log messages are also sent to live, using the event_type `dda_log` by default.
 
 ```shell
 # Reading the log with eliot-prettyprint
-$ tail -f /tmp/live-agent.log | eliot-prettyprint
+$ tail -f /var/log/live-agent.log | eliot-prettyprint
 
 # Reading the log with eliot-tree (extra dependency, already on requirements.txt)
-$ eliot-tree -l 0 /tmp/live-agent.log
+$ eliot-tree -l 0 /var/log/live-agent.log
 ```
 
 
@@ -80,7 +79,7 @@ $ tools/package.sh c7
 #### In a container:
 
 ```shell
-$ tools/test-envs/run_centos_container.sh [6|7]
+$ tools/test-envs/run_centos_container.sh 7
 
 # Build dir will be available at /packages, so you can install and test
 ```
@@ -92,7 +91,7 @@ This allows to a more complete test, including running the app as a service
 - Install VirtualBox and Vagrant (https://www.vagrantup.com/downloads.html)
 
 ```shell
-# cd to `tools/test-envs/RedHat6` or `tools/test/RedHat7`
+# cd to `tools/test-envs/RedHat7`
 $ cd tools/test-envs/RedHat7
 
 # Starting VM:
