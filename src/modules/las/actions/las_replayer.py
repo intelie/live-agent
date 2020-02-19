@@ -9,7 +9,7 @@ import lasio
 from live_client.events import raw, messenger
 from live_client.utils import timestamp, logging
 
-from .utils import loop
+from las.utils import loop
 
 __all__ = ["start"]
 
@@ -158,7 +158,6 @@ def start(settings, task_id):
 
                 loop.await_next_cycle(
                     cooldown_time,
-                    event_type,
                     message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.0),
                     log_func=logging.info,
                 )
