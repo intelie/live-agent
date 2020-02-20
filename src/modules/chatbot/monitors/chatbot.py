@@ -2,8 +2,9 @@
 from multiprocessing import Process, Queue
 from functools import partial
 
-from eliot import start_action, Action
+from eliot import start_action
 from setproctitle import setproctitle
+from chatterbot.trainers import ChatterBotCorpusTrainer
 
 from live_client import query
 from live_client.events import messenger
@@ -11,7 +12,7 @@ from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils import logging
 
-from chatterbot.trainers import ChatterBotCorpusTrainer
+from services.processes import function_with_log
 
 from chatbot.src.bot import ChatBot
 from chatbot.src.actions import ActionStatement
@@ -113,32 +114,31 @@ def train_bot(chatbot, language="english"):
 def start_chatbot(settings, room_id, room_queue, task_id):
     setproctitle("DDA: Chatbot for room {}".format(room_id))
 
-    with Action.continue_task(task_id=task_id):
-        settings.update(state={})
-        load_state_func = partial(load_state, settings)
-        share_state_func = partial(share_state, settings)
+    settings.update(state={})
+    load_state_func = partial(load_state, settings)
+    share_state_func = partial(share_state, settings)
 
-        bot_alias = settings.get("alias", "Intelie")
-        context = {
-            "room_id": room_id,
-            "settings": settings,
-            "live_client": LiveClient(settings, room_id),
-            "functions": {"load_state": load_state_func, "share_state": share_state_func},
-        }
-        chatbot = ChatBot(
-            bot_alias,
-            read_only=True,
-            logic_adapters=settings.get("logic_adapters", []),
-            preprocessors=["chatterbot.preprocessors.clean_whitespace"],
-            filters=[],
-            **context,
-        )
-        train_bot(chatbot)
+    bot_alias = settings.get("alias", "Intelie")
+    context = {
+        "room_id": room_id,
+        "settings": settings,
+        "live_client": LiveClient(settings, room_id),
+        "functions": {"load_state": load_state_func, "share_state": share_state_func},
+    }
+    chatbot = ChatBot(
+        bot_alias,
+        read_only=True,
+        logic_adapters=settings.get("logic_adapters", []),
+        preprocessors=["chatterbot.preprocessors.clean_whitespace"],
+        filters=[],
+        **context,
+    )
+    train_bot(chatbot)
 
-        while True:
-            event = room_queue.get()
-            messages = maybe_extract_messages(event)
-            process_messages(chatbot, messages)
+    while True:
+        event = room_queue.get()
+        messages = maybe_extract_messages(event)
+        process_messages(chatbot, messages)
 
     return chatbot
 
@@ -146,6 +146,7 @@ def start_chatbot(settings, room_id, room_queue, task_id):
 def route_message(settings, bots_registry, event):
     logging.debug("Got an event: {}".format(event))
 
+    start_chatbot_with_log = function_with_log(start_chatbot)
     messages = maybe_extract_messages(event)
     for message in messages:
         room_id = message.get("room", {}).get("id")
@@ -166,7 +167,7 @@ def route_message(settings, bots_registry, event):
                 task_id = action.serialize_task_id()
                 room_queue = Queue()
                 room_bot = Process(
-                    target=start_chatbot, args=(settings, room_id, room_queue, task_id)
+                    target=start_chatbot_with_log, args=(settings, room_id, room_queue, task_id)
                 )
 
             room_bot.start()
@@ -182,27 +183,25 @@ def route_message(settings, bots_registry, event):
 # Global process initialization
 def start(settings, task_id):
     setproctitle("DDA: Chatbot main process")
+    logging.info("Chatbot process started")
+    bots_registry = {}
 
-    with Action.continue_task(task_id=task_id):
-        logging.info("Chatbot process started")
-        bots_registry = {}
+    bot_alias = settings.get("alias", "Intelie").lower()
+    bot_query = f"""
+        __message -__delete:*
+        => @filter(
+            message:lower():contains("{bot_alias}") &&
+            author->name:lower() != "{bot_alias}"
+        )
+    """
 
-        bot_alias = settings.get("alias", "Intelie").lower()
-        bot_query = f"""
-            __message -__delete:*
-            => @filter(
-                message:lower():contains("{bot_alias}") &&
-                author->name:lower() != "{bot_alias}"
-            )
-        """
+    @query.on_event(bot_query, settings, timeout=read_timeout, max_retries=max_retries)
+    def handle_events(event, *args, **kwargs):
+        messenger.join_messenger(settings)
+        return route_message(settings, bots_registry, event)
 
-        @query.on_event(bot_query, settings, timeout=read_timeout, max_retries=max_retries)
-        def handle_events(event, *args, **kwargs):
-            messenger.join_messenger(settings)
-            return route_message(settings, bots_registry, event)
-
-        bot_processes = handle_events()
-        for bot in bot_processes:
-            bot.join()
+    bot_processes = handle_events()
+    for bot in bot_processes:
+        bot.join()
 
     return

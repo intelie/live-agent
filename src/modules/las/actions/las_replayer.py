@@ -2,7 +2,6 @@
 from enum import Enum
 import csv
 from setproctitle import setproctitle
-from eliot import Action
 
 import lasio
 
@@ -136,43 +135,40 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
 
 
 def start(settings, task_id):
-    with Action.continue_task(task_id=task_id):
-        event_type = settings["output"]["event_type"]
-        cooldown_time = settings.get("cooldown_time", 300)
-        setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
+    event_type = settings["output"]["event_type"]
+    cooldown_time = settings.get("cooldown_time", 300)
+    setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
-        read_mode = READ_MODES.CONTINUOUS
+    read_mode = READ_MODES.CONTINUOUS
 
-        iterations = 0
-        while True:
-            try:
-                success, las_data, chat_data, index_mnemonic = open_files(
-                    settings, iterations, mode=read_mode
-                )
+    iterations = 0
+    while True:
+        try:
+            success, las_data, chat_data, index_mnemonic = open_files(
+                settings, iterations, mode=read_mode
+            )
 
-                if success:
-                    generate_events(event_type, las_data, chat_data, index_mnemonic, settings)
-                    logging.info("Iteration {} successful".format(iterations))
-                else:
-                    logging.warn("Could not open files")
+            if success:
+                generate_events(event_type, las_data, chat_data, index_mnemonic, settings)
+                logging.info("Iteration {} successful".format(iterations))
+            else:
+                logging.warn("Could not open files")
 
-                loop.await_next_cycle(
-                    cooldown_time,
-                    message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.0),
-                    log_func=logging.info,
-                )
+            loop.await_next_cycle(
+                cooldown_time,
+                message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.0),
+                log_func=logging.info,
+            )
 
-            except KeyboardInterrupt:
-                logging.info("Stopping after {} iterations".format(iterations))
-                raise
+        except KeyboardInterrupt:
+            logging.info("Stopping after {} iterations".format(iterations))
+            raise
 
-            except Exception as e:
-                logging.error(
-                    "Error processing events during iteration {}, {}<{}>".format(
-                        iterations, e, type(e)
-                    )
-                )
+        except Exception as e:
+            logging.error(
+                "Error processing events during iteration {}, {}<{}>".format(iterations, e, type(e))
+            )
 
-            iterations += 1
+        iterations += 1
 
     return

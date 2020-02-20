@@ -4,7 +4,6 @@ from itertools import dropwhile
 from enum import Enum
 from hashlib import md5
 from setproctitle import setproctitle
-from eliot import Action, start_action
 
 from live_client.utils import timestamp, logging
 from live_client.events import messenger, annotation, raw
@@ -506,47 +505,39 @@ def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
 
 
 def start(settings, task_id=None, **kwargs):
-    if task_id:
-        action = Action.continue_task(task_id=task_id)
-    else:
-        action = start_action(action_type="pretest_monitor")
+    setproctitle("DDA: Pretest monitor")
+    logging.info("Pretest monitor started")
 
-    with action.context():
-        setproctitle("DDA: Pretest monitor")
-        logging.info("Pretest monitor started")
+    functions_map = {
+        PRETEST_STATES.INACTIVE: find_drawdown,
+        PRETEST_STATES.DRAWDOWN_START: find_buildup,
+        PRETEST_STATES.DRAWDOWN_END: partial(
+            buildup.find_stable_buildup,
+            targets={0.01: PRETEST_STATES.INACTIVE, 0.1: PRETEST_STATES.BUILDUP_STABLE},
+            fallback_state=PRETEST_STATES.INACTIVE,
+        ),
+        PRETEST_STATES.BUILDUP_STABLE: partial(
+            buildup.find_stable_buildup,
+            targets={0.01: PRETEST_STATES.INACTIVE},
+            fallback_state=PRETEST_STATES.INACTIVE,
+        ),
+    }
 
-        functions_map = {
-            PRETEST_STATES.INACTIVE: find_drawdown,
-            PRETEST_STATES.DRAWDOWN_START: find_buildup,
-            PRETEST_STATES.DRAWDOWN_END: partial(
-                buildup.find_stable_buildup,
-                targets={0.01: PRETEST_STATES.INACTIVE, 0.1: PRETEST_STATES.BUILDUP_STABLE},
-                fallback_state=PRETEST_STATES.INACTIVE,
-            ),
-            PRETEST_STATES.BUILDUP_STABLE: partial(
-                buildup.find_stable_buildup,
-                targets={0.01: PRETEST_STATES.INACTIVE},
-                fallback_state=PRETEST_STATES.INACTIVE,
-            ),
-        }
+    monitor_settings = settings.get("monitor", {})
+    window_duration = monitor_settings["window_duration"]
+    target_probes = probes.init_data(settings)
 
-        monitor_settings = settings.get("monitor", {})
-        window_duration = monitor_settings["window_duration"]
-        target_probes = probes.init_data(settings)
+    pretest_query = prepare_query(settings)
+    span = f"last {window_duration} seconds"
 
-        pretest_query = prepare_query(settings)
-        span = f"last {window_duration} seconds"
+    @on_event(pretest_query, settings, span=span, timeout=read_timeout)
+    def handle_events(event, accumulator=None):
+        def update_monitor_state(accumulator):
+            for probe_name, probe_data in target_probes.items():
+                run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
 
-        @on_event(pretest_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, accumulator=None):
-            def update_monitor_state(accumulator):
-                for probe_name, probe_data in target_probes.items():
-                    run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
+        process_event(event, update_monitor_state, settings, accumulator)
 
-            process_event(event, update_monitor_state, settings, accumulator)
-
-        handle_events(accumulator=[])
-
-    action.finish()
+    handle_events(accumulator=[])
 
     return

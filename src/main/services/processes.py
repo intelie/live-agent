@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Process
-from eliot import start_action
+from eliot import Action, start_action
 
 from live_client.utils import logging
 from .importer import load_process_handlers
 
-__all__ = ["start"]
+__all__ = ["start", "function_with_log"]
 
 
 def filter_dict(source_dict, filter_func):
@@ -58,7 +58,7 @@ def start(global_settings):
 
     running_processes = []
     for name, settings in processes_to_run.items():
-        process_func = settings.pop("process_func")
+        process_func = function_with_log(settings.pop("process_func"))
 
         with start_action(action_type=name) as action:
             task_id = action.serialize_task_id()
@@ -67,3 +67,22 @@ def start(global_settings):
             process.start()
 
     return running_processes
+
+
+def function_with_log(f):
+    def wrapped(*args, **kwargs):
+        task_id = kwargs.get("task_id")
+        if task_id:
+            action = Action.continue_task(task_id=task_id)
+        else:
+            action = start_action(action_type=f"{f.__module__}.{f.__name__}")
+
+        with action.context():
+            try:
+                return f(*args, **kwargs)
+            except Exception as e:
+                logging.exception(f"Error during the execution of {f}: <{e}>")
+
+        action.finish()
+
+    return wrapped

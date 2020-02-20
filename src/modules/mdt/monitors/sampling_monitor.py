@@ -3,7 +3,6 @@ from functools import partial
 from itertools import dropwhile
 from enum import Enum
 from setproctitle import setproctitle
-from eliot import Action, start_action
 
 from live_client.events import messenger, annotation
 from live_client.utils import timestamp, logging
@@ -759,56 +758,48 @@ def run_monitor(event_list, settings, functions_map):
 
 
 def start(settings, task_id=None, **kwargs):
-    if task_id:
-        action = Action.continue_task(task_id=task_id)
-    else:
-        action = start_action(action_type="pretest_monitor")
+    logging.info("Sampling monitor started")
+    setproctitle("DDA: Sampling monitor")
 
-    with action.context():
-        logging.info("Sampling monitor started")
-        setproctitle("DDA: Sampling monitor")
+    functions_map = {
+        "pump": {
+            PUMP_STATES.INACTIVE: find_rate_change,
+            PUMP_STATES.PUMPING: find_rate_change,
+            PUMP_STATES.BUILDUP_EXPECTED: partial(
+                find_stable_buildup,
+                targets={0.01: PUMP_STATES.INACTIVE, 0.1: PUMP_STATES.BUILDUP_STABLE},
+                fallback_state=PUMP_STATES.INACTIVE,
+            ),
+            PUMP_STATES.BUILDUP_STABLE: partial(
+                find_stable_buildup,
+                targets={0.01: PUMP_STATES.INACTIVE},
+                fallback_state=PUMP_STATES.INACTIVE,
+            ),
+        },
+        "sampling": {
+            SAMPLING_STATES.INACTIVE: find_commingled_flow,
+            SAMPLING_STATES.COMMINGLED_FLOW: find_focused_flow,
+            SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
+            SAMPLING_STATES.SAMPLING: find_sampling_end,
+        },
+        "send_message": partial(messenger.send_message, settings=settings),
+        "create_annotation": partial(annotation.create, settings=settings),
+    }
 
-        functions_map = {
-            "pump": {
-                PUMP_STATES.INACTIVE: find_rate_change,
-                PUMP_STATES.PUMPING: find_rate_change,
-                PUMP_STATES.BUILDUP_EXPECTED: partial(
-                    find_stable_buildup,
-                    targets={0.01: PUMP_STATES.INACTIVE, 0.1: PUMP_STATES.BUILDUP_STABLE},
-                    fallback_state=PUMP_STATES.INACTIVE,
-                ),
-                PUMP_STATES.BUILDUP_STABLE: partial(
-                    find_stable_buildup,
-                    targets={0.01: PUMP_STATES.INACTIVE},
-                    fallback_state=PUMP_STATES.INACTIVE,
-                ),
-            },
-            "sampling": {
-                SAMPLING_STATES.INACTIVE: find_commingled_flow,
-                SAMPLING_STATES.COMMINGLED_FLOW: find_focused_flow,
-                SAMPLING_STATES.FOCUSED_FLOW: find_sampling_start,
-                SAMPLING_STATES.SAMPLING: find_sampling_end,
-            },
-            "send_message": partial(messenger.send_message, settings=settings),
-            "create_annotation": partial(annotation.create, settings=settings),
-        }
+    monitor_settings = settings.get("monitor", {})
+    window_duration = monitor_settings["window_duration"]
+    monitor_settings.update(probes=probes.init_data(settings))
 
-        monitor_settings = settings.get("monitor", {})
-        window_duration = monitor_settings["window_duration"]
-        monitor_settings.update(probes=probes.init_data(settings))
+    sampling_query = prepare_query(settings)
+    span = f"last {window_duration} seconds"
 
-        sampling_query = prepare_query(settings)
-        span = f"last {window_duration} seconds"
+    @on_event(sampling_query, settings, span=span, timeout=read_timeout)
+    def handle_events(event, accumulator=None):
+        def update_monitor_state(accumulator):
+            run_monitor(accumulator, settings, functions_map)
 
-        @on_event(sampling_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event, accumulator=None):
-            def update_monitor_state(accumulator):
-                run_monitor(accumulator, settings, functions_map)
+        process_event(event, update_monitor_state, settings, accumulator)
 
-            process_event(event, update_monitor_state, settings, accumulator)
-
-        handle_events(accumulator=[])
-
-    action.finish()
+    handle_events(accumulator=[])
 
     return

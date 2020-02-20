@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from setproctitle import setproctitle
-from eliot import Action, start_action
 
 from live_client.utils import logging
 from live_client.query import on_event
@@ -42,35 +41,27 @@ def build_query(settings):
 
 
 def start(settings, task_id=None, **kwargs):
-    if task_id:
-        action = Action.continue_task(task_id=task_id)
-    else:
-        action = start_action(action_type="flowrate_monitor")
+    logging.info("Flowrate monitor started")
+    setproctitle("DDA: Flowrate monitor")
 
-    with action.context():
-        logging.info("Flowrate monitor started")
-        setproctitle("DDA: Flowrate monitor")
+    window_duration = settings["monitor"]["window_duration"]
 
-        window_duration = settings["monitor"]["window_duration"]
+    fr_query = build_query(settings)
+    span = f"last {window_duration} seconds"
 
-        fr_query = build_query(settings)
-        span = f"last {window_duration} seconds"
+    @on_event(fr_query, settings, span=span, timeout=read_timeout)
+    def handle_events(event):
+        # Generate alerts whether the threshold was reached
+        # a new event means another threshold breach
+        template = "{} was changed {} times over the last {} seconds, please calm down ({})"
+        message = template.format(
+            event["mnemonic"],
+            int(event["num_changes"]),
+            int((int(event["end"]) - int(event["start"])) / 1000),
+            event["values_list"],
+        )
+        messenger.send_message(message, timestamp=event["timestamp"], settings=settings)
 
-        @on_event(fr_query, settings, span=span, timeout=read_timeout)
-        def handle_events(event):
-            # Generate alerts whether the threshold was reached
-            # a new event means another threshold breach
-            template = "{} was changed {} times over the last {} seconds, please calm down ({})"
-            message = template.format(
-                event["mnemonic"],
-                int(event["num_changes"]),
-                int((int(event["end"]) - int(event["start"])) / 1000),
-                event["values_list"],
-            )
-            messenger.send_message(message, timestamp=event["timestamp"], settings=settings)
+        return
 
-            return
-
-        handle_events()
-
-    action.finish()
+    handle_events()
