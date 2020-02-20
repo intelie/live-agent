@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from live_client.utils import logging
 
 __all__ = ["prepare_query", "handle_events"]
@@ -59,8 +60,8 @@ def handle_events(event, callback, settings, accumulator=None):
         logging.info(f"Stopping ")
         raise
 
-    except Exception:
-        logging.exception()
+    except Exception as e:
+        logging.exception(f"Error during query: <{e}>")
         handle_events(event, callback, settings)
         return
 

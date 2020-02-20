@@ -221,7 +221,7 @@ class TorqueAndDragCalibrator:
                     break
 
             except queue.Empty:
-                logging.exception()
+                logging.exception(f"Queue is empty")
 
         results_process.join(1)
 
@@ -250,8 +250,8 @@ class TorqueAndDragCalibrator:
         response = s.post(url, json=calibration_data)
         try:
             response.raise_for_status()
-        except Exception:
-            logging.exception()
+        except Exception as e:
+            logging.exception(f"Request error: {e}")
             raise
 
         result = response.json()
