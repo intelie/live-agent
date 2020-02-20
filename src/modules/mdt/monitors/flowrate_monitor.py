@@ -53,14 +53,17 @@ def start(settings, task_id=None, **kwargs):
     def handle_events(event):
         # Generate alerts whether the threshold was reached
         # a new event means another threshold breach
-        template = "{} was changed {} times over the last {} seconds, please calm down ({})"
-        message = template.format(
-            event["mnemonic"],
-            int(event["num_changes"]),
-            int((int(event["end"]) - int(event["start"])) / 1000),
-            event["values_list"],
-        )
-        messenger.send_message(message, timestamp=event["timestamp"], settings=settings)
+        event_content = event.get("data", {}).get("content", [])
+
+        for item in event_content:
+            template = "{} was changed {} times over the last {} seconds, please calm down ({})"
+            message = template.format(
+                item["mnemonic"],
+                int(item["num_changes"]),
+                int((int(item["end"]) - int(item["start"])) / 1000),
+                item["values_list"],
+            )
+            messenger.send_message(message, timestamp=item["timestamp"], settings=settings)
 
         return
 
