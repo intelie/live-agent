@@ -34,7 +34,7 @@ def find_stable_buildup(name, data, events, message_sender, targets=None, fallba
         )
     )
 
-    data = [
+    curve = [
         {
             timestamp: item.get("timestamp"),
             index_mnemonic: item.get(index_mnemonic),
@@ -45,7 +45,7 @@ def find_stable_buildup(name, data, events, message_sender, targets=None, fallba
     ]
 
     regression_results = find_slope(
-        data,
+        curve,
         index_mnemonic,
         pressure_mnemonic,
         targets=target_slopes,
