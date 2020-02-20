@@ -175,7 +175,7 @@ def find_slope(events, index_mnemonic, value_mnemonic, targets=None, window_size
                 target_slope = matching_slopes[0]
                 segment_found = segment_to_check
 
-                logging.info(
+                logging.debug(
                     "Linear regression within {} ({:.3f}, r²: {:.3f}) found between {:.2f} and {:.2f}".format(  # NOQA
                         target_slope, segment_slope, r_score, start_index, end_index
                     )

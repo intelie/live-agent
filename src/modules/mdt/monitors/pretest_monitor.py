@@ -323,7 +323,7 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
 
     # There was a change.
     if is_drawdown:
-        logging.info(
+        logging.debug(
             ("Drawdown detected: {} -> {}.").format(valid_events[0], events_during_drawdown[0])
         )
         depth_mnemonic = probe_data["depth_mnemonic"]
@@ -378,7 +378,7 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
         drawdown_stopped = last_pretest_volume == prev_pretest_volume
 
-        logging.info(
+        logging.debug(
             ("End of drawdown detection: drawdown stopped={}; {} -> {}.").format(
                 drawdown_stopped, prev_pretest_volume, last_pretest_volume
             )
