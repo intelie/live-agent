@@ -81,7 +81,7 @@ def find_stable_buildup(name, data, events, message_sender, targets=None, fallba
         buildup_slope = segment_slope
         logging.debug(message)
 
-    elif data:
+    elif curve:
         measured_slopes = regression_results.get("measured_slopes", [])
         logging.debug(
             "Buildup did not stabilize within {}. Measured slopes were: {}".format(
@@ -90,9 +90,9 @@ def find_stable_buildup(name, data, events, message_sender, targets=None, fallba
         )
 
         # If a stable buildup takes too long, give up
-        latest_event_index = data[-1].get(index_mnemonic)
+        latest_event_index = curve[-1].get(index_mnemonic)
         wait_period = latest_event_index - latest_seen_index
-        depth = data[-1].get(depth_mnemonic, -1)
+        depth = curve[-1].get(depth_mnemonic, -1)
         if wait_period > buildup_wait_period:
             message = "Probe {}@{:.0f} ft: Buildup did not stabilize after {:.0f} s"  # NOQA
             message_sender(
