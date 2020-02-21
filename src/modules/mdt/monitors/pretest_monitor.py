@@ -106,7 +106,10 @@ def find_reference_event(reference_index, event_list, probe_data):
 def get_average(event_list, mnemonic, start, end):
     slice_events = event_list[start:end]
     values = [item.get(mnemonic) for item in slice_events if item.get(mnemonic) is not None]
-    average_value = sum(values) / len(values)
+    if values:
+        average_value = sum(values) / len(values)
+    else:
+        average_value = 0
     return average_value
 
 
