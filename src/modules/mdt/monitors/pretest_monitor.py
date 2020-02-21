@@ -132,7 +132,7 @@ def maybe_update_pretest_report(probe_name, probe_data, state, event_list, event
     reference_index = probe_data.get("latest_seen_index")
     if reference_index and (state != prev_state):
 
-        logging.debug(f"maybe_update_pretest_report: state: {state}, prev_state: {prev_state}")
+        logging.info(f"maybe_update_pretest_report: {prev_state} -> {state}")
 
         reference_event = find_reference_event(reference_index, event_list, probe_data)
         reference_event_index = event_list.index(reference_event)
@@ -326,8 +326,14 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
 
     # There was a change.
     if is_drawdown:
-        logging.debug(
-            ("Drawdown detected: {} -> {}.").format(valid_events[0], events_during_drawdown[0])
+        logging.info(
+            ("Drawdown detected: ({} -> {}) on {} out of {} valid events: {}").format(
+                valid_events[0].get(pretest_volume_mnemonic),
+                events_during_drawdown[0].get(pretest_volume_mnemonic),
+                len(events_during_drawdown),
+                len(valid_events),
+                [item.get(pretest_volume_mnemonic) for item in valid_events],
+            )
         )
         depth_mnemonic = probe_data["depth_mnemonic"]
         pressure_mnemonic = probe_data["pressure_mnemonic"]
@@ -380,16 +386,14 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
         last_pretest_volume = last_event.get(pretest_volume_mnemonic)
         prev_pretest_volume = prev_event.get(pretest_volume_mnemonic)
         drawdown_stopped = last_pretest_volume == prev_pretest_volume
-
-        logging.debug(
-            ("End of drawdown detection: drawdown stopped={}; {} -> {}.").format(
-                drawdown_stopped, prev_pretest_volume, last_pretest_volume
-            )
-        )
     else:
         drawdown_stopped = False
 
     if drawdown_stopped:
+        logging.info(
+            ("End of drawdown detected: {} -> {}.").format(prev_pretest_volume, last_pretest_volume)
+        )
+
         depth_mnemonic = probe_data["depth_mnemonic"]
         pressure_mnemonic = probe_data["pressure_mnemonic"]
 
