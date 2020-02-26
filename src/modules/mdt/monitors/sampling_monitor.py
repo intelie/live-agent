@@ -757,7 +757,7 @@ def run_monitor(event_list, settings, functions_map):
     return sampling_state
 
 
-def start(settings, task_id=None, **kwargs):
+def start(settings, **kwargs):
     logging.info("Sampling monitor started")
     setproctitle("DDA: Sampling monitor")
 
@@ -786,20 +786,33 @@ def start(settings, task_id=None, **kwargs):
         "create_annotation": partial(annotation.create, settings=settings),
     }
 
-    monitor_settings = settings.get("monitor", {})
-    window_duration = monitor_settings["window_duration"]
-    monitor_settings.update(probes=probes.init_data(settings))
+    state_manager = kwargs.get("state_manager")
+    state = state_manager.load()
+    process_settings = state.get("process_settings", {})
+    target_probes = state.get("target_probes", probes.init_data(settings))
 
-    sampling_query = prepare_query(settings)
+    process_settings.update(**settings)
+    monitor_settings = process_settings.get("monitor", {})
+    monitor_settings.update(probes=target_probes)
+
+    window_duration = monitor_settings["window_duration"]
     span = f"last {window_duration} seconds"
+    sampling_query = prepare_query(settings)
 
     @on_event(sampling_query, settings, span=span, timeout=read_timeout)
     def handle_events(event, accumulator=None):
         def update_monitor_state(accumulator):
-            run_monitor(accumulator, settings, functions_map)
+            run_monitor(accumulator, process_settings, functions_map)
 
-        process_event(event, update_monitor_state, settings, accumulator)
+        process_event(event, update_monitor_state, process_settings, accumulator)
+        state_manager.save(
+            {
+                "process_settings": process_settings,
+                "target_probes": target_probes,
+                "accumulator": accumulator,
+            }
+        )
 
-    handle_events(accumulator=[])
+    handle_events(accumulator=state.get("accumulator", []))
 
     return

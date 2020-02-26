@@ -6,6 +6,7 @@ from eliot import Action, start_action
 from live_client.utils import logging
 
 from .importer import load_process_handlers
+from .state import StateManager
 
 __all__ = ["start", "function_with_log"]
 
@@ -64,24 +65,28 @@ def start(global_settings: Mapping) -> Iterable:
     for name, settings in processes_to_run.items():
         process_func = function_with_log(settings.pop("process_func"), name=name)
 
-        with start_action(action_type=name) as action:
-            task_id = action.serialize_task_id()
-            process = Process(target=process_func, args=(settings, task_id))
-            running_processes.append(process)
-            process.start()
+        process = Process(target=process_func, args=[settings])
+        running_processes.append(process)
+        process.start()
 
     return running_processes
 
 
 def function_with_log(f: Callable, name: MaybeStr = None) -> Callable:
+    if name is None:
+        name = f"{f.__module__}.{f.__name__}"
+
     def wrapped(*args, **kwargs):
         task_id = kwargs.get("task_id")
         if task_id:
             action = Action.continue_task(task_id=task_id)
         else:
-            action = start_action(action_type=f"{f.__module__}.{f.__name__}")
+            action = start_action(action_type=name)
 
         with action.context():
+            task_id = action.serialize_task_id()
+            kwargs["task_id"] = task_id
+            kwargs["state_manager"] = StateManager(name, task_id=task_id)
             try:
                 return f(*args, **kwargs)
             except Exception as e:

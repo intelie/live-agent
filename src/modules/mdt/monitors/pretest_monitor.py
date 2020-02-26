@@ -8,6 +8,7 @@ from setproctitle import setproctitle
 from live_client.utils import timestamp, logging
 from live_client.events import messenger, annotation, raw
 from live_client.query import on_event
+
 from live.utils.query import prepare_query, handle_events as process_event
 from .utils import loop, probes, buildup
 
@@ -317,7 +318,7 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
     # Check if the value was zero and has changed
     if valid_events:
         events_during_drawdown = list(
-            dropwhile(lambda event: event.get(pretest_volume_mnemonic) == 0, valid_events)
+            dropwhile(lambda event: event.get(pretest_volume_mnemonic) <= 0, valid_events)
         )
         is_drawdown = len(events_during_drawdown) > 0
     else:
@@ -332,7 +333,10 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
                 events_during_drawdown[0].get(pretest_volume_mnemonic),
                 len(events_during_drawdown),
                 len(valid_events),
-                [item.get(pretest_volume_mnemonic) for item in valid_events],
+                [
+                    (item.get(index_mnemonic), item.get(pretest_volume_mnemonic))
+                    for item in valid_events
+                ],
             )
         )
         depth_mnemonic = probe_data["depth_mnemonic"]
@@ -511,7 +515,7 @@ def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
     return current_state
 
 
-def start(settings, task_id=None, **kwargs):
+def start(settings, **kwargs):
     setproctitle("DDA: Pretest monitor")
     logging.info("Pretest monitor started")
 
@@ -532,10 +536,13 @@ def start(settings, task_id=None, **kwargs):
 
     monitor_settings = settings.get("monitor", {})
     window_duration = monitor_settings["window_duration"]
-    target_probes = probes.init_data(settings)
 
     pretest_query = prepare_query(settings)
     span = f"last {window_duration} seconds"
+
+    state_manager = kwargs.get("state_manager")
+    state = state_manager.load()
+    target_probes = state.get("target_probes", probes.init_data(settings))
 
     @on_event(pretest_query, settings, span=span, timeout=read_timeout)
     def handle_events(event, accumulator=None):
@@ -544,7 +551,8 @@ def start(settings, task_id=None, **kwargs):
                 run_monitor(probe_name, probe_data, accumulator, functions_map, settings)
 
         process_event(event, update_monitor_state, settings, accumulator)
+        state_manager.save({"target_probes": target_probes, "accumulator": accumulator})
 
-    handle_events(accumulator=[])
+    handle_events(accumulator=state.get("accumulator", []))
 
     return
