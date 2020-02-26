@@ -69,5 +69,5 @@ class AlertReferenceMonitor(Monitor):
         return word
 
 
-def start(settings, task_id=None, **kwargs):
-    AlertReferenceMonitor.start(settings, task_id, **kwargs)
+def start(settings, **kwargs):
+    AlertReferenceMonitor.start(settings, **kwargs)

@@ -53,7 +53,7 @@ def check_rate(accumulator, settings):
 
 
 # TODO: Acrescentar validação dos dados lidos do arquivo json
-def start(settings, task_id=None, **kwargs):
+def start(settings, **kwargs):
     logging.info("Flowrate linearity monitor started")
     setproctitle("DDA: Flowrate linearity monitor")
 

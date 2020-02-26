@@ -111,7 +111,7 @@ def train_bot(chatbot, language="english"):
     trainer.train(f"chatterbot.corpus.{language}.humor")
 
 
-def start_chatbot(settings, room_id, room_queue, task_id):
+def start_chatbot(settings, room_id, room_queue, **kwargs):
     setproctitle("DDA: Chatbot for room {}".format(room_id))
 
     settings.update(state={})
@@ -146,7 +146,6 @@ def start_chatbot(settings, room_id, room_queue, task_id):
 def route_message(settings, bots_registry, event):
     logging.debug("Got an event: {}".format(event))
 
-    start_chatbot_with_log = function_with_log(start_chatbot)
     messages = maybe_extract_messages(event)
     for message in messages:
         room_id = message.get("room", {}).get("id")
@@ -163,11 +162,14 @@ def route_message(settings, bots_registry, event):
             logging.info("New bot for room {}".format(room_id))
             messenger.add_to_room(settings, room_id, sender)
 
+            start_chatbot_with_log = function_with_log(start_chatbot)
             with start_action(action_type="start_chatbot", room_id=room_id) as action:
                 task_id = action.serialize_task_id()
                 room_queue = Queue()
                 room_bot = Process(
-                    target=start_chatbot_with_log, args=(settings, room_id, room_queue, task_id)
+                    target=start_chatbot_with_log,
+                    args=(settings, room_id, room_queue),
+                    kwargs={"task_id": task_id},
                 )
 
             room_bot.start()
@@ -181,7 +183,7 @@ def route_message(settings, bots_registry, event):
 
 ##
 # Global process initialization
-def start(settings, task_id):
+def start(settings, **kwargs):
     setproctitle("DDA: Chatbot main process")
     logging.info("Chatbot process started")
     bots_registry = {}

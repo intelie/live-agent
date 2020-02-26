@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import csv
 from setproctitle import setproctitle
-from eliot import Action
 
 import lasio
 
@@ -58,29 +57,28 @@ def export_curves_data(event_type, las_data, chat_data, index_mnemonic, settings
     logging.info("File {} created".format(output_filename))
 
 
-def start(process_name, settings, task_id):
-    with Action.continue_task(task_id=task_id):
-        event_type = settings["output"]["event_type"]
-        setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
+def start(settings, **kwargs):
+    event_type = settings["output"]["event_type"]
+    setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
-        handling_func = export_curves_data
+    handling_func = export_curves_data
 
-        iterations = 0
-        while True:
-            try:
-                success, las_data, chat_data, index_mnemonic = open_files(settings, iterations)
+    iterations = 0
+    while True:
+        try:
+            success, las_data, chat_data, index_mnemonic = open_files(settings, iterations)
 
-                if success:
-                    handling_func(event_type, las_data, chat_data, index_mnemonic, settings)
-                    logging.info("{}: Iteration {} successful".format(event_type, iterations))
+            if success:
+                handling_func(event_type, las_data, chat_data, index_mnemonic, settings)
+                logging.info("{}: Iteration {} successful".format(event_type, iterations))
 
-                else:
-                    logging.info("{}: Single pass mode, exiting".format(event_type))
-                    break
+            else:
+                logging.info("{}: Single pass mode, exiting".format(event_type))
+                break
 
-            except Exception as e:
-                logging.error("{}: Error processing events, {}<{}>".format(event_type, e, type(e)))
+        except Exception as e:
+            logging.error("{}: Error processing events, {}<{}>".format(event_type, e, type(e)))
 
-            iterations += 1
+        iterations += 1
 
     return

@@ -40,7 +40,7 @@ def build_query(settings):
     return query
 
 
-def start(settings, task_id=None, **kwargs):
+def start(settings, **kwargs):
     logging.info("Flowrate monitor started")
     setproctitle("DDA: Flowrate monitor")
 

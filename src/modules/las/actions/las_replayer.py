@@ -134,7 +134,7 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
             last_timestamp = next_timestamp
 
 
-def start(settings, task_id):
+def start(settings, **kwargs):
     event_type = settings["output"]["event_type"]
     cooldown_time = settings.get("cooldown_time", 300)
     setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
