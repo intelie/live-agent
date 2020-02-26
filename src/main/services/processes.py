@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
+from typing import Mapping, Iterable, Callable, TypeVar
 from multiprocessing import Process
-from eliot import Action, start_action
 
+from eliot import Action, start_action
 from live_client.utils import logging
+
 from .importer import load_process_handlers
 
 __all__ = ["start", "function_with_log"]
 
+MaybeStr = TypeVar("MaybeStr", str, None)
 
-def filter_dict(source_dict, filter_func):
+
+def filter_dict(source_dict: Mapping, filter_func: Callable) -> Mapping:
     return dict((key, value) for key, value in source_dict.items() if filter_func(key, value))
 
 
-def resolve_process_handler(process_type, process_handlers):
+def resolve_process_handler(process_type: str, process_handlers: Mapping) -> Mapping:
     return process_handlers.get(process_type)
 
 
-def get_processes(global_settings, process_handlers):
+def get_processes(global_settings: Mapping, process_handlers: Mapping) -> Mapping:
     processes = filter_dict(
         global_settings.get("processes", {}), lambda _k, v: v.get("enabled") is True
     )
@@ -33,7 +37,7 @@ def get_processes(global_settings, process_handlers):
     return valid_processes
 
 
-def resolve_process_handlers(global_settings):
+def resolve_process_handlers(global_settings: Mapping):
     process_handlers = load_process_handlers(global_settings)
     registered_processes = get_processes(global_settings, process_handlers)
 
@@ -49,7 +53,7 @@ def resolve_process_handlers(global_settings):
     return registered_processes
 
 
-def start(global_settings):
+def start(global_settings: Mapping) -> Iterable:
     processes_to_run = resolve_process_handlers(global_settings)
     num_processes = len(processes_to_run)
     logging.info(
@@ -58,7 +62,7 @@ def start(global_settings):
 
     running_processes = []
     for name, settings in processes_to_run.items():
-        process_func = function_with_log(settings.pop("process_func"))
+        process_func = function_with_log(settings.pop("process_func"), name=name)
 
         with start_action(action_type=name) as action:
             task_id = action.serialize_task_id()
@@ -69,7 +73,7 @@ def start(global_settings):
     return running_processes
 
 
-def function_with_log(f):
+def function_with_log(f: Callable, name: MaybeStr = None) -> Callable:
     def wrapped(*args, **kwargs):
         task_id = kwargs.get("task_id")
         if task_id:
