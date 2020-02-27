@@ -5,7 +5,6 @@ from typing import Mapping, Dict, Any, TypeVar
 
 import dill
 from live_client.utils import logging
-from eliot import Action
 
 __all__ = ["StateManager"]
 
@@ -16,9 +15,8 @@ TIMESTAMP_KEY = "__timestamp"
 
 
 class StateManager(object):
-    def __init__(self, name: basestring, task_id: bytes, delay_between_updates: number = 60):
+    def __init__(self, name: basestring, delay_between_updates: number = 60):
         self.name = name
-        self.task_id = task_id
         self.delay_between_updates = delay_between_updates
         self.updated_at = 0
 
@@ -27,7 +25,6 @@ class StateManager(object):
 
         self.identifier = md5(name).hexdigest()
         self.filename = f"/tmp/{self.identifier}.live_agent"
-        self.action = Action.continue_task(task_id=task_id)
 
     def load(self) -> Dict[str, Any]:
         with self.action.context():
