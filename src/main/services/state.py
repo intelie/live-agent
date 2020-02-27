@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import time
 from hashlib import md5
 from typing import Mapping, Dict, Any, TypeVar
@@ -11,11 +10,18 @@ from eliot import Action
 __all__ = ["StateManager"]
 
 basestring = TypeVar("basestring", str, bytes)
+number = TypeVar("number", int, float)
+
+TIMESTAMP_KEY = "__timestamp"
 
 
 class StateManager(object):
-    def __init__(self, name: basestring, task_id: bytes):
+    def __init__(self, name: basestring, task_id: bytes, delay_between_updates: number = 60):
         self.name = name
+        self.task_id = task_id
+        self.delay_between_updates = delay_between_updates
+        self.updated_at = 0
+
         if isinstance(name, str):
             name = bytes(name, "utf-8")
 
@@ -27,22 +33,34 @@ class StateManager(object):
         with self.action.context():
             state_filename = self.filename
 
-            if os.path.isfile(state_filename) and (os.path.getsize(state_filename) > 0):
+            try:
                 with open(state_filename, r"r+b") as f:
                     state = dill.load(f)
-            else:
+            except Exception:
                 state = {}
+
+            self.updated_at = state.get(TIMESTAMP_KEY, self.updated_at)
 
         logging.info(f"State for {self.identifier} ({len(state)} keys) loaded")
         return state
 
     def save(self, state: Mapping[str, Any]) -> None:
-        with self.action.context():
-            state_filename = self.filename
-            state.update(__timestamp=time.time())
+        now = time.time()
+        next_possible_update = self.updated_at + self.delay_between_updates
+        time_until_update = next_possible_update - now
 
-            with open(state_filename, r"w+b") as f:
-                dill.dump(state, f)
+        if time_until_update <= 0:
+            with self.action.context():
+                state_filename = self.filename
+                state.update(TIMESTAMP_KEY=now)
 
-        logging.debug(f"State for {self.identifier} saved")
+                with open(state_filename, r"w+b") as f:
+                    dill.dump(state, f)
+
+            self.updated_at = now
+            logging.debug(f"State for {self.identifier} saved")
+        else:
+            logging.debug(
+                f"State update for {self.identifier} dropped. Wait {time_until_update} seconds"
+            )
         return
