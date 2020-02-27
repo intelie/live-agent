@@ -94,19 +94,22 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
     # Purge old events and add the new ones
     accumulator.extend(latest_events)
 
-    # Find out the latest timestamp received
     latest_event = latest_events[-1]
     window_end = latest_event.get(index_mnemonic, 0)
     window_start = window_end - window_duration
 
-    seen_indexes = set()
+    last_index = window_start
 
     purged_accumulator = []
     for item in accumulator:
         index = item.get(index_mnemonic, 0)
-        if (index not in seen_indexes) and (window_start <= index <= window_end):
+        if (window_start <= index <= window_end) and (index >= last_index):
             purged_accumulator.append(item)
-            seen_indexes.add(index)
+            last_index = index
+        elif index < last_index:
+            # Reset the accumulator
+            purged_accumulator = [item]
+            last_index = index
 
     logging.debug(
         "{} of {} events between {} and {}".format(
