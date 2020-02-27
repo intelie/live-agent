@@ -114,7 +114,11 @@ def train_bot(chatbot, language="english"):
 def start_chatbot(settings, room_id, room_queue, **kwargs):
     setproctitle("DDA: Chatbot for room {}".format(room_id))
 
-    settings.update(state={})
+    # Load the previous state
+    state_manager = kwargs.get("state_manager")
+    state = state_manager.load()
+
+    settings.update(state=state.get("bot_state", {}))
     load_state_func = partial(load_state, settings)
     share_state_func = partial(share_state, settings)
 
@@ -139,28 +143,21 @@ def start_chatbot(settings, room_id, room_queue, **kwargs):
         event = room_queue.get()
         messages = maybe_extract_messages(event)
         process_messages(chatbot, messages)
+        state_manager.save({"bot_state": settings.get("state", {})})
 
     return chatbot
 
 
-def route_message(settings, bots_registry, event):
-    logging.debug("Got an event: {}".format(event))
-
-    messages = maybe_extract_messages(event)
-    for message in messages:
-        room_id = message.get("room", {}).get("id")
-        sender = message.get("author", {})
-
-        if room_id is None:
-            return
-
+def add_bot(settings, bots_registry, room_id):
+    new_bot = False
+    if room_id is not None:
         room_bot, room_queue = bots_registry.get(room_id, (None, None))
 
         if room_bot and room_bot.is_alive():
             logging.debug("Bot for {} is already known".format(room_id))
         else:
             logging.info("New bot for room {}".format(room_id))
-            messenger.add_to_room(settings, room_id, sender)
+            new_bot = True
 
             start_chatbot_with_log = function_with_log(start_chatbot)
             with start_action(action_type="start_chatbot", room_id=room_id) as action:
@@ -175,7 +172,23 @@ def route_message(settings, bots_registry, event):
             room_bot.start()
             bots_registry[room_id] = (room_bot, room_queue)
 
+    return bots_registry, new_bot
+
+
+def route_message(settings, bots_registry, event):
+    logging.debug("Got an event: {}".format(event))
+
+    messages = maybe_extract_messages(event)
+    for message in messages:
+        room_id = message.get("room", {}).get("id")
+        sender = message.get("author", {})
+
+        bots_registry, new_bot = add_bot(settings, bots_registry, room_id)
+        if new_bot:
+            messenger.add_to_room(settings, room_id, sender)
+
         # Send the message to the room's bot process
+        room_bot, room_queue = bots_registry.get(room_id, (None, None))
         room_queue.put(event)
 
     return [item[0] for item in bots_registry.values()]
@@ -186,7 +199,16 @@ def route_message(settings, bots_registry, event):
 def start(settings, **kwargs):
     setproctitle("DDA: Chatbot main process")
     logging.info("Chatbot process started")
-    bots_registry = {}
+
+    # Load the previous state
+    state_manager = kwargs.get("state_manager")
+    state = state_manager.load()
+    bots_registry = state.get("bots_registry", {})
+
+    # Restart previously known bots
+    rooms_with_bots = bots_registry.keys()
+    for room_id in rooms_with_bots:
+        bots_registry, new_bot = add_bot(settings, bots_registry, room_id)
 
     bot_alias = settings.get("alias", "Intelie").lower()
     bot_query = f"""
@@ -200,7 +222,13 @@ def start(settings, **kwargs):
     @query.on_event(bot_query, settings, timeout=read_timeout, max_retries=max_retries)
     def handle_events(event, *args, **kwargs):
         messenger.join_messenger(settings)
-        return route_message(settings, bots_registry, event)
+        bot_processes = route_message(settings, bots_registry, event)
+
+        # There is no use saving the processes, so we save a dict with no values
+        state_manager.save(
+            {"bots_registry": dict((room_id, (None, None)) for room_id in bots_registry)}
+        )
+        return bot_processes
 
     bot_processes = handle_events()
     for bot in bot_processes:
