@@ -358,9 +358,7 @@ def find_drawdown(probe_name, probe_data, event_list, message_sender):
 
         detected_state = PRETEST_STATES.DRAWDOWN_START
         latest_seen_index = etim
-        logging.info(
-            "Probe {}: Pretest began at {:.0f}".format(probe_name, pretest_begin_timestamp)
-        )
+        logging.info(f"Probe {probe_name}: Pretest began at {pretest_begin_timestamp:.0f} ({etim})")
     else:
         detected_state = None
         pretest_begin_timestamp = None
@@ -394,10 +392,6 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
         drawdown_stopped = False
 
     if drawdown_stopped:
-        logging.info(
-            ("End of drawdown detected: {} -> {}.").format(prev_pretest_volume, last_pretest_volume)
-        )
-
         depth_mnemonic = probe_data["depth_mnemonic"]
         pressure_mnemonic = probe_data["pressure_mnemonic"]
 
@@ -423,6 +417,9 @@ def find_buildup(probe_name, probe_data, event_list, message_sender):
 
         detected_state = PRETEST_STATES.DRAWDOWN_END
         latest_seen_index = etim
+        logging.info(
+            f"End of drawdown detected: {prev_pretest_volume} -> {last_pretest_volume} ({etim})."
+        )
     else:
         detected_state = None
         drawdown_end_timestamp = None
@@ -499,9 +496,10 @@ def run_monitor(probe_name, probe_data, event_list, functions_map, settings):
         )
 
     if detected_state and (detected_state != current_state):
+        latest_seen_index = probe_data.get("latest_seen_index", 0)
         logging.info(
-            "Pretest monitor for probe {}, {} -> {}".format(
-                probe_name, current_state, detected_state
+            "Pretest monitor for probe {}, {} -> {} at index {}".format(
+                probe_name, current_state, detected_state, latest_seen_index
             )
         )
         current_state = detected_state
