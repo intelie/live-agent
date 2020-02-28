@@ -143,7 +143,7 @@ def start_chatbot(settings, room_id, room_queue, **kwargs):
         event = room_queue.get()
         messages = maybe_extract_messages(event)
         process_messages(chatbot, messages)
-        state_manager.save({"bot_state": settings.get("state", {})})
+        state_manager.save({"bot_state": settings.get("state", {})}, force=True)
 
     return chatbot
 
@@ -228,7 +228,8 @@ def start(settings, **kwargs):
 
         # There is no use saving the processes, so we save a dict with no values
         state_manager.save(
-            {"bots_registry": dict((room_id, (None, None)) for room_id in bots_registry)}
+            {"bots_registry": dict((room_id, (None, None)) for room_id in bots_registry)},
+            force=True,
         )
         return bot_processes
 

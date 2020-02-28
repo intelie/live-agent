@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import time
 from hashlib import md5
-from typing import Mapping, Dict, AnyStr, Any, TypeVar
+from typing import Mapping, Dict, Union, AnyStr, Any
 
 import dill
 from live_client.utils import logging
 
 __all__ = ["StateManager"]
 
-number = TypeVar("number", int, float)
+number = Union[int, float]
 
 TIMESTAMP_KEY = "__timestamp"
 
@@ -39,22 +39,24 @@ class StateManager(object):
         logging.info(f"State for {self.identifier} ({len(state)} keys) loaded")
         return state
 
-    def save(self, state: Mapping[str, Any]) -> None:
+    def save(self, state: Mapping[str, Any], force: bool = False) -> None:
         now = time.time()
         next_possible_update = self.updated_at + self.delay_between_updates
         time_until_update = next_possible_update - now
 
-        if time_until_update <= 0:
-            state_filename = self.filename
-            state.update(TIMESTAMP_KEY=now)
-
-            with open(state_filename, r"w+b") as f:
-                dill.dump(state, f)
-
-            self.updated_at = now
-            logging.debug(f"State for {self.identifier} saved")
+        if (time_until_update > 0) and (not force):
+            logging.debug(f"Update for {self.identifier} throttled. Wait {time_until_update:.2f}s")
         else:
-            logging.debug(
-                f"State update for {self.identifier} dropped. Wait {time_until_update} seconds"
-            )
+            self.do_save(state, timestamp=now)
+
         return
+
+    def do_save(self, state: Mapping[str, Any], timestamp: number) -> None:
+        state_filename = self.filename
+        state.update(TIMESTAMP_KEY=timestamp)
+
+        with open(state_filename, r"w+b") as f:
+            dill.dump(state, f)
+
+        self.updated_at = timestamp
+        logging.info(f"State for {self.identifier} saved")
