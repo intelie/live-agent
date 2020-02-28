@@ -27,16 +27,15 @@ class StateManager(object):
         self.filename = f"/tmp/{self.identifier}.live_agent"
 
     def load(self) -> Dict[str, Any]:
-        with self.action.context():
-            state_filename = self.filename
+        state_filename = self.filename
 
-            try:
-                with open(state_filename, r"r+b") as f:
-                    state = dill.load(f)
-            except Exception:
-                state = {}
+        try:
+            with open(state_filename, r"r+b") as f:
+                state = dill.load(f)
+        except Exception:
+            state = {}
 
-            self.updated_at = state.get(TIMESTAMP_KEY, self.updated_at)
+        self.updated_at = state.get(TIMESTAMP_KEY, self.updated_at)
 
         logging.info(f"State for {self.identifier} ({len(state)} keys) loaded")
         return state
@@ -47,12 +46,11 @@ class StateManager(object):
         time_until_update = next_possible_update - now
 
         if time_until_update <= 0:
-            with self.action.context():
-                state_filename = self.filename
-                state.update(TIMESTAMP_KEY=now)
+            state_filename = self.filename
+            state.update(TIMESTAMP_KEY=now)
 
-                with open(state_filename, r"w+b") as f:
-                    dill.dump(state, f)
+            with open(state_filename, r"w+b") as f:
+                dill.dump(state, f)
 
             self.updated_at = now
             logging.debug(f"State for {self.identifier} saved")

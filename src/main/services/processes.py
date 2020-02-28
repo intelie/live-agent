@@ -86,7 +86,7 @@ def function_with_log(f: Callable, name: MaybeStr = None) -> Callable:
         with action.context():
             task_id = action.serialize_task_id()
             kwargs["task_id"] = task_id
-            kwargs["state_manager"] = StateManager(name, task_id=task_id)
+            kwargs["state_manager"] = StateManager(name)
             try:
                 return f(*args, **kwargs)
             except Exception as e:
