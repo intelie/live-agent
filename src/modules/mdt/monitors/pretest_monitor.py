@@ -540,7 +540,7 @@ def start(settings, **kwargs):
 
     state_manager = kwargs.get("state_manager")
     state = state_manager.load()
-    target_probes = state.get("target_probes", probes.init_data(settings))
+    target_probes = {**state.get("target_probes", {}), **probes.init_data(settings)}
 
     @on_event(pretest_query, settings, span=span, timeout=read_timeout)
     def handle_events(event, accumulator=None):

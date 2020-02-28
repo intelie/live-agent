@@ -740,12 +740,12 @@ def run_sampling_monitor(settings, event_list, functions_map):
 
 
 def run_monitor(event_list, settings, functions_map):
-    settings.update(**get_global_mnemonics(settings))
+    monitor_settings = settings.get("monitor", {})
+    settings.update(**get_global_mnemonics(monitor_settings))
     settings = loop.maybe_reset_latest_index(settings, event_list)
     sampling_state = settings.get("process_state", SAMPLING_STATES.INACTIVE)
 
     # Refresh the state for each probe
-    monitor_settings = settings.get("monitor", {})
     probes = monitor_settings.get("probes", {})
     for probe_name, probe_data in probes.items():
         probe_data = loop.maybe_reset_latest_index(probe_data, event_list)
@@ -788,12 +788,12 @@ def start(settings, **kwargs):
 
     state_manager = kwargs.get("state_manager")
     state = state_manager.load()
-    process_settings = state.get("process_settings", {})
-    target_probes = state.get("target_probes", probes.init_data(settings))
+    process_settings = {**state.get("process_settings", {}), **settings}
 
-    process_settings.update(**settings)
     monitor_settings = process_settings.get("monitor", {})
-    monitor_settings.update(probes=target_probes)
+    monitor_settings.update(
+        probes={**state.get("target_probes", {}), **probes.init_data(process_settings)}
+    )
 
     window_duration = monitor_settings["window_duration"]
     span = f"last {window_duration} seconds"
@@ -808,7 +808,7 @@ def start(settings, **kwargs):
         state_manager.save(
             {
                 "process_settings": process_settings,
-                "target_probes": target_probes,
+                "target_probes": process_settings.get("monitor", {}).get("probes", {}),
                 "accumulator": accumulator,
             }
         )

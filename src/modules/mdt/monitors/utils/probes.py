@@ -15,9 +15,9 @@ def init_data(settings):
             probe_name,
             dict(
                 event_type=event_type,
-                **get_monitor_parameters(settings),
-                **get_global_mnemonics(settings),
-                **get_probe_mnemonics(settings, probe_name),
+                **get_monitor_parameters(monitor_settings),
+                **get_global_mnemonics(monitor_settings),
+                **get_probe_mnemonics(monitor_settings, probe_name),
             ),
         )
         for probe_name in probes

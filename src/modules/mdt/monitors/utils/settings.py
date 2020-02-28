@@ -3,8 +3,7 @@
 __all__ = ["get_global_mnemonics", "get_probe_mnemonics", "get_monitor_parameters"]
 
 
-def get_global_mnemonics(settings):
-    monitor_settings = settings.get("monitor", {})
+def get_global_mnemonics(monitor_settings):
     mnemonics = monitor_settings["mnemonics"]
     probe_prefix = "probe"
 
@@ -19,8 +18,7 @@ def get_global_mnemonics(settings):
     return global_mnemonics
 
 
-def get_probe_mnemonics(settings, probe_name):
-    monitor_settings = settings.get("monitor", {})
+def get_probe_mnemonics(monitor_settings, probe_name):
     mnemonics = monitor_settings["mnemonics"]
     probe_prefix = f"probe{probe_name}"
 
@@ -35,8 +33,7 @@ def get_probe_mnemonics(settings, probe_name):
     return probe_mnemonics
 
 
-def get_monitor_parameters(settings, ignored_keys=None):
-    monitor_settings = settings.get("monitor", {})
+def get_monitor_parameters(monitor_settings, ignored_keys=None):
     if not ignored_keys:
         ignored_keys = ["probes", "mnemonics"]
 
