@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Mapping, Iterable, Callable, TypeVar
+from typing import Mapping, Iterable, Callable, Optional
 from multiprocessing import Process
 
 from eliot import Action, start_action
@@ -8,9 +8,7 @@ from live_client.utils import logging
 from .importer import load_process_handlers
 from .state import StateManager
 
-__all__ = ["start", "function_with_log"]
-
-MaybeStr = TypeVar("MaybeStr", str, None)
+__all__ = ["start", "agent_function"]
 
 
 def filter_dict(source_dict: Mapping, filter_func: Callable) -> Mapping:
@@ -63,7 +61,8 @@ def start(global_settings: Mapping) -> Iterable:
 
     running_processes = []
     for name, settings in processes_to_run.items():
-        process_func = function_with_log(settings.pop("process_func"), name=name)
+        process_func = settings.pop("process_func")
+        process_func = agent_function(process_func, name=name, with_state=True)
 
         process = Process(target=process_func, args=[settings])
         running_processes.append(process)
@@ -72,7 +71,7 @@ def start(global_settings: Mapping) -> Iterable:
     return running_processes
 
 
-def function_with_log(f: Callable, name: MaybeStr = None) -> Callable:
+def agent_function(f: Callable, name: Optional[str] = None, with_state: bool = False) -> Callable:
     if name is None:
         name = f"{f.__module__}.{f.__name__}"
 
@@ -86,7 +85,9 @@ def function_with_log(f: Callable, name: MaybeStr = None) -> Callable:
         with action.context():
             task_id = action.serialize_task_id()
             kwargs["task_id"] = task_id
-            kwargs["state_manager"] = StateManager(name)
+            if with_state:
+                kwargs["state_manager"] = StateManager(name)
+
             try:
                 return f(*args, **kwargs)
             except Exception as e:

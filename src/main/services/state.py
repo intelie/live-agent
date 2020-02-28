@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 import time
 from hashlib import md5
-from typing import Mapping, Dict, Any, TypeVar
+from typing import Mapping, Dict, AnyStr, Any, TypeVar
 
 import dill
 from live_client.utils import logging
 
 __all__ = ["StateManager"]
 
-basestring = TypeVar("basestring", str, bytes)
 number = TypeVar("number", int, float)
 
 TIMESTAMP_KEY = "__timestamp"
 
 
 class StateManager(object):
-    def __init__(self, name: basestring, delay_between_updates: number = 60):
+    def __init__(self, name: AnyStr, delay_between_updates: number = 60):
         self.name = name
         self.delay_between_updates = delay_between_updates
         self.updated_at = 0

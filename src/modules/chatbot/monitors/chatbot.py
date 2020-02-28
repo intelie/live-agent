@@ -12,7 +12,7 @@ from live_client.facades import LiveClient
 from live_client.types.message import Message
 from live_client.utils import logging
 
-from services.processes import function_with_log
+from services.processes import agent_function
 
 from chatbot.src.bot import ChatBot
 from chatbot.src.actions import ActionStatement
@@ -159,7 +159,9 @@ def add_bot(settings, bots_registry, room_id):
             logging.info("New bot for room {}".format(room_id))
             new_bot = True
 
-            start_chatbot_with_log = function_with_log(start_chatbot)
+            start_chatbot_with_log = agent_function(
+                start_chatbot, name=f"bot for room {room_id}", with_state=True
+            )
             with start_action(action_type="start_chatbot", room_id=room_id) as action:
                 task_id = action.serialize_task_id()
                 room_queue = Queue()
