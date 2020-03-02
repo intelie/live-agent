@@ -1,9 +1,10 @@
 from eliot import start_action  # NOQA
-from multiprocessing import Process
+from multiprocessing import Process, active_children
 from chatterbot.conversation import Statement
 
 from live_client.utils import logging
 
+from services.processes import agent_function
 from chatbot.src.actions import CallbackAction
 from .base import BaseBayesAdapter, WithAssetAdapter
 
@@ -36,13 +37,6 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         self.room_id = kwargs.get("room_id")
         self.settings = kwargs.get("settings", {})
         self.process_handlers = self.settings.get("process_handlers")
-
-        self.helpers = dict(
-            (name, func)
-            for (name, func) in kwargs.get("functions", {}).items()
-            if "_state" not in name
-        )
-
         self.all_monitors = self.settings.get("monitors", {})
 
     def process(self, statement, additional_response_selection_parameters=None):
@@ -69,18 +63,19 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         return response
 
     def execute_action(self, selected_asset, active_monitors):
+        active_monitors = dict((item.name, item) for item in active_children() if item.name)
         active_monitors = self._start_monitors(selected_asset, active_monitors)
 
-        if active_monitors == {}:
+        if len(active_monitors) == 0:
             response_text = f'{selected_asset["asset_name"]} has no registered monitors'
         else:
-            self.state = {"active_monitors": active_monitors}
-            self.share_state()
-
             monitor_names = list(active_monitors.keys())
             response_text = "{} monitors running ({})".format(
                 len(monitor_names), ", ".join(monitor_names)
             )
+
+            self.state = {"active_monitors": monitor_names}
+            self.share_state()
 
         return response_text
 
@@ -91,7 +86,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
         monitors_to_start = dict(
             (name, settings)
             for (name, settings) in asset_monitors.items()
-            if (name not in active_monitors) or not (active_monitors[name].is_alive())
+            if not ((name in active_monitors) and (active_monitors[name].is_alive()))
         )
 
         for name, settings in monitors_to_start.items():
@@ -110,18 +105,15 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             monitor_settings["live"] = self.settings["live"]
             monitor_settings["output"]["room"] = {"id": self.room_id}
 
-            with start_action(action_type=name) as action:
-                logging.debug(f"Starting {name}")
-                task_id = action.serialize_task_id()
-                try:
-                    process_func = self.process_handlers.get(process_type)
-                    process = Process(
-                        target=process_func, args=(monitor_settings,), kwargs={"task_id": task_id}
-                    )
-                    active_monitors[name] = process
-                    process.start()
+            logging.debug(f"Starting {name}")
+            try:
+                process_func = self.process_handlers.get(process_type)
+                process_func = agent_function(process_func, name=name, with_state=True)
+                process = Process(target=process_func, args=[monitor_settings], name=name)
+                active_monitors[name] = process
+                process.start()
 
-                except Exception as e:
-                    logging.warn(f"Error starting {name}: {e}")
+            except Exception as e:
+                logging.warn(f"Error starting {name}: {e}")
 
         return active_monitors
