@@ -1,10 +1,10 @@
 # live-agent
 git+https://github.com/intelie/liveclient-python.git@master#egg=live_client # Until we release v1.0
-requests==2.21.0
 eliot>=1.12.0
 eliot-tree>=19.0.1
 setproctitle==1.1.10
 dill==0.3.1.1
+requests
 
 # modules.chatbot
 # Important!! There's a conflict related to lib PyYAML between ChatterBot(1.0.5)
@@ -21,5 +21,4 @@ pandas==0.24.2
 scikit-learn>=0.20
 
 # modules.mdt
-requests # Check constraints.txt for version
 scikit-learn>=0.20
