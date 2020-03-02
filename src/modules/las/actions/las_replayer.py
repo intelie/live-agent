@@ -103,7 +103,7 @@ def open_files(settings, iterations, mode=READ_MODES.CONTINUOUS):
     return success, data, chat_data, index_mnemonic
 
 
-def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
+def generate_events(event_type, las_data, chat_data, index_mnemonic, settings, state_manager):
     logging.info("{}: Event generation started".format(event_type))
 
     source_name = las_data.version.SOURCE.value
@@ -113,13 +113,15 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
     curves = las_df.columns
 
     success = True
-    last_timestamp = 0
+    state = state_manager.load()
+    last_timestamp = state.get("last_timestamp", 0)
     while success:
         success, statuses = read_next_frame(values_iterator, curves, curves_data, index_mnemonic)
 
         if success:
             next_timestamp = statuses.get(index_mnemonic, {}).get("value", 0)
 
+        if next_timestamp > last_timestamp:
             delay_output(last_timestamp, next_timestamp)
 
             if last_timestamp == 0:
@@ -132,6 +134,7 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings):
                 chat_data, last_timestamp, next_timestamp, index_mnemonic, settings
             )
             last_timestamp = next_timestamp
+            state_manager.save({"last_timestamp": last_timestamp})
 
 
 def start(settings, **kwargs):
@@ -139,21 +142,24 @@ def start(settings, **kwargs):
     cooldown_time = settings.get("cooldown_time", 300)
     setproctitle('DDA: LAS replayer for "{}"'.format(event_type))
 
-    read_mode = READ_MODES.CONTINUOUS
+    state_manager = kwargs.get("state_manager")
 
     iterations = 0
     while True:
         try:
             success, las_data, chat_data, index_mnemonic = open_files(
-                settings, iterations, mode=read_mode
+                settings, iterations, mode=READ_MODES.CONTINUOUS
             )
 
             if success:
-                generate_events(event_type, las_data, chat_data, index_mnemonic, settings)
+                generate_events(
+                    event_type, las_data, chat_data, index_mnemonic, settings, state_manager
+                )
                 logging.info("Iteration {} successful".format(iterations))
             else:
                 logging.warn("Could not open files")
 
+            state_manager.save({"last_timestamp": 0}, force=True)
             loop.await_next_cycle(
                 cooldown_time,
                 message="Sleeping for {:.1f} minutes between runs".format(cooldown_time / 60.0),
