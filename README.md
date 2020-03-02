@@ -5,7 +5,7 @@ Coordinates the execution of processes which interact with Intelie Live and simp
 
 Processes are implemented inside modules, segmented by its objective, The existing processes can be found at `src/modules`
 Each module can have:
-- `actions`: Process which send events to live
+- `datasources`: Process which send events to live
 - `monitors`: Processes which respond to the events generateb by queries
 - `logic_adapters`: Classes which handle messages received by the chatbot
 
