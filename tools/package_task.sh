@@ -53,7 +53,7 @@ assert_ok $?
 ${VIRTUALENV_PATH}/bin/pip install -U pip
 assert_ok $?
 
-${VIRTUALENV_PATH}/bin/pip install -r ${PROJECT_ROOT}/requirements.txt
+${VIRTUALENV_PATH}/bin/pip install -r ${PROJECT_ROOT}/requirements.txt -c ${PROJECT_ROOT}/constraints.txt
 assert_ok $?
 
 ##########
