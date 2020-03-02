@@ -115,6 +115,9 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings, s
     success = True
     state = state_manager.load()
     last_timestamp = state.get("last_timestamp", 0)
+    if last_timestamp > 0:
+        logging.info(f"Skipping to index {last_timestamp}")
+
     while success:
         success, statuses = read_next_frame(values_iterator, curves, curves_data, index_mnemonic)
 
