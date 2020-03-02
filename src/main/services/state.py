@@ -23,7 +23,7 @@ class StateManager(object):
             name = bytes(name, "utf-8")
 
         self.identifier = md5(name).hexdigest()
-        self.filename = f"/tmp/{self.identifier}.live_agent"
+        self.filename = f"/tmp/{self.identifier}.{name.decode('utf-8')}.live_agent"
 
     def load(self) -> Dict[str, Any]:
         state_filename = self.filename
