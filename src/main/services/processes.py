@@ -61,12 +61,14 @@ def start(global_settings: Mapping) -> Iterable:
 
     running_processes = []
     for name, settings in processes_to_run.items():
-        process_func = settings.pop("process_func")
-        process_func = agent_function(process_func, name=name, with_state=True)
+        with start_action(action_type=name) as action:
+            process_func = settings.pop("process_func")
+            process_func = agent_function(process_func, name=name, with_state=True)
 
-        process = Process(target=process_func, args=[settings])
-        running_processes.append(process)
-        process.start()
+            task_id = action.serialize_task_id()
+            process = Process(target=process_func, args=[settings], kwargs={"task_id": task_id})
+            running_processes.append(process)
+            process.start()
 
     return running_processes
 
