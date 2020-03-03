@@ -8,7 +8,7 @@ import lasio
 from live_client.events import raw, messenger
 from live_client.utils import timestamp, logging
 
-from .utils import loop
+from ..utils import loop
 
 __all__ = ["start"]
 
