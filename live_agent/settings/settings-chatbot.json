@@ -1,0 +1,209 @@
+{
+  "DEBUG": false,
+  "temp_dir": "./temp",
+  "enabled_modules": [
+    "live_agent.modules.chatbot",
+    "live_agent.modules.live",
+    "live_agent.modules.mdt"
+  ],
+  "processes": {
+    "chatbot": {
+      "type": "chatterbot",
+      "enabled": true,
+      "alias": "Oliver",
+      "logic_adapters": [
+        "live_agent.modules.chatbot.logic_adapters.internal.StateDebugAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.AdapterReloaderAdapter",
+        "live_agent.modules.live.logic_adapters.live_asset.AssetSelectionAdapter",
+        "live_agent.modules.live.logic_adapters.live_asset.AssetListAdapter",
+        "live_agent.modules.live.logic_adapters.live_functions.AutoAnalysisAdapter",
+        "live_agent.modules.live.logic_adapters.pipes_query.EtimQueryAdapter",
+        "live_agent.modules.live.logic_adapters.pipes_query.CurrentValueQueryAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.BotFeaturesAdapter",
+        "live_agent.modules.torque_and_drag.logic_adapters.torque_and_drag.TorqueAndDragAdapter",
+        "live_agent.modules.chatbot.logic_adapters.variables.BotVariablesAdapter",
+        {
+            "import_path": "chatterbot.logic.BestMatch",
+            "default_response": "I am sorry, but I do not understand.",
+            "maximum_similarity_threshold": 0.90
+        }
+      ],
+      "monitors": {
+        "ReplayRig0": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "monitor": {
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "mnemonics": {
+                "index": "ETIM",
+                "pretest number": "PTNO",
+                "probe1 depth mnemonic": "DVP1",
+                "probe1 pressure mnemonic": "BRD1",
+                "probe1 pretest volume mnemonic": "PTV1",
+                "probe1 temperature mnemonic": "B1TR",
+                "probe2 depth mnemonic": "DVP2",
+                "probe2 pressure mnemonic": "BRD2",
+                "probe2 pretest volume mnemonic": "PTV2",
+                "probe2 temperature mnemonic": "B2TR"
+              },
+              "probes": ["1", "2"]
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "dashboard": {"id": 17, "name": "Well 0: Pretest"},
+              "message_event": {"event_type": "raw_well0", "mnemonic": "MSG"}
+            }
+          },
+          "flowrate": {
+            "type": "flowrate_monitor",
+            "enabled": true,
+            "monitor": {
+              "mnemonics": {
+                "index": "timestamp",
+                "current value": "current_value",
+                "number of changes": "num_changes",
+                "values": "values_list",
+                "initial timestamp": "start",
+                "final timestamp": "end"
+              },
+              "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
+              "max_threshold": 5,
+              "window_duration": 60,
+              "sampling_frequency": 5,
+              "precision": 0
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"}
+            }
+          }
+        },
+        "ReplayRig3": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "monitor": {
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "mnemonics": {
+                "index": "ETIM",
+                "pretest number": "PTNO",
+                "probe1 depth mnemonic": "PQDVP1",
+                "probe1 pressure mnemonic": "QDPRESS_PQ1",
+                "probe1 pretest volume mnemonic": "PQPTV1",
+                "probe1 temperature mnemonic": "PQ1TR",
+
+                "probe2 depth mnemonic": "PQDVP2",
+                "probe2 pressure mnemonic": "QDPRESS_PQ2",
+                "probe2 pretest volume mnemonic": "PQPTV2",
+                "probe2 temperature mnemonic": "PQ2TR"
+              },
+              "probes": ["1", "2"]
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "dashboard": {"id": 18, "name": "Well 3: Pretest"},
+              "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
+            }
+          },
+          "sampling": {
+            "type": "sampling_monitor",
+            "enabled": true,
+            "monitor": {
+              "mnemonics": {
+                "index": "ETIM",
+                "probe1 depth mnemonic": "PQDVP1",
+                "probe1 pressure mnemonic": "QDPRESS_PQ1",
+                "probe1 pumpout flowrate mnemonic": "POFR",
+                "probe1 pump motor speed mnemonic": "POMS",
+                "probe2 depth mnemonic": "PQDVP2",
+                "probe2 pressure mnemonic": "QDPRESS_PQ2",
+                "probe2 pumpout flowrate mnemonic": "POFR2",
+                "probe2 pump motor speed mnemonic": "POMS2"
+              },
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "focused_flow_grace_period": 180,
+              "probes": ["1", "2"]
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Sampling monitor"},
+              "dashboard": {"id": 21, "name": "Well 3: Sampling"},
+              "message_event": {"event_type": "raw_well3", "mnemonic": "MSG"}
+            }
+          },
+          "flowrate": {
+            "type": "flowrate_monitor",
+            "enabled": true,
+            "monitor": {
+              "mnemonics": {
+                "index": "timestamp",
+                "current value": "current_value",
+                "number of changes": "num_changes",
+                "values": "values_list",
+                "initial timestamp": "start",
+                "final timestamp": "end"
+              },
+              "flowrate_mnemonics": ["POTFR", "POFR", "POFR2"],
+              "max_threshold": 5,
+              "window_duration": 60,
+              "sampling_frequency": 5,
+              "precision": 0
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Flowrate monitor"}
+            }
+          }
+        },
+        "Hechicera1": {
+          "pretest": {
+            "type": "pretest_monitor",
+            "enabled": true,
+            "monitor": {
+              "window_duration": 60,
+              "buildup_duration": 30,
+              "buildup_wait_period": 120,
+              "mnemonics": {
+                "index": "TTIM",
+                "pretest number": "DEPTH",
+                "probe1 depth mnemonic": "DEPTH",
+                "probe1 pressure mnemonic": "APQL",
+                "probe1 pretest volume mnemonic": "PVTV",
+                "probe1 temperature mnemonic": "RTDQL"
+              },
+              "probes": ["1"]
+            },
+            "output": {
+              "author": {"id": 2, "name": "🤖  Pretest monitor"},
+              "dashboard": {"id": 17, "name": "Hechicera 1: Pretest"},
+              "message_event": {"event_type": "raw_hechicera1", "mnemonic": "MSG"}
+            }
+          }
+        }
+      },
+      "output": {
+        "name": "rest-agent",
+        "author": {"id": 2, "name": "Oliver"}
+      }
+    }
+  },
+  "live": {
+    "ip": "127.0.0.1",
+    "port": 17042,
+    "url": "http://localhost:8080",
+    "username": "live-agent",
+    "password": "live-agent",
+    "user_id": 2,
+    "user_name": "🤖  Oliver",
+    "rest_input": "/services/plugin-restinput/shell/"
+  },
+  "logging": {
+    "log_to_live": true,
+    "event_type": "dda_log",
+    "level": "info"
+  }
+}
