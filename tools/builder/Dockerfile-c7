@@ -1,0 +1,19 @@
+FROM centos:7
+
+RUN yum -y install rpm-build
+
+# We need python 3.6+
+RUN yum -y install gcc openssl-devel bzip2-devel libffi-devel wget make
+RUN mkdir /tmp/python3 &&\
+    cd /tmp/python3/ && \
+    wget https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz  && \
+    tar -xzf Python-3.7.4.tgz
+
+RUN cd /tmp/python3/Python-3.7.4/ && \
+    ./configure && make && make install exec_prefix=/usr
+
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod a+x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

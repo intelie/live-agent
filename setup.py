@@ -34,7 +34,7 @@ setup(
     long_description=get_readme(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    scripts=[],
+    scripts=["live_agent/scripts/agent-control"],
     url="https://gitlab.intelie.com/intelie/live-agent/",
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",

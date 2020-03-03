@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ $# -eq 1 ]
+then
+	settings=$1
+else
+	select settings in live_agent/settings/*.json
+	do break; done
+fi
+
+if [ "$settings" == "" ]
+then
+	exit
+fi
+
+## Starting with memory-profiler. Requires the library `memory-profiler`
+# mprof run --multiprocess --include-children live_agent/scripts/agent-control console --settings=$settings
+
+## Starting the agent without profiling
+python live_agent/scripts/agent-control console --settings=$settings
