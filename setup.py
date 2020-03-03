@@ -39,7 +39,18 @@ setup(
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
     install_requires=install_requires(),
-    zip_safe=True,
+    extras_require={
+        "chatbot": [
+            "ChatterBot==1.0.5",
+            "chatterbot-corpus==1.2.0",
+            "Jinja2==2.10.1",
+            "pytz==2019.2",
+            "python-dateutil>=2.7,<2.8",
+        ],
+        "las": ["lasio==0.23", "pandas==0.24.2", "scikit-learn>=0.20"],
+        "mdt": ["scikit-learn>=0.20"],
+    },
+    zip_safe=False,
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
