@@ -83,4 +83,4 @@ then
     ps -ef | grep "DDA:" | awk '{print $2}' | xargs kill
 fi
 
-python ${APP_ENTRY_POINT} ${COMMAND} "${SETTINGS_FILE}"
+python ${APP_ENTRY_POINT} ${COMMAND} --settings=${SETTINGS_FILE}

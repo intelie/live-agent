@@ -32,13 +32,11 @@ mkdir -p %{buildroot}%{prefix}
 cp -r * %{buildroot}%{prefix}/
 
 mkdir -p %{buildroot}/etc/init.d
-ln -s -f %{prefix}/collect-daemon %{buildroot}/etc/init.d/%{service_name}
+ln -s -f %{prefix}/manage-agent %{buildroot}/etc/init.d/%{service_name}
 # TODO: Create a systemd service for RedHat7
 
 %files
-%attr(755, -, -) %{prefix}/collect
-%attr(755, -, -) %{prefix}/collect-daemon
-%{prefix}/lib
+%attr(755, -, -) %{prefix}/manage-agent
 %{prefix}/pyenv
 %{prefix}/sample_settings.json
 /etc/init.d/%{service_name}

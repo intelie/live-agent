@@ -46,6 +46,7 @@ setup(
             "Jinja2==2.10.1",
             "pytz==2019.2",
             "python-dateutil>=2.7,<2.8",
+            "pyyaml<5.2,>=5.1",
         ],
         "las": ["lasio==0.23", "pandas==0.24.2", "scikit-learn>=0.20"],
         "mdt": ["scikit-learn>=0.20"],
