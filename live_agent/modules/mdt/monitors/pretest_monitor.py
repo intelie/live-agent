@@ -9,7 +9,7 @@ from live_client.utils import timestamp, logging
 from live_client.events import messenger, annotation, raw
 from live_client.query import on_event
 
-from live_agent.modules.live.utils.query import prepare_query, handle_events as process_event
+from live_agent.services.monitors.utils.query import prepare_query, handle_events as process_event
 from .utils import loop, probes, buildup
 
 __all__ = ["start"]

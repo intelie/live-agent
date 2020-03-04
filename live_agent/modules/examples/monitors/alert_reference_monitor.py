@@ -1,12 +1,13 @@
 import re
+from setproctitle import setproctitle
 
 from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
 
-from setproctitle import setproctitle
+from live_agent.services.monitors.base import Monitor
+
 from .ddg.search import DuckEngine
-from .base import Monitor
 
 __all__ = ["start"]
 

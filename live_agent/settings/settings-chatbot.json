@@ -3,7 +3,6 @@
   "temp_dir": "./temp",
   "enabled_modules": [
     "live_agent.modules.chatbot",
-    "live_agent.modules.live",
     "live_agent.modules.mdt"
   ],
   "processes": {
@@ -12,13 +11,13 @@
       "enabled": true,
       "alias": "Oliver",
       "logic_adapters": [
+        "live_agent.modules.mdt.logic_adapters.live.IndexedAnalysisAdapter",
+        "live_agent.modules.mdt.logic_adapters.live.IndexedQueryAdapter",
         "live_agent.modules.chatbot.logic_adapters.internal.StateDebugAdapter",
         "live_agent.modules.chatbot.logic_adapters.internal.AdapterReloaderAdapter",
-        "live_agent.modules.live.logic_adapters.live_asset.AssetSelectionAdapter",
-        "live_agent.modules.live.logic_adapters.live_asset.AssetListAdapter",
-        "live_agent.modules.live.logic_adapters.live_functions.AutoAnalysisAdapter",
-        "live_agent.modules.live.logic_adapters.pipes_query.EtimQueryAdapter",
-        "live_agent.modules.live.logic_adapters.pipes_query.CurrentValueQueryAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetSelectionAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetListAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.CurrentValueQueryAdapter",
         "live_agent.modules.chatbot.logic_adapters.internal.BotFeaturesAdapter",
         "live_agent.modules.torque_and_drag.logic_adapters.torque_and_drag.TorqueAndDragAdapter",
         "live_agent.modules.chatbot.logic_adapters.variables.BotVariablesAdapter",

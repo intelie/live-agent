@@ -3,7 +3,7 @@ from setproctitle import setproctitle
 from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
-from live_agent.modules.live.utils.query import handle_events as process_event
+from live_agent.services.monitors.utils.query import handle_events as process_event
 
 __all__ = ["start"]
 

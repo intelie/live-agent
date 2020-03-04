@@ -8,7 +8,7 @@ from live_client.events import messenger, annotation
 from live_client.utils import timestamp, logging
 from live_client.query import on_event
 
-from live_agent.modules.live.utils.query import prepare_query, handle_events as process_event
+from live_agent.services.monitors.utils.query import prepare_query, handle_events as process_event
 from .utils import loop, probes, buildup
 from .utils.settings import get_global_mnemonics
 

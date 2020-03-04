@@ -2,7 +2,6 @@
   "DEBUG": false,
   "temp_dir": "./temp",
   "enabled_modules": [
-    "live_agent.modules.live",
     "live_agent.modules.mdt"
   ],
   "processes": {
