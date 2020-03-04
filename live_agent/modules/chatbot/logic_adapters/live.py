@@ -207,7 +207,7 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         self.annotator = partial(annotation.create, settings=settings)
 
         self.room_id = kwargs["room_id"]
-        self.analyzer = run_analysis
+        self.analyzer = partial(run_analysis, settings)
 
     def run_analysis(self, asset, curve, begin=None, duration=30000):
         if begin is None:
@@ -227,13 +227,10 @@ class AutoAnalysisAdapter(BaseBayesAdapter, NLPAdapter, WithAssetAdapter):
         if analysis_results:
             # Gerar annotation
             analysis_results.update(
-                __src="auto-analysis",
-                uid=str(uuid4()),
-                createdAt=get_timestamp(),
-                room={"id": self.room_id},
+                __src="auto-analysis", uid=str(uuid4()), createdAt=get_timestamp()
             )
             with start_action(action_type="create annotation", curve=curve):
-                self.annotator(analysis_results)
+                self.annotator(analysis_results, room={"id": self.room_id})
 
             response_text = "Analysis of curve {} finished".format(curve)
 
