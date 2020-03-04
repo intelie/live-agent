@@ -17,4 +17,4 @@ fi
 # mprof run --multiprocess --include-children live_agent/scripts/agent-control console --settings=$settings
 
 ## Starting the agent without profiling
-python live_agent/scripts/agent-control console --settings=$settings
+PYTHONPATH="$PYTHONPATH:$(pwd)" python live_agent/scripts/agent-control console --settings=$settings
