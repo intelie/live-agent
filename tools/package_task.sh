@@ -62,7 +62,11 @@ RELEASE_DIR=${RPM_BUILD_ROOT}/${PACKAGE_FULL_NAME}
 
 rm -rf ${RPM_BUILD_ROOT}
 
-mkdir -p ${RELEASE_DIR}/lib
+mkdir -p ${RELEASE_DIR}/modules
+assert_ok $?
+
+# Copy the local modules to the release folder
+cp -R ${PROJECT_ROOT}/modules/* ${RELEASE_DIR}/modules/
 assert_ok $?
 
 cp -r ${VIRTUALENV_PATH} ${RELEASE_DIR}/
