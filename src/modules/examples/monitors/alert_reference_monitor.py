@@ -1,11 +1,15 @@
 import re
+import requests
+
+from setproctitle import setproctitle
 
 from live_client.utils import logging
 from live_client.query import on_event
 from live_client.events import messenger
 
-from setproctitle import setproctitle
 from ddg.search import DuckEngine
+from utils.error_handlers import retry_on_error
+
 from .base import Monitor
 
 __all__ = ["start"]
@@ -54,7 +58,14 @@ class AlertReferenceMonitor(Monitor):
             message_lines.append("No result found")
         message = "\n".join(message_lines)
 
-        messenger.send_message(message, settings=self.settings)
+        # [ECS]: For some reason the first attempt to post the chat message is raising
+        # a ssl error on lib requests. I couldn't find out why this is happening but
+        # a simple retry is making things work. <<<<<
+        # [FIXME]: Find out why we're getting an ssl error here:
+        retry_on_error(
+            lambda: messenger.send_message(message, settings=self.settings),
+            requests.exceptions.SSLError,
+        )
 
     def _extract_search_term(self, annotation_message):
         parts = annotation_message.split(":")
