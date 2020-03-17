@@ -19,25 +19,8 @@ The project includes the following sample settings:
 - `live_agent/settings/settings-chatbot.json` : Chatbot
 - `live_agent/settings/settings.json` : All features enabled
 
-
-## Reading logs
-
-This project uses `eliot` for logging. Eliot generates log messages as json objects,
-which can be parsed by tools like `eliot-tree` and `eliot-prettyprint` or sent to Intelie Live.
-
-The log file is stored at `/var/log/live-agent.log` by default. Make sure the user which will start the agent can write to this file.
-The log messages are also sent to live, using the event_type `dda_log` by default.
-
-```shell
-# Reading the log with eliot-prettyprint
-$ tail -f /var/log/live-agent.log | eliot-prettyprint
-
-# Reading the log with eliot-tree (extra dependency, already on requirements.txt)
-$ eliot-tree -l 0 /var/log/live-agent.log
-```
-
-
 ## Development
+
 
 This project uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/)
 
@@ -71,6 +54,21 @@ $ ./live_agent/scripts/agent-control console --settings=<settings_file>
 
 ```
 
+### Reading logs
+
+This project uses `eliot` for logging. Eliot generates log messages as json objects,
+which can be parsed by tools like `eliot-tree` and `eliot-prettyprint` or sent to Intelie Live.
+
+The log file is stored at `/var/log/live-agent.log` by default. Make sure the user which will start the agent can write to this file.
+The log messages are also sent to live, using the event_type `dda_log` by default.
+
+```shell
+# Reading the log with eliot-prettyprint
+$ tail -f /var/log/live-agent.log | eliot-prettyprint
+
+# Reading the log with eliot-tree (extra dependency, already on requirements.txt)
+$ eliot-tree -l 0 /var/log/live-agent.log
+```
 
 ### Building releases
 
