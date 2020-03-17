@@ -16,9 +16,7 @@
     - `monitors` folder
     - `datasources` folder
   - [x] Add a section to `live-agent`'s README with usage instructions for the scripts above
-- [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
-- [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
-- [ ] Define how users of this library should work with it, including the processes for development, test, build and deploy of a module:
+- [x] Define how users of this library should work with it, including the processes for development, test, build and deploy of a module:
   1. create the project's folder, virtualenv and repository
   1. add `live-agent` to the requirements
   1. install requirements
@@ -30,8 +28,9 @@
      1. validate the settings with `check_live_features` (from `live-client`)
   1. build a release rpm
   1. deploy to the server
-- [ ] _maybe:_ Update the build process to include only the required modules (and its requirements). Becomes less important (irrelevant) if each use-case has its own project and we don't have to juggle this.
-- [ ] _maybe:_ Create some mechanism for registering and enforcing dependencies between modules. Also becomes less important if each use-case has its own project
+- [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
+- [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
+- [ ] _maybe:_ Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
 
 
 ### Use cases
