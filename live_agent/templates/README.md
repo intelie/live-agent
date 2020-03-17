@@ -18,7 +18,14 @@ When you implement a new module you will have to add it to the settings file.
 
 ## Development
 
-`live-agent` uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/), and recomments you do the same.
+`live-agent` uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/), and recomments you do the same. The recommended development dependencies are defined at `dev-requirements.txt`.
+In order to install the dev dependencies and initialize `pre-commit`, use the following commands:
+
+```shell
+$ pip install -r dev-requirements.txt
+$ pre-commit install
+$ pre-commit run --all-files
+```
 
 ### Project setup:
 
