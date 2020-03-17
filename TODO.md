@@ -5,20 +5,19 @@
 - [x] Create a `live-client` library and use it as a dependency for the agent
 - [x] Split the requirements list for the base project and for each of the modules
 - [ ] Create some support tools for the developer
-  - Create a command which bootstraps an agent (`create-agent`), adding the following:
-    - `modules` folder (containing only an `__init__.py` and a `README` with usage instructions for `add-agent-module`)
-    - `tools` folder (same as `live-agent`'s)
-    - `settings.json` with the basic structure
+  - [x] Create a command which bootstraps an agent (`create-agent`), adding the following:
     - `README.md`
-    - `run` script (same as `live-agent`'s)
-  - Create a command which bootstraps a new module (`add-agent-module`), asking for a name and adding a folder using the chosen name containing the default structure for a module:
+    - `settings.json` with the basic structure
+    - `tools` folder (same as `live-agent`'s)
+    - `modules` folder (containing only an `__init__.py`)
+  - [ ] Create a command which bootstraps a new module (`add-agent-module`), asking for a name and adding a folder using the chosen name containing the default structure for a module:
     - `__init__.py` containing empty definitions for `PROCESSES` and `REQUIREMENTS`
     - `logic_adapters` folder
     - `monitors` folder
     - `datasources` folder
-  - Add a section to `live-agent`'s README with usage instructions for the scripts above
+  - [ ] Add a section to `live-agent`'s README with usage instructions for the scripts above. Maybe print these instructions after installing the lib?
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
-- [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file. Maybe print these instructions after installing the lib?
+- [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
 - [ ] Define how users of this library should work with it, including the processes for development, test, build and deploy of a module:
   1. create the project's folder, virtualenv and repository
   1. add `live-agent` to the requirements
