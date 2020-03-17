@@ -21,10 +21,22 @@ def parse_arguments(argv):
         "command", choices=["console", "start", "stop", "restart"], help="Command for the agent"
     )
     parser.add_argument("--settings", dest="settings_file", required=True, help="A settings file")
+    parser.add_argument(
+        "--pythonpath",
+        dest="pythonpath",
+        required=False,
+        default=os.getcwd(),
+        help="A directory to add to pythonpath",
+    )
 
     args = parser.parse_args(argv[1:])
     if not os.path.isfile(args.settings_file):
         parser.error(f"Invalid value for --settings ({args.settings_file}).")
+    if args.pythonpath:
+        if not os.path.exists(args.pythonpath):
+            parser.error(f'The directory "{args.pythonpath}" does not exist')
+        if not os.path.isdir(args.pythonpath):
+            parser.error(f'"{args.pythonpath}" is not a directory')
 
     return args
 
@@ -32,6 +44,9 @@ def parse_arguments(argv):
 if __name__ == "__main__":
     args = parse_arguments(sys.argv)
     command = args.command
+    if args.pythonpath:
+        sys.path.append(args.pythonpath)
+
     settings_file = args.settings_file
 
     pidfile = os.environ.get(PIDFILE_ENVVAR, DEFAULT_PIDFILE)

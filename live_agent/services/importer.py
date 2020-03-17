@@ -1,18 +1,9 @@
 # -*- coding: utf-8 -*-
 import importlib
-import sys
-from pathlib import PurePath
 
 from live_client.utils import logging
 
 __all__ = ["load_enabled_modules"]
-
-
-def update_pythonpath():
-    self_path = PurePath(__file__)
-    parent_path = self_path.parent
-    modules_path = PurePath(parent_path, "../../modules")
-    sys.path.append(str(modules_path))
 
 
 def log_and_import(name, package=None):
@@ -23,7 +14,6 @@ def log_and_import(name, package=None):
 
 
 def load_enabled_modules(settings):
-    update_pythonpath()
     modules = []
     for name in settings.get("enabled_modules", []):
         module = log_and_import(name)
