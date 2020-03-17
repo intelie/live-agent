@@ -36,7 +36,7 @@
 
 ### Use cases
 
-- [ ] Create a project for the _Shell GameChanger_ features
+- [x] Create a project for the [_Shell GameChanger_](https://gitlab.intelie.com/intelie/dda-shellgamechanger) feature
 - [ ] Create a project for the _torque and drag_ integration
 - [ ] _maybe:_ Create a project for _Constellation's video-collector_
 - [ ] _maybe:_ Create a project for _Propetro's isolation forest_
