@@ -7,12 +7,13 @@ import live_agent
 
 __all__ = []
 TEMPLATES_DIRNAME = "templates"
+MODULES_DIRNAME = "modules"
 MODULE_INIT = "module/__init__.py"
 
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(description="Bootstraps a new agent module")
-    parser.add_argument("name", required=True, help="Name of the new module")
+    parser.add_argument("name", help="Name of the new module")
     return parser.parse_args(argv[1:])
 
 
@@ -20,6 +21,16 @@ def find_templates_dir():
     lib_path = Path(live_agent.__file__)
     lib_root = lib_path.parent
     return lib_root.joinpath(TEMPLATES_DIRNAME)
+
+
+def get_module_root(args):
+    module_root = args.root
+    in_modules_dir = Path.cwd().is_dir and Path.cwd().root == MODULES_DIRNAME
+    if not in_modules_dir:
+        Path(MODULES_DIRNAME).mkdir(exist_ok=True)
+        module_root = f"{MODULES_DIRNAME}/{module_root}"
+
+    return module_root
 
 
 if __name__ == "__main__":
@@ -33,11 +44,12 @@ if __name__ == "__main__":
     """
 
     args = parse_arguments(sys.argv)
-    module_name = args.name
-    templates_dir = find_templates_dir()
+    module_root = get_module_root(args)
 
-    Path(f"{module_name}").mkdir(exist_ok=True)
-    Path(f"{module_name}/logic_adapters").mkdir(exist_ok=True)
-    Path(f"{module_name}/monitors").touch(exist_ok=True)
-    Path(f"{module_name}/datasources").touch(exist_ok=True)
-    shutil.copy2(templates_dir.joinpath(MODULE_INIT), f"{module_name}/__init__.py")
+    Path(f"{module_root}").mkdir(exist_ok=True)
+    Path(f"{module_root}/logic_adapters").mkdir(exist_ok=True)
+    Path(f"{module_root}/monitors").touch(exist_ok=True)
+    Path(f"{module_root}/datasources").touch(exist_ok=True)
+
+    templates_dir = find_templates_dir()
+    shutil.copy2(templates_dir.joinpath(MODULE_INIT), f"{module_root}/__init__.py")

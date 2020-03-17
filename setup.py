@@ -40,7 +40,11 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     include_package_data=True,
-    scripts=["live_agent/scripts/agent-control", "live_agent/scripts/create-agent"],
+    scripts=[
+        "live_agent/scripts/agent-control",
+        "live_agent/scripts/create-agent",
+        "live_agent/scripts/add-agent-module",
+    ],
     url="https://gitlab.intelie.com/intelie/live-agent/",
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
