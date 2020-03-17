@@ -37,8 +37,8 @@ ln -s -f %{prefix}/manage-agent %{buildroot}/etc/init.d/%{service_name}
 
 %files
 %attr(755, -, -) %{prefix}/manage-agent
+%{prefix}/modules
 %{prefix}/pyenv
-%{prefix}/sample_settings.json
 /etc/init.d/%{service_name}
 
 %clean

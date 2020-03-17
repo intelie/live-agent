@@ -52,7 +52,7 @@ assert_ok $?
 ${VIRTUALENV_PATH}/bin/pip install -U pip
 assert_ok $?
 
-${VIRTUALENV_PATH}/bin/pip install -r requirements.txt -c constraints.txt --trusted-host pypi.intelie
+${VIRTUALENV_PATH}/bin/pip install -r ${PROJECT_ROOT}/requirements.txt -c ${PROJECT_ROOT}/constraints.txt --trusted-host pypi.intelie
 assert_ok $?
 
 ##########
@@ -66,16 +66,15 @@ mkdir -p ${RELEASE_DIR}/modules
 assert_ok $?
 
 # Copy the local modules to the release folder
-cp -R ${PROJECT_ROOT}/modules/* ${RELEASE_DIR}/modules/
+cp -r ${PROJECT_ROOT}/modules ${RELEASE_DIR}/modules
 assert_ok $?
 
 cp -r ${VIRTUALENV_PATH} ${RELEASE_DIR}/
 assert_ok $?
 
-cp -v ${PROJECT_ROOT}/tools/launcher-daemon-control.sh ${RELEASE_DIR}/${DAEMON_SCRIPT_NAME}
-assert_ok $?
+find ${RELEASE_DIR}/modules/ -name \*.pyc | xargs rm
 
-cp -v ${PROJECT_ROOT}/live_agent/settings/settings.json ${RELEASE_DIR}/sample_settings.json
+cp -v ${PROJECT_ROOT}/tools/launcher-daemon-control.sh ${RELEASE_DIR}/${DAEMON_SCRIPT_NAME}
 assert_ok $?
 
 ##########
