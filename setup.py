@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.6.0",
+    version="0.6.1",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -49,12 +49,7 @@ setup(
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
     install_requires=install_requires(),
-    extras_require={
-        "chatbot": install_requires(module="chatbot"),
-        "las": install_requires(module="las"),
-        "mdt": install_requires(module="mdt"),
-        "torque_and_drag": [],
-    },
+    extras_require={"chatbot": install_requires(module="chatbot")},
     zip_safe=False,
     python_requires=">=3.6",
     classifiers=[

@@ -52,7 +52,7 @@ assert_ok $?
 ${VIRTUALENV_PATH}/bin/pip install -U pip
 assert_ok $?
 
-${VIRTUALENV_PATH}/bin/pip install ${PROJECT_ROOT}[chatbot,mdt,las]
+${VIRTUALENV_PATH}/bin/pip install -r requirements.txt -c constraints.txt --trusted-host pypi.intelie
 assert_ok $?
 
 ##########

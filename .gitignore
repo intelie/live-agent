@@ -1,7 +1,9 @@
-temp/*
 *.pyc
 *.pyo
 ~*
 .python-version
 *.sqlite3
 *.pickle
+temp/*
+dist/
+live_agent.egg-info/
