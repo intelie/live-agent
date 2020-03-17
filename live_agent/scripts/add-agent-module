@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+import sys
+import argparse
+import shutil
+from pathlib import Path
+import live_agent
+
+__all__ = []
+TEMPLATES_DIRNAME = "templates"
+MODULE_INIT = "module/__init__.py"
+
+
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser(description="Bootstraps a new agent module")
+    parser.add_argument("name", required=True, help="Name of the new module")
+    return parser.parse_args(argv[1:])
+
+
+def find_templates_dir():
+    lib_path = Path(live_agent.__file__)
+    lib_root = lib_path.parent
+    return lib_root.joinpath(TEMPLATES_DIRNAME)
+
+
+if __name__ == "__main__":
+    """
+    Command which bootstraps a new module. Requires the module name and creates a folder
+    containing the default structure for a module, which is:
+    - `__init__.py` containing empty definitions for `PROCESSES` and `REQUIREMENTS`
+    - `logic_adapters` folder
+    - `monitors` folder
+    - `datasources` folder
+    """
+
+    args = parse_arguments(sys.argv)
+    module_name = args.name
+    templates_dir = find_templates_dir()
+
+    Path(f"{module_name}").mkdir(exist_ok=True)
+    Path(f"{module_name}/logic_adapters").mkdir(exist_ok=True)
+    Path(f"{module_name}/monitors").touch(exist_ok=True)
+    Path(f"{module_name}/datasources").touch(exist_ok=True)
+    shutil.copy2(templates_dir.joinpath(MODULE_INIT), f"{module_name}/__init__.py")

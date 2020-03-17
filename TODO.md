@@ -15,7 +15,7 @@
     - `logic_adapters` folder
     - `monitors` folder
     - `datasources` folder
-  - [ ] Add a section to `live-agent`'s README with usage instructions for the scripts above. Maybe print these instructions after installing the lib?
+  - [x] Add a section to `live-agent`'s README with usage instructions for the scripts above. Maybe print these instructions after installing the lib?
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
 - [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
 - [ ] Define how users of this library should work with it, including the processes for development, test, build and deploy of a module:

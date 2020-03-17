@@ -27,7 +27,7 @@ def find_templates_dir():
 
 if __name__ == "__main__":
     """
-   Command which bootstraps an agent, adding the following:
+    Command which bootstraps an agent, adding the following:
     - `README.md`
     - `settings.json` with the basic structure
     - `tools` folder (same as `live-agent`'s)
