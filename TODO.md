@@ -4,18 +4,18 @@
 
 - [x] Create a `live-client` library and use it as a dependency for the agent
 - [x] Split the requirements list for the base project and for each of the modules
-- [ ] Create some support tools for the developer
+- [x] Create some support tools for the developer
   - [x] Create a command which bootstraps an agent (`create-agent`), adding the following:
     - `README.md`
     - `settings.json` with the basic structure
     - `tools` folder (same as `live-agent`'s)
     - `modules` folder (containing only an `__init__.py`)
-  - [ ] Create a command which bootstraps a new module (`add-agent-module`), asking for a name and adding a folder using the chosen name containing the default structure for a module:
+  - [x] Create a command which bootstraps a new module (`add-agent-module`), asking for a name and adding a folder using the chosen name containing the default structure for a module:
     - `__init__.py` containing empty definitions for `PROCESSES` and `REQUIREMENTS`
     - `logic_adapters` folder
     - `monitors` folder
     - `datasources` folder
-  - [x] Add a section to `live-agent`'s README with usage instructions for the scripts above. Maybe print these instructions after installing the lib?
+  - [x] Add a section to `live-agent`'s README with usage instructions for the scripts above
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
 - [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
 - [ ] Define how users of this library should work with it, including the processes for development, test, build and deploy of a module:

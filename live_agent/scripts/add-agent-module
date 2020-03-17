@@ -24,11 +24,13 @@ def find_templates_dir():
 
 
 def get_module_root(args):
-    module_root = args.root
+    module_root = args.name
     in_modules_dir = Path.cwd().is_dir and Path.cwd().root == MODULES_DIRNAME
     if not in_modules_dir:
-        Path(MODULES_DIRNAME).mkdir(exist_ok=True)
         module_root = f"{MODULES_DIRNAME}/{module_root}"
+
+        print(f"Creating folder {MODULES_DIRNAME}")
+        Path(MODULES_DIRNAME).mkdir(exist_ok=True)
 
     return module_root
 
@@ -46,10 +48,21 @@ if __name__ == "__main__":
     args = parse_arguments(sys.argv)
     module_root = get_module_root(args)
 
+    print(f"Creating folder {module_root}")
     Path(f"{module_root}").mkdir(exist_ok=True)
+
+    print(f"Creating folder {module_root}/logic_adapters")
     Path(f"{module_root}/logic_adapters").mkdir(exist_ok=True)
+
+    print(f"Creating folder {module_root}/monitors")
     Path(f"{module_root}/monitors").touch(exist_ok=True)
+
+    print(f"Creating folder {module_root}/datasources")
     Path(f"{module_root}/datasources").touch(exist_ok=True)
 
     templates_dir = find_templates_dir()
+
+    print(f"Creating folder {module_root}/__init__.py")
     shutil.copy2(templates_dir.joinpath(MODULE_INIT), f"{module_root}/__init__.py")
+
+    print("done")
