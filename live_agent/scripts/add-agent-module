@@ -25,7 +25,7 @@ def find_templates_dir():
 
 def get_module_root(args):
     module_root = args.name
-    in_modules_dir = Path.cwd().is_dir and Path.cwd().root == MODULES_DIRNAME
+    in_modules_dir = Path.cwd().is_dir and Path.cwd().name == MODULES_DIRNAME
     if not in_modules_dir:
         module_root = f"{MODULES_DIRNAME}/{module_root}"
 
