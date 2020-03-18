@@ -28,9 +28,9 @@
      1. validate the settings with `check_live_features` (from `live-client`)
   1. build a release rpm
   1. deploy to the server
-- [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
+- [ ] Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
 - [ ] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
-- [ ] _maybe:_ Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
+- [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
 
 
 ### Use cases
