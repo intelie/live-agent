@@ -9,18 +9,16 @@ __all__ = []
 TEMPLATES_DIRNAME = "templates"
 MODULES_DIRNAME = "modules"
 MODULE_INIT = "module/__init__.py"
-SAMPLE_MODULE_DIRNAME = "modules/sample"
+SAMPLE_MODULE_DIRNAME = "module/sample"
+REQUIREMENTS_FILENAME = "requirements.txt"
+SETTINGS_FILENAME = "settings_template.json"
 
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(description="Bootstraps a new agent module")
     parser.add_argument("name", help="Name of the new module")
     parser.add_argument(
-        "--empty",
-        dest="empty",
-        required=False,
-        default=False,
-        help="Do not add example code to the module",
+        "--empty", action="store_true", help="Do not add example code to the module"
     )
     return parser.parse_args(argv[1:])
 
@@ -37,7 +35,7 @@ def get_module_root(args):
     if not in_modules_dir:
         module_root = f"{MODULES_DIRNAME}/{module_root}"
 
-        print(f"Creating folder {MODULES_DIRNAME}")
+        print(f'- Creating folder "{MODULES_DIRNAME}"')
         Path(MODULES_DIRNAME).mkdir(exist_ok=True)
 
     return module_root
@@ -54,28 +52,51 @@ if __name__ == "__main__":
     """
 
     args = parse_arguments(sys.argv)
+    print(f'Creating the module "{args.name}"')
+
     module_root = get_module_root(args)
     templates_dir = find_templates_dir()
 
     if args.empty:
-        print(f'Creating folder "{module_root}"')
+        print(f'- Creating folder "{module_root}"')
         Path(f"{module_root}").mkdir(exist_ok=True)
         shutil.copy2(templates_dir.joinpath(MODULE_INIT), f"{module_root}/__init__.py")
 
-        print(f'Creating folder "{module_root}/logic_adapters"')
+        print(f'- Creating folder "{module_root}/logic_adapters"')
         Path(f"{module_root}/logic_adapters").mkdir(exist_ok=True)
         Path(f"{module_root}/logic_adapters/__init__.py").touch(exist_ok=True)
 
-        print(f'Creating folder "{module_root}/monitors"')
+        print(f'- Creating folder "{module_root}/monitors"')
         Path(f"{module_root}/monitors").mkdir(exist_ok=True)
         Path(f"{module_root}/monitors/__init__.py").touch(exist_ok=True)
 
-        print(f'Creating folder "{module_root}/datasources"')
+        print(f'- Creating folder "{module_root}/datasources"')
         Path(f"{module_root}/datasources").mkdir(exist_ok=True)
         Path(f"{module_root}/datasources/__init__.py").touch(exist_ok=True)
 
     else:
-        print(f'Creating folder "{module_root}" with example code')
+        if Path(module_root).exists():
+            print(f"- Removing old folder {module_root}")
+            shutil.rmtree(module_root, ignore_errors=True)
+
+        print(f'- Creating folder "{module_root}" with example code')
         shutil.copytree(templates_dir.joinpath(SAMPLE_MODULE_DIRNAME), module_root)
+
+        print("Updating the module's settings file")
+        module_settings = Path(f"{module_root}/{SETTINGS_FILENAME}")
+        if module_settings.exists():
+            with module_settings.open(mode="r") as f:
+                settings_content = f.read()
+
+            with module_settings.open(mode="w") as f:
+                f.write(settings_content.replace("modules.sample", f"modules.{args.name}"))
+
+        module_requirements = Path(f"{module_root}/{REQUIREMENTS_FILENAME}")
+        if module_requirements.exists():
+            print(f'\vThe module {args.name} contains a "requirements.txt" file')
+            print("Make sure that these dependencies are added to the main requirements")
+
+        print("\vIn order to run the agent with this module, execute:")
+        print(f"agent-control console --settings={module_root}/settings_template.json")
 
     print("done")
