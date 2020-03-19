@@ -1,0 +1,31 @@
+{
+  "enabled_modules": [
+    "modules.sample"
+  ],
+  "processes": {
+    "krakenfx_realtime": {
+      "type": "krakenfx",
+      "enabled": true,
+      "krakenfx_url": "wss://ws.kraken.com/",
+      "pairs": ["ETH/USD", "XBT/USD", "ETH/EUR", "XBT/EUR", "ETH/BRL", "XBT/BRL"],
+      "timeout": 60,
+      "output": {
+        "event_type": "krakenfx",
+        "skipstorage": true
+      }
+    }
+  },
+  "live": {
+    "url": "http://localhost:8080",
+    "username": "live-agent",
+    "password": "live-agent",
+    "user_id": 2,
+    "user_name": "🤖  Oliver",
+    "rest_input": "/services/plugin-restinput/live-agent-example/"
+  },
+  "logging": {
+    "log_to_live": true,
+    "event_type": "dda_log",
+    "level": "info"
+  }
+}

@@ -9,6 +9,7 @@ __all__ = []
 TEMPLATES_DIRNAME = "templates"
 MODULES_DIRNAME = "modules"
 MODULE_INIT = "module/__init__.py"
+SAMPLE_MODULE_DIRNAME = "modules/sample"
 
 
 def parse_arguments(argv):
@@ -74,10 +75,7 @@ if __name__ == "__main__":
         Path(f"{module_root}/datasources/__init__.py").touch(exist_ok=True)
 
     else:
-        # TODO: Copy sample code to the target directory
-        # datasource -> counter
-        # monitor -> fizzbuzz based on the counter
-        # logic_adapter -> "Oliver, how many queries are currently running?"
-        pass
+        print(f'Creating folder "{module_root}" with example code')
+        shutil.copytree(templates_dir.joinpath(SAMPLE_MODULE_DIRNAME), module_root)
 
     print("done")
