@@ -1,6 +1,7 @@
 {
   "enabled_modules": [
-    "modules.sample"
+    "modules.sample",
+    "live_agent.modules.chatbot"
   ],
   "processes": {
     "krakenfx_realtime": {
@@ -11,7 +12,7 @@
       "timeout": 60,
       "output": {
         "event_type": "krakenfx",
-        "skipstorage": true
+        "skipstorage": false
       }
     },
     "trade_frequency": {
@@ -26,6 +27,30 @@
           "author": {"id": 2, "name": "🤖 Trade frequency monitor"},
           "room": {"id": "eia02b6rencfqrjfq5um06842o"}
         }
+    },
+      "chatbot": {
+      "type": "chatterbot",
+      "enabled": true,
+      "alias": "Oliver",
+      "logic_adapters": [
+        "modules.sample.logic_adapters.trades_counter.TradesCounterAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.StateDebugAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.AdapterReloaderAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetSelectionAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetListAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.CurrentValueQueryAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.BotFeaturesAdapter",
+        "live_agent.modules.chatbot.logic_adapters.variables.BotVariablesAdapter",
+        {
+            "import_path": "chatterbot.logic.BestMatch",
+            "default_response": "I am sorry, but I do not understand.",
+            "maximum_similarity_threshold": 0.90
+        }
+      ],
+      "output": {
+        "name": "rest-agent",
+        "author": {"id": 2, "name": "Oliver"}
+      }
     }
   },
   "live": {
