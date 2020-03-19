@@ -12,14 +12,15 @@ Each module can have:
 
 The set of active modules (among other things) is defined using a settings file.
 
-A default settings file (`settings.json`) was created with this agent. By default, the only enabled process is `live-agent`'s own `chatbot`, whith its default logic_adapters.
+A default settings file (`settings.json`) was created with this agent. By default, the only enabled process is `live-agent`'s own `chatbot`, with its default logic_adapters.
+
 When you implement a new module you will have to add it to the settings file.
 
 
 ## Development
 
 `live-agent` uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/), and recomments you do the same. The recommended development dependencies are defined at `dev-requirements.txt`.
-In order to install the dev dependencies and initialize `pre-commit`, use the following commands:
+In order to install the dev dependencies and initialize `pre-commit`, use the following commands *after activating this project's virtualenv*:
 
 ```shell
 $ pip install -r dev-requirements.txt
@@ -42,15 +43,15 @@ Requires python 3.6 or newer
 # 4- Bootstrap a new agent
 (virtualenv)$ create-agent
 Creating the agent files:
-- Creating README.md
-- Creating settings.json
-- Creating folder tools
-- Creating folder modules
-- Creating modules/__init__.py
+- Creating "README.md"
+- Creating "settings.json"
+- Creating folder "tools"
+- Creating folder "modules"
+- Creating "modules/__init__.py"
 Adding project settings:
-- Creating dev-requirements.txt
-- Creating pyproject.toml
-- Creating .pre-commit-config.yaml
+- Creating "dev-requirements.txt"
+- Creating "pyproject.toml"
+- Creating ".pre-commit-config.yaml"
 done
 
 # 5- Create the initial structure for each of your agent's modules
@@ -67,7 +68,7 @@ done
 (virtualenv)$ add-agent-module example
 Creating the module "example"
 - Creating folder "modules"
-- Removing old folder modules/example
+- Removing old folder "modules/example"
 - Creating folder "modules/example" with example code
 
 The module "example" contains a "requirements.txt" file

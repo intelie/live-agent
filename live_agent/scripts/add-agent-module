@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     else:
         if Path(module_root).exists():
-            print(f"- Removing old folder {module_root}")
+            print(f'- Removing old folder "{module_root}"')
             shutil.rmtree(module_root, ignore_errors=True)
 
         print(f'- Creating folder "{module_root}" with example code')

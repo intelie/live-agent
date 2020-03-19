@@ -44,33 +44,33 @@ if __name__ == "__main__":
     templates_dir = find_templates_dir()
 
     print("Creating the agent files:")
-    print(f"- Creating {README_FILENAME}")
+    print(f'- Creating "{README_FILENAME}"')
     shutil.copy2(templates_dir.joinpath(README_FILENAME), README_FILENAME)
 
-    print(f"- Creating {SETTINGS_FILENAME}")
+    print(f'- Creating "{SETTINGS_FILENAME}"')
     shutil.copy2(templates_dir.joinpath(SETTINGS_FILENAME), SETTINGS_FILENAME)
 
     if Path(TOOLS_DIRNAME).exists():
-        print(f"- Removing old folder {TOOLS_DIRNAME}")
+        print(f'- Removing old folder "{TOOLS_DIRNAME}"')
         shutil.rmtree(TOOLS_DIRNAME, ignore_errors=True)
 
-    print(f"- Creating folder {TOOLS_DIRNAME}")
+    print(f'- Creating folder "{TOOLS_DIRNAME}"')
     shutil.copytree(templates_dir.joinpath(TOOLS_DIRNAME), TOOLS_DIRNAME)
 
-    print(f"- Creating folder {MODULES_DIRNAME}")
+    print(f'- Creating folder "{MODULES_DIRNAME}"')
     Path(MODULES_DIRNAME).mkdir(exist_ok=True)
 
-    print(f"- Creating {MODULES_DIRNAME}/__init__.py")
+    print(f'- Creating "{MODULES_DIRNAME}/__init__.py"')
     Path(f"{MODULES_DIRNAME}/__init__.py").touch(exist_ok=True)
 
     print("Adding project settings:")
-    print(f"- Creating {DEV_REQUIREMENTS}")
+    print(f'- Creating "{DEV_REQUIREMENTS}"')
     shutil.copy2(templates_dir.joinpath(DEV_REQUIREMENTS), DEV_REQUIREMENTS)
 
-    print(f"- Creating {PYPROJECT}")
+    print(f'- Creating "{PYPROJECT}"')
     shutil.copy2(templates_dir.joinpath(PYPROJECT), PYPROJECT)
 
-    print(f"- Creating {PRECOMMIT}")
+    print(f'- Creating "{PRECOMMIT}"')
     shutil.copy2(templates_dir.joinpath(PRECOMMIT), PRECOMMIT)
 
     print("done")

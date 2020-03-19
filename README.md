@@ -11,16 +11,10 @@ Each module can have:
 - `logic_adapters`: Classes which handle messages received by the chatbot
 
 The set of active modules (among other things) is defined using a settings file.
+The module `chatbot` includes an example settings file.
 
-The project includes the following sample settings:
-
-- `live_agent/settings/settings-replay.json` : Continuously replays MDT job files for two wells
-- `live_agent/settings/settings-monitor.json` : Pretest, sampling and flowrate monitors
-- `live_agent/settings/settings-chatbot.json` : Chatbot
-- `live_agent/settings/settings.json` : All features enabled
 
 ## Development
-
 
 This project uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/)
 
@@ -35,23 +29,13 @@ Requires python 3.6 or newer
 # 2- Activate the virtualenv
 
 # 3- Install project requirements
-$ pip install -r requirements.txt \
-> -r live_agent/modules/chatbot/requirements.txt \
-> -r live_agent/modules/las/requirements.txt \
-> -r live_agent/modules/mdt/requirements.txt
+$ pip install -r requirements.txt -r live_agent/modules/chatbot/requirements.txt
 
 # 4- Check is your settings file seems to be correct
-$ check_live_features --settings=<settings_file>
+$ check_live_features --settings=modules/chatbot/settings_template.json
 
 # 5- Execute the agent
-$ ./run  # then select the settings file from the list
-
-# 5.1- You can also start the agent with an specific settings file
-$ ./run <settings_file>
-
-# 5.2- Or, execute the agent script directly
-$ ./live_agent/scripts/agent-control console --settings=<settings_file>
-
+$ ./live_agent/scripts/agent-control console --settings=modules/chatbot/settings_template.json
 ```
 
 ### Reading logs
