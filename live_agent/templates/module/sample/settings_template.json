@@ -13,6 +13,19 @@
         "event_type": "krakenfx",
         "skipstorage": true
       }
+    },
+    "trade_frequency": {
+        "type": "trade_frequency",
+        "enabled": true,
+        "monitor": {
+          "window_duration": 60,
+          "sampling_frequency": 30,
+          "max_threshold": 10
+        },
+        "output": {
+          "author": {"id": 2, "name": "🤖 Trade frequency monitor"},
+          "room": {"id": "eia02b6rencfqrjfq5um06842o"}
+        }
     }
   },
   "live": {
