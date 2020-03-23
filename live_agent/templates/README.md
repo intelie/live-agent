@@ -79,8 +79,8 @@ agent-control console --settings=modules/example/settings_template.json
 done
 
 # 6- Implement the features you need on your modules and add them to settings.json
-# Use the command `check_live_features` to validate the settings
-$ check_live_features --settings=settings.json
+# Use the command `check-live-features` to validate the settings
+$ check-live-features --settings=settings.json
 
 # 7- Execute the agent
 $ agent-control console --settings=settings.json

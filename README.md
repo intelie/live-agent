@@ -32,7 +32,7 @@ Requires python 3.6 or newer
 $ pip install -r requirements.txt -r live_agent/modules/chatbot/requirements.txt
 
 # 4- Check is your settings file seems to be correct
-$ check_live_features --settings=modules/chatbot/settings_template.json
+$ check-live-features --settings=modules/chatbot/settings_template.json
 
 # 5- Execute the agent
 $ ./live_agent/scripts/agent-control console --settings=modules/chatbot/settings_template.json
