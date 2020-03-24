@@ -13,6 +13,66 @@ Each module can have:
 The set of active modules (among other things) is defined using a settings file.
 The module `chatbot` includes an example settings file.
 
+`live-agent` requires python 3.6 or newer.
+
+
+## Usage
+
+```shell
+# 1- Create a virtualenv using your preferred tool
+
+# 2- Activate the virtualenv
+
+# 3- Install live-agent (you should use a requirements.txt file to manage your dependencies)
+(virtualenv)$ pip install live-agent[chatbot] --trusted-host pypi.intelie
+
+# 4- Bootstrap a new agent
+(virtualenv)$ create-agent
+Creating the agent files:
+- Creating "README.md"
+- Creating "settings.json"
+- Creating folder "tools"
+- Creating folder "modules"
+- Creating "modules/__init__.py"
+Adding project settings:
+- Creating "dev-requirements.txt"
+- Creating "pyproject.toml"
+- Creating ".pre-commit-config.yaml"
+done
+
+# 5- Create the initial structure for each of your agent's modules
+(virtualenv)$ add-agent-module example --empty
+Creating the module "example"
+- Creating folder "modules"
+- Creating folder "modules/example"
+- Creating folder "modules/example/logic_adapters"
+- Creating folder "modules/example/monitors"
+- Creating folder "modules/example/datasources"
+done
+
+# 5.1- Or, use a sample module as reference
+(virtualenv)$ add-agent-module example
+Creating the module "example"
+- Creating folder "modules"
+- Removing old folder "modules/example"
+- Creating folder "modules/example" with example code
+
+The module "example" contains a "requirements.txt" file
+Make sure that these dependencies are added to the main requirements
+
+In order to run the agent with this module, execute:
+agent-control console --settings=modules/example/settings_template.json
+done
+
+# 6- Implement the features you need on your modules and add them to settings.json
+# Use the command `check-live-features` to validate the settings
+$ check-live-features --settings=settings.json
+
+# 7- Execute the agent
+$ agent-control console --settings=settings.json
+
+```
+
 
 ## Development
 
@@ -21,7 +81,6 @@ This project uses [black](https://github.com/psf/black) and [pre-commit](https:/
 
 ### Project setup:
 
-Requires python 3.6 or newer
 
 ```shell
 # 1- Create a virtualenv
