@@ -65,8 +65,8 @@ agent-control console --settings=modules/example/settings_template.json
 done
 
 # 6- Implement the features you need on your modules and add them to settings.json
-# Use the command `check-live-features` to validate the settings
-$ check-live-features --settings=settings.json
+# Use the command `validate-settings` to validate the settings
+$ validate-settings --settings=settings.json
 
 # 7- Execute the agent
 $ agent-control console --settings=settings.json
@@ -91,7 +91,7 @@ This project uses [black](https://github.com/psf/black) and [pre-commit](https:/
 $ pip install -r requirements.txt -r live_agent/modules/chatbot/requirements.txt
 
 # 4- Check is your settings file seems to be correct
-$ check-live-features --settings=modules/chatbot/settings_template.json
+$ validate-settings --settings=modules/chatbot/settings_template.json
 
 # 5- Execute the agent
 $ ./live_agent/scripts/agent-control console --settings=modules/chatbot/settings_template.json
