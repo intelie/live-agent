@@ -31,7 +31,7 @@
 - [x] Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
 - [x] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
-- [ ] Create some mechanism for validating the settings for each process, based on their process_type
+- [ ] Create some mechanism for validating the settings for each process, based on their process_type. Examples:
   - [ ] chatbot `logic_adapters`
   - [ ] output settings
 
@@ -39,7 +39,7 @@
 ### Use cases
 
 - [x] Create a project for the [_Shell GameChanger_](https://gitlab.intelie.com/intelie/dda-shellgamechanger) feature
-- [ ] Create a project for the _torque and drag_ integration
+- [x] Create a project for the [_torque and drag_](https://gitlab.intelie.com/intelie/dda-stars) integration
 - [ ] _maybe:_ Create a project for _Constellation's video-collector_
 - [ ] _maybe:_ Create a project for _Propetro's isolation forest_
 
