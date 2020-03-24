@@ -66,7 +66,7 @@ mkdir -p ${RELEASE_DIR}/modules
 assert_ok $?
 
 # Copy the local modules to the release folder
-cp -r ${PROJECT_ROOT}/modules ${RELEASE_DIR}/modules
+cp -r ${PROJECT_ROOT}/modules/* ${RELEASE_DIR}/modules
 assert_ok $?
 
 cp -r ${VIRTUALENV_PATH} ${RELEASE_DIR}/

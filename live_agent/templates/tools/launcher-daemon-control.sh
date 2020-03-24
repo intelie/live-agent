@@ -15,6 +15,7 @@ SETTINGS_FILE="${BASE_DIR}/settings.json"
 
 VIRTUALENV_ACTIVATE="${BASE_DIR}/pyenv/bin/activate"
 APP_ENTRY_POINT="${BASE_DIR}/pyenv/bin/agent-control"
+MODULES_PATH=${BASE_DIR}
 
 PID_FILE=/var/run/live-agent.pid
 
@@ -83,4 +84,4 @@ then
     ps -ef | grep "DDA:" | awk '{print $2}' | xargs kill
 fi
 
-python ${APP_ENTRY_POINT} ${COMMAND} --settings=${SETTINGS_FILE}
+python ${APP_ENTRY_POINT} ${COMMAND} --settings=${SETTINGS_FILE} --pythonpath=${MODULES_PATH}
