@@ -31,6 +31,9 @@
 - [x] Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
 - [x] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
+- [ ] Create some mechanism for validating the settings for each process, based on their process_type
+  - [ ] chatbot `logic_adapters`
+  - [ ] output settings
 
 
 ### Use cases
@@ -57,4 +60,4 @@
 ### Features
 
 - [ ] Create a logic adapter type which delegates the execution of `process` and `execute_action` to an external webservice (using ReST)
-- [ ] _maybe:_ Create a slack integration module
+- [ ] _maybe:_ Create a [slack integration module](https://slack.dev/python-slackclient/real_time_messaging.html)
