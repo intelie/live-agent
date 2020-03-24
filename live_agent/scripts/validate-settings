@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+import sys
+import os
+import argparse
+import json
+
+import eliot
+
+from live_client.resources.base import is_live_available
+from live_client.connection import rest_input
+from live_client.utils import features
+from live_client.utils import logging
+from live_client.utils.colors import TextColors
+
+from live_agent.services.importer import load_enabled_modules
+
+
+##
+# Input handling
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser(
+        description="Validates the requirements for available features"
+    )
+    parser.add_argument("--settings", required=True, dest="settings_file", help="A settings file")
+    parser.add_argument(
+        "--pythonpath",
+        dest="pythonpath",
+        required=False,
+        default=os.getcwd(),
+        help="A directory to add to pythonpath",
+    )
+
+    args = parser.parse_args(argv[1:])
+    if not os.path.isfile(args.settings_file):
+        parser.error(f"Invalid value for --settings ({args.settings_file}).")
+    if args.pythonpath:
+        if not os.path.exists(args.pythonpath):
+            parser.error(f'The directory "{args.pythonpath}" does not exist')
+        if not os.path.isdir(args.pythonpath):
+            parser.error(f'"{args.pythonpath}" is not a directory')
+
+    return args
+
+
+def build_settings(args):
+    with open(args.settings_file, "r") as fd:
+        settings = json.load(fd)
+
+    return settings
+
+
+##
+# Validation
+def validate_modules(settings):
+    enabled_modules = dict((module.__name__, module) for module in load_enabled_modules(settings))
+    enabled_processes = {}
+
+    statuses = {}
+    for expected_module in settings.get("enabled_modules", []):
+        module = enabled_modules.get(expected_module)
+        if module is None:
+            statuses[f'module "{expected_module}"'] = {
+                "is_available": False,
+                "messages": [f'"{expected_module}" could not be imported'],
+            }
+
+        else:
+            module_processes = getattr(module, "PROCESSES", {})
+            enabled_processes.update(**module_processes)
+            processes_message = '{} process types available: "{}"'.format(
+                len(module_processes.keys()), ", ".join(module_processes.keys())
+            )
+            statuses[f'module "{expected_module}"'] = {
+                "is_available": True,
+                "messages": [str(module), processes_message],
+            }
+
+    return statuses, enabled_modules, enabled_processes
+
+
+def validate_processes(settings, enabled_processes):
+    processes = settings.get("processes", {})
+
+    statuses = {}
+    for process_name, process_settings in processes.items():
+        is_enabled = process_settings.get("enabled", False)
+        process_type = process_settings.get("type")
+        is_valid_ptype = process_type in enabled_processes
+        statuses[f'process "{process_name}"'] = {
+            "is_available": is_enabled and is_valid_ptype,
+            "messages": [
+                f'process_type "{process_type}" is {is_valid_ptype and "VALID" or "INVALID"}'
+            ],
+        }
+
+    return statuses
+
+
+def validate_connection(settings):
+    # Check if the rest-input endpoint is valid
+    rest_available, rest_messages = rest_input.is_available(settings.get("live", {}))
+    return {"rest_input": {"is_available": rest_available, "messages": rest_messages}}
+
+
+def validate_settings(settings):
+    statuses, enabled_modules, enabled_processes = validate_modules(settings)
+    statuses.update(**validate_processes(settings, enabled_processes))
+    statuses.update(**validate_connection(settings))
+    return statuses
+
+
+##
+# Output
+def print_header(text, color=TextColors.OKBLUE):
+    print(f"{TextColors.BOLD}{color}{text}{TextColors.ENDC}")
+
+
+def print_error(text, status=1, verbose=True):
+    print_header(f"\v{text}\v", color=TextColors.FAIL)
+    if verbose:
+        eliot.add_destinations(logging.log_to_stdout)
+    exit(status)
+
+
+def print_results(messages):
+    for message in messages:
+        print(message)
+
+
+if __name__ == "__main__":
+    """
+    Validates the requirements for available features
+    """
+    args = parse_arguments(sys.argv)
+    if args.pythonpath:
+        sys.path.append(args.pythonpath)
+
+    settings = build_settings(args)
+
+    is_available = is_live_available(settings)
+
+    if is_available:
+        features_status = features.check_status(settings)
+        features_messages = features.prepare_report(settings, features_status)
+        print_header("Live features")
+        print_results(features_messages)
+
+        settings_status = validate_settings(settings)
+        settings_messages = features.prepare_report(settings, settings_status)
+        print_header("Settings")
+        print_results(settings_messages)
+    else:
+        print_error(
+            f"Could not connect to {settings['live']['url']}.\nPlease check your settings.",
+            verbose=False,
+        )

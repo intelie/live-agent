@@ -4,7 +4,7 @@ if [ $# -eq 1 ]
 then
 	settings=$1
 else
-	select settings in src/main/settings/*.json
+	select settings in live_agent/settings/*.json
 	do break; done
 fi
 
@@ -14,7 +14,7 @@ then
 fi
 
 ## Starting with memory-profiler. Requires the library `memory-profiler`
-# mprof run --multiprocess --include-children src/main/live_agent.py console $settings
+# mprof run --multiprocess --include-children live_agent/scripts/agent-control console --settings=$settings
 
 ## Starting the agent without profiling
-python src/main/live_agent.py console $settings
+PYTHONPATH="$PYTHONPATH:$(pwd)" python live_agent/scripts/agent-control console --settings=$settings

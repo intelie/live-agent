@@ -1,25 +1,10 @@
-# live-agent
-live-client==0.5.0
-aiocometd==0.4.5
+
+live-client==0.6.0
+aiocometd==0.4.5    # from live-client
+pytz==2019.2        # from live-client
+
 eliot>=1.12.0
-eliot-tree>=19.0.1
+eliot-tree==19.0.1
 setproctitle==1.1.10
 dill==0.3.1.1
-requests
-
-# modules.chatbot
-# Important!! There's a conflict related to lib PyYAML between ChatterBot(1.0.5)
-# and chatterbot-corpus(1.2.0). By now we're just ignoring the error.
-# ref: https://github.com/gunthercox/chatterbot-corpus/issues/127
-ChatterBot==1.0.5
-chatterbot-corpus==1.2.0
-Jinja2==2.10.1
-pytz==2019.2
-
-# modules.las
-lasio==0.23
-pandas==0.24.2
-scikit-learn>=0.20
-
-# modules.mdt
-scikit-learn>=0.20
+requests>=2,<3

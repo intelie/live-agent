@@ -1,0 +1,45 @@
+{
+  "enabled_modules": [
+    "live_agent.modules.chatbot"
+  ],
+  "processes": {
+    "chatbot": {
+      "type": "chatterbot",
+      "enabled": true,
+      "alias": "Oliver",
+      "logic_adapters": [
+        "live_agent.modules.chatbot.logic_adapters.internal.StateDebugAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.AdapterReloaderAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetSelectionAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.AssetListAdapter",
+        "live_agent.modules.chatbot.logic_adapters.live.CurrentValueQueryAdapter",
+        "live_agent.modules.chatbot.logic_adapters.monitors.MonitorControlAdapter",
+        "live_agent.modules.chatbot.logic_adapters.internal.BotFeaturesAdapter",
+        {
+            "import_path": "chatterbot.logic.BestMatch",
+            "default_response": "I am sorry, but I do not understand.",
+            "maximum_similarity_threshold": 0.90
+        }
+      ],
+      "monitors": {},
+      "output": {
+        "author": {"id": 2, "name": "Oliver"}
+      }
+    }
+  },
+  "live": {
+    "ip": "127.0.0.1",
+    "port": 17042,
+    "url": "http://localhost:8080",
+    "username": "live-agent",
+    "password": "live-agent",
+    "user_id": 2,
+    "user_name": "🤖  Oliver",
+    "rest_input": "/services/plugin-restinput/live-agent-example/"
+  },
+  "logging": {
+    "log_to_live": true,
+    "event_type": "dda_log",
+    "level": "info"
+  }
+}

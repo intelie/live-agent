@@ -3,7 +3,7 @@ Live Agent
 
 Coordinates the execution of processes which interact with Intelie Live and simplifies their deployment.
 
-Processes are implemented inside modules, segmented by its goal. The existing processes can be found at `live_agent/modules`
+Processes are implemented inside modules, segmented by its goal. In order to start a new module, run the command `add-agent-module`.
 
 Each module can have:
 - `datasources`: Process which generates and send events to live
@@ -11,31 +11,80 @@ Each module can have:
 - `logic_adapters`: Classes which handle messages received by the chatbot
 
 The set of active modules (among other things) is defined using a settings file.
-The module `chatbot` includes an example settings file.
+
+A default settings file (`settings.json`) was created with this agent. By default, the only enabled process is `live-agent`'s own `chatbot`, with its default logic_adapters.
+
+When you implement a new module you will have to add it to the settings file.
 
 
 ## Development
 
-This project uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/)
+`live-agent` uses [black](https://github.com/psf/black) and [pre-commit](https://pre-commit.com/), and recomments you do the same. The recommended development dependencies are defined at `dev-requirements.txt`.
+In order to install the dev dependencies and initialize `pre-commit`, use the following commands *after activating this project's virtualenv*:
 
+```shell
+$ pip install -r dev-requirements.txt
+$ pre-commit install
+$ pre-commit run --all-files
+```
 
 ### Project setup:
 
 Requires python 3.6 or newer
 
 ```shell
-# 1- Create a virtualenv
+# 1- Create a virtualenv using your preferred tool
 
 # 2- Activate the virtualenv
 
-# 3- Install project requirements
-$ pip install -r requirements.txt -r live_agent/modules/chatbot/requirements.txt
+# 3- Install live-agent (you probably should use a requirements.txt file to manage your dependencies)
+(virtualenv)$ pip install -r requirements.txt -c constraints.txt --trusted-host pypi.intelie
 
-# 4- Check is your settings file seems to be correct
-$ check-live-features --settings=modules/chatbot/settings_template.json
+# 4- Bootstrap a new agent
+(virtualenv)$ create-agent
+Creating the agent files:
+- Creating "README.md"
+- Creating "settings.json"
+- Creating folder "tools"
+- Creating folder "modules"
+- Creating "modules/__init__.py"
+Adding project settings:
+- Creating "dev-requirements.txt"
+- Creating "pyproject.toml"
+- Creating ".pre-commit-config.yaml"
+done
 
-# 5- Execute the agent
-$ ./live_agent/scripts/agent-control console --settings=modules/chatbot/settings_template.json
+# 5- Create the initial structure for each of your agent's modules
+(virtualenv)$ add-agent-module example --empty
+Creating the module "example"
+- Creating folder "modules"
+- Creating folder "modules/example"
+- Creating folder "modules/example/logic_adapters"
+- Creating folder "modules/example/monitors"
+- Creating folder "modules/example/datasources"
+done
+
+# 5.1- Or, use a sample module as reference
+(virtualenv)$ add-agent-module example
+Creating the module "example"
+- Creating folder "modules"
+- Removing old folder "modules/example"
+- Creating folder "modules/example" with example code
+
+The module "example" contains a "requirements.txt" file
+Make sure that these dependencies are added to the main requirements
+
+In order to run the agent with this module, execute:
+agent-control console --settings=modules/example/settings_template.json
+done
+
+# 6- Implement the features you need on your modules and add them to settings.json
+# Use the command `check-live-features` to validate the settings
+$ check-live-features --settings=settings.json
+
+# 7- Execute the agent
+$ agent-control console --settings=settings.json
+
 ```
 
 ### Reading logs
@@ -113,17 +162,4 @@ $ vagrant destroy # Completely erase the machine
 
 ```shell
 $ rpm -Uvh <rpmfile>
-```
-
-### Publishing to pypi
-
-```
-# Build the packages
-$ python setup.py egg_info sdist
-
-# Validate the package
-$ twine check dist/*
-
-# Upload the package
-$ twine upload dist/* -r intelie
 ```
