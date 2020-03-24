@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.7.0",
+    version="0.7.1",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -49,8 +49,24 @@ setup(
     url="https://gitlab.intelie.com/intelie/live-agent/",
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
-    install_requires=install_requires(),
-    extras_require={"chatbot": install_requires(module="chatbot")},
+    install_requires=[
+        "live-client>=0.6.1",
+        "eliot>=1.12.0",
+        "eliot-tree>=19.0.0",
+        "setproctitle>=1.1.10",
+        "dill>=0.3.1.1",
+        "requests>=2,<3",
+    ],
+    extras_require={
+        "chatbot": [
+            "ChatterBot==1.0.5",
+            "chatterbot-corpus==1.2.0",
+            "Jinja2==2.10.1",
+            "pytz>=2019.2",
+            "python-dateutil>=2.7,<2.8",
+            "PyYAML>=3.12,<4.0",
+        ]
+    },
     zip_safe=False,
     python_requires=">=3.6",
     classifiers=[
