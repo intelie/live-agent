@@ -82,6 +82,7 @@ then
 elif [ "${COMMAND}" == "stop" ]
 then
     ps -ef | grep "DDA:" | awk '{print $2}' | xargs kill
+    ps -ef | grep "live-client:" | awk '{print $2}' | xargs kill
 fi
 
 python ${APP_ENTRY_POINT} ${COMMAND} --settings=${SETTINGS_FILE} --pythonpath=${MODULES_PATH}
