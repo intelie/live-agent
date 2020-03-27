@@ -115,5 +115,8 @@ def start(settings, **kwargs):
             logging.debug(f"Ignoring event {trade_data}")
             continue
 
+    # Release resources on exit
+    results_queue.close()
+    kraken_process.terminate()
     kraken_process.join()
     return
