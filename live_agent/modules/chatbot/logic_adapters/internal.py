@@ -2,7 +2,7 @@
 import importlib
 from pprint import pformat
 
-from chatterbot.conversation import Statement  # NOQA
+from chatterbot.conversation import Statement
 from chatterbot.utils import validate_adapter_class, initialize_class
 from chatterbot.logic import LogicAdapter
 from chatterbot.adapters import Adapter
