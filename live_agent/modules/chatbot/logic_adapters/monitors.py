@@ -28,7 +28,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
     state_key = "monitor-control"
     required_state = ["assetId"]
     default_state = {"active_monitors": {}}
-    positive_examples = ["start monitor", "run monitor"]
+    positive_examples = ["start", "run", "monitor", "monitors"]
     description = "Start the monitors"
     usage_example = "start the monitors"
 
