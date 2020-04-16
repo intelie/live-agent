@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.7.4",
+    version="0.8.0",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -71,7 +71,7 @@ setup(
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: Other/Proprietary License",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: POSIX :: Linux",
         "Development Status :: 4 - Beta",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
