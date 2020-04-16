@@ -6,6 +6,7 @@ __all__ = ["ChatBot"]
 class ChatBot(chatterbot.ChatBot):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
+        self.prefer_agreement = kwargs.pop("prefer_agreement", True)
         self.live_client = kwargs.pop("live_client", None)
         self.session = kwargs.pop("session", {})
         self.context = kwargs
@@ -38,6 +39,19 @@ class ChatBot(chatterbot.ChatBot):
             else:
                 self.logger.info("Not processing the statement using {}".format(adapter.class_name))
 
+        if self.prefer_agreement:
+            result = self.get_most_common_result(results) or result
+
+        # Update the result to return:
+        result.in_response_to = input_statement.text
+        result.conversation = input_statement.conversation
+        result.persona = "bot:" + self.name
+
+        return result
+
+    def get_most_common_result(self, results):
+        result = None
+
         class ResultOption:
             def __init__(self, statement, count=1):
                 self.statement = statement
@@ -52,10 +66,8 @@ class ChatBot(chatterbot.ChatBot):
 
                 if result_string in result_options:
                     result_options[result_string].count += 1
-                    if (
-                        result_options[result_string].statement.confidence
-                        < result_option.confidence
-                    ):  # NOQA
+                    statement_confidence = result_options[result_string].statement.confidence
+                    if statement_confidence < result_option.confidence:
                         result_options[result_string].statement = result_option
                 else:
                     result_options[result_string] = ResultOption(result_option)
@@ -68,11 +80,6 @@ class ChatBot(chatterbot.ChatBot):
 
             if most_common.count > 1:
                 result = most_common.statement
-
-        # Update the result to return:
-        result.in_response_to = input_statement.text
-        result.conversation = input_statement.conversation
-        result.persona = "bot:" + self.name
 
         return result
 

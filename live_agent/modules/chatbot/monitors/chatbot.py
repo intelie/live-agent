@@ -132,6 +132,7 @@ def start_chatbot(settings, room_id, room_queue, **kwargs):
     chatbot = ChatBot(
         bot_alias,
         read_only=True,
+        prefer_agreement=False,
         logic_adapters=settings.get("logic_adapters", []),
         preprocessors=["chatterbot.preprocessors.clean_whitespace"],
         filters=[],
