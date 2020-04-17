@@ -25,8 +25,12 @@ class BotFeaturesAdapter(BaseBayesAdapter):
     positive_examples = [
         "/help",
         "!help",
+        "help me",
+        "some help",
         "/commands",
         "!commands",
+        "command list",
+        "list commands",
         "list your features",
         "which features have",
         "which tasks can perform",
@@ -40,7 +44,8 @@ class BotFeaturesAdapter(BaseBayesAdapter):
         "which capabilities do you have",
         "which powers do you have",
         "what is your superpower",
-        "which are your superpowers" "which superpowers do you have",
+        "which are your superpowers",
+        "which superpowers do you have",
     ]
 
     def prepare_response(self):
