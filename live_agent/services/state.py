@@ -45,7 +45,7 @@ class StateManager(object):
         time_until_update = next_possible_update - now
 
         if (time_until_update > 0) and (not force):
-            logging.debug(f"Update for {self.identifier} throttled. Wait {time_until_update:.2f}s")
+            logging.debug(f"Update for {self.identifier} dropped. Wait {time_until_update:.2f}s")
         else:
             self.do_save(state, timestamp=now)
 
@@ -59,4 +59,4 @@ class StateManager(object):
             dill.dump(state, f)
 
         self.updated_at = timestamp
-        logging.debug(f"State for {self.identifier} saved")
+        logging.info(f"State for {self.identifier} saved")
