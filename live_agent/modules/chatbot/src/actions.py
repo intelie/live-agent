@@ -10,7 +10,7 @@ class ActionStatement(Statement):
     def run(self):
         raise NotImplementedError()
 
-    def instance_text(self):
+    def _instance_text(self):
         return f"{self.__class__.__name__}: {id(self)}"
 
     @property
