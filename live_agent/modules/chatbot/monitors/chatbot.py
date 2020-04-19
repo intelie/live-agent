@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 from functools import partial
 
 from eliot import start_action
@@ -166,11 +166,7 @@ def add_bot(settings, bots_registry, room_id):
             with start_action(action_type="start_chatbot", room_id=room_id) as action:
                 task_id = action.serialize_task_id()
                 room_queue = Queue()
-                room_bot = Process(
-                    target=start_chatbot_with_log,
-                    args=(settings, room_id, room_queue),
-                    kwargs={"task_id": task_id},
-                )
+                room_bot = start_chatbot_with_log(settings, room_id, room_queue, task_id=task_id)
 
             room_bot.start()
             bots_registry[room_id] = (room_bot, room_queue)

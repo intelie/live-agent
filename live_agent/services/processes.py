@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Mapping, Iterable, Callable, Optional
-from multiprocessing import Process
+from multiprocessing import get_context as get_mp_context
 
 from eliot import Action, start_action
 from live_client.utils import logging
@@ -66,7 +66,7 @@ def start(global_settings: Mapping) -> Iterable:
             process_func = agent_function(process_func, name=name, with_state=True)
 
             task_id = action.serialize_task_id()
-            process = Process(target=process_func, args=[settings], kwargs={"task_id": task_id})
+            process = process_func(settings, task_id=task_id)
             running_processes.append(process)
             process.start()
 
@@ -74,6 +74,7 @@ def start(global_settings: Mapping) -> Iterable:
 
 
 def agent_function(f: Callable, name: Optional[str] = None, with_state: bool = False) -> Callable:
+    mp = get_mp_context("fork")
     if name is None:
         name = f"{f.__module__}.{f.__name__}"
 
@@ -91,7 +92,7 @@ def agent_function(f: Callable, name: Optional[str] = None, with_state: bool = F
                 kwargs["state_manager"] = StateManager(name)
 
             try:
-                return f(*args, **kwargs)
+                return mp.Process(target=f, args=args, kwargs=kwargs)
             except Exception as e:
                 logging.exception(f"Error during the execution of {f}: <{e}>")
 

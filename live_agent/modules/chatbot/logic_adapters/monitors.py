@@ -1,5 +1,5 @@
 from eliot import start_action  # NOQA
-from multiprocessing import Process, active_children
+from multiprocessing import active_children
 from chatterbot.conversation import Statement
 
 from live_client.utils import logging
@@ -109,7 +109,7 @@ class MonitorControlAdapter(BaseBayesAdapter, WithAssetAdapter):
             try:
                 process_func = self.process_handlers.get(process_type)
                 process_func = agent_function(process_func, name=name, with_state=True)
-                process = Process(target=process_func, args=[monitor_settings], name=name)
+                process = process_func(monitor_settings, name=name)
                 active_monitors[name] = process
                 process.start()
 
