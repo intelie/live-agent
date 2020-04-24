@@ -59,4 +59,4 @@ class StateManager(object):
             dill.dump(state, f)
 
         self.updated_at = timestamp
-        logging.info(f"State for {self.identifier} saved")
+        logging.debug(f"State for {self.identifier} saved")
