@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from typing import Mapping, Iterable, Callable, Optional
+from typing import Mapping, Iterable, Callable, Optional, Any
 from multiprocessing import get_context as get_mp_context
+from dataclasses import dataclass
+from time import sleep
 
 from eliot import Action, start_action
 from live_client.utils import logging
@@ -9,6 +11,13 @@ from .importer import load_process_handlers
 from .state import StateManager
 
 __all__ = ["start", "agent_function"]
+
+
+@dataclass
+class ProcessSpec:
+    function: Callable
+    settings: Mapping
+    process: Any
 
 
 def filter_dict(source_dict: Mapping, filter_func: Callable) -> Mapping:
@@ -59,17 +68,43 @@ def start(global_settings: Mapping) -> Iterable:
         "Starting {} processes: {}".format(num_processes, ", ".join(processes_to_run.keys()))
     )
 
-    running_processes = []
+    process_map = {}
     for name, settings in processes_to_run.items():
-        with start_action(action_type=name) as action:
-            process_func = settings.pop("process_func")
-            process_func = agent_function(process_func, name=name, with_state=True)
+        process_func = settings.pop("process_func")
 
-            task_id = action.serialize_task_id()
-            process = process_func(settings, task_id=task_id)
-            running_processes.append(process)
-            process.start()
+        process_map[name] = ProcessSpec(
+            function=agent_function(process_func, name=name, with_state=True),
+            settings=settings,
+            process=None,
+        )
 
+    return monitor_processes(process_map)
+
+
+def monitor_processes(process_map: Mapping, heartbeat_interval: int = 60) -> Iterable:
+
+    while True:
+        for name, process_data in process_map.items():
+            process = process_data.process
+
+            if process and process.is_alive():
+                logging.debug(f'Process for "{name}" (pid={process.pid}) is alive')
+
+            else:
+                if process:
+                    logging.info(f'Process for "{name}" (pid={process.pid}) has died. Restarting')
+                else:
+                    logging.info(f'Starting "{name}" using {process_data.function}')
+
+                process = process_data.function(process_data.settings)
+                process.start()
+                logging.info(f'Process for "{name}" (pid={process.pid}) started')
+
+            process_data.process = process
+
+        sleep(heartbeat_interval)
+
+    running_processes = [item["process"] for item in process_map.values()]
     return running_processes
 
 

@@ -13,7 +13,7 @@ Each module can have:
 The set of active modules (among other things) is defined using a settings file.
 The module `chatbot` includes an example settings file.
 
-`live-agent` requires python 3.6 or newer.
+`live-agent` requires python 3.7 or newer.
 
 
 ## Usage
