@@ -22,7 +22,6 @@ __all__ = ["start"]
 
 read_timeout = 120
 request_timeout = (3.05, 5)
-max_retries = 5
 
 
 ##
@@ -218,7 +217,7 @@ def start(settings, **kwargs):
         )
     """
 
-    @query.on_event(bot_query, settings, timeout=read_timeout, max_retries=max_retries)
+    @query.on_event(bot_query, settings, timeout=read_timeout)
     def handle_events(event, *args, **kwargs):
         messenger.join_messenger(settings)
         bot_processes = route_message(settings, bots_registry, event)
@@ -232,6 +231,7 @@ def start(settings, **kwargs):
 
     bot_processes = handle_events()
     for bot in bot_processes:
+        bot.terminate()
         bot.join()
 
     return
