@@ -43,13 +43,17 @@ class LiveAgent(daemon.Daemon):
                 logging.setup_python_logging(logging_settings)
                 logging.setup_live_logging(logging_settings, live_settings)
 
-                processes.start(global_settings)
+                agent_processes = processes.start(global_settings)
             except KeyboardInterrupt:
                 logging.info("Execution interrupted")
                 raise
             except Exception:
                 logging.exception("Error processing inputs")
                 raise
+
+        for item in agent_processes:
+            item.terminate()
+            item.join()
 
     @property
     def logfile(self):

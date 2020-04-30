@@ -97,8 +97,11 @@ def monitor_processes(process_map: Mapping, heartbeat_interval: int = 60) -> Ite
                     logging.info(f'Starting "{name}" using {process_data.function}')
 
                 process = process_data.function(process_data.settings)
-                process.start()
-                logging.info(f'Process for "{name}" (pid={process.pid}) started')
+                try:
+                    process.start()
+                    logging.info(f'Process for "{name}" (pid={process.pid}) started')
+                except OSError as e:
+                    logging.exception(f"Error starting process {name} ({e})")
 
             process_data.process = process
 
