@@ -34,6 +34,7 @@
 - [ ] Create some mechanism for validating the settings for each process, based on their process_type. Examples:
   - [ ] chatbot `logic_adapters`
   - [ ] output settings
+- [ ] Create a module which reads the stats from the system hosting the agent and sends it to live (use [_psutil_](https://pypi.org/project/psutil/) or [_proc_](https://pypi.org/project/proc/)
 
 
 ### Use cases
