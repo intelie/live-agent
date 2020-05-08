@@ -113,6 +113,18 @@ def monitor_processes(process_map: Mapping, heartbeat_interval: int = 60) -> Ite
 
 def agent_function(f: Callable, name: Optional[str] = None, with_state: bool = False) -> Callable:
     mp = get_mp_context("fork")
+
+    def wrapped(*args, **kwargs):
+        try:
+            f_in_action = inside_action(f, name=name, with_state=with_state)
+            return mp.Process(target=f_in_action, args=args, kwargs=kwargs)
+        except Exception as e:
+            logging.exception(f"Error during the execution of {f}: <{e}>")
+
+    return wrapped
+
+
+def inside_action(f: Callable, name: Optional[str] = None, with_state: bool = False) -> Callable:
     if name is None:
         name = f"{f.__module__}.{f.__name__}"
 
@@ -130,7 +142,7 @@ def agent_function(f: Callable, name: Optional[str] = None, with_state: bool = F
                 kwargs["state_manager"] = StateManager(name)
 
             try:
-                return mp.Process(target=f, args=args, kwargs=kwargs)
+                return f(*args, **kwargs)
             except Exception as e:
                 logging.exception(f"Error during the execution of {f}: <{e}>")
 
