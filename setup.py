@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.9.3",
+    version="0.10.0",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -65,7 +65,8 @@ setup(
             "pytz>=2019.2",
             "python-dateutil>=2.7,<2.8",
             "PyYAML>=3.12,<4.0",
-        ]
+        ],
+        "las": ["lasio==0.23", "pandas==0.24.2", "scikit-learn>=0.20"],
     },
     zip_safe=False,
     python_requires=">=3.7",
