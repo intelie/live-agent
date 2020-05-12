@@ -16,7 +16,7 @@ __all__ = ["start"]
 READ_MODES = Enum("READ_MODES", "SINGLE_PASS, CONTINUOUS")
 
 
-def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, settings):
+def update_chat(chat, last_ts, next_ts, index_mnemonic, settings):
     if not chat:
         return
 
@@ -34,13 +34,14 @@ def maybe_send_chat_message(chat, last_ts, next_ts, index_mnemonic, settings):
     for item in items_to_send:
         message = item.get("MESSAGE", "")
         source = item.get("SOURCE", "")
+        timestamp = item[index_mnemonic]
         if message and source:
-            messenger.maybe_send_chat_message(message, settings, author_name=source)
+            messenger.maybe_send_chat_message(message, timestamp, settings, author_name=source)
 
 
 def send_message(message, timestamp, settings=None):
     messenger.maybe_send_message_event(message, timestamp, settings)
-    messenger.maybe_send_chat_message(message, settings)
+    messenger.maybe_send_chat_message(message, timestamp, settings)
 
 
 def delay_output(last_timestamp, next_timestamp):
@@ -135,9 +136,7 @@ def generate_events(event_type, las_data, chat_data, index_mnemonic, settings, s
 
             raw.create(event_type, statuses, settings)
 
-            maybe_send_chat_message(
-                chat_data, last_timestamp, next_timestamp, index_mnemonic, settings
-            )
+            update_chat(chat_data, last_timestamp, next_timestamp, index_mnemonic, settings)
             last_timestamp = next_timestamp
             state_manager.save({"last_timestamp": last_timestamp})
 
