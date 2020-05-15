@@ -155,17 +155,33 @@ def start(settings, **kwargs):
 
     :rtype: NoneType
 
-    The settings for this process must contain the following keys:
+    The settings for this process have the following format::
 
-    - `type`: The string `las_replay`;
-    - `enabled`: `true` of `false`. Self explanatory;
-    - `path_list`: A list of filename pairs, in the format [`sensors_data.las`, `chat_data.csv`];
-    - `index_mnemonic`: Curve used as index for the LAS data (usually the first curve on the file);
-    - `output`: Mapping of parematers fot the replay output, with the format:
-
-        - `event_type`: The name of the event type which should be sent to Intelie Live;
-        - `room`: Room where the chat messages should be sent to, in the format `{"id": <room id>}`;
-        - `author`: Author name for the messages generated when starting a replay;
+      {
+        "type": "las_replay",
+        "enabled": true,  # Self explanatory
+        "index_mnemonic": "TIME",  # Curve used as index for the LAS data
+        "path_list": [
+          # A list of filename pairs containing the data to be replayed
+          [<path for a LAS file>, <path for a CSV file containing the chat logs>],
+          ...
+        ]
+        "output": {
+          "event_type": "raw_wellX", The name of the event type which should be sent to Intelie Live
+          "author": {
+            "id": <user id>  # User id of the author for the messages
+            "name": "Linguistics monitor"  # User name of the author for the messages
+          },
+          "room": {
+            "id": <room id>  # Id of the room where the messages should be sent
+          },
+          "message_event": {
+            # Information for generating markers on charts
+            "event_type": "raw_wellX",  # Usually the raw event type of the asset being monitored
+            "mnemonic": "MSG"  # Mnemonic used for messages normalization, usually named `MSG`
+          }
+        }
+      }
 
     The LAS file *must* be SPACE delimited.
 
@@ -175,6 +191,7 @@ def start(settings, **kwargs):
     - `SOURCE`: The name of the message sender
     - A column with the same name a the `index_mnemonic` defined on the process settings,
     used for correlating messages with the events from the LAS file.
+
     """
     event_type = settings["output"]["event_type"]
     cooldown_time = settings.get("cooldown_time", 300)
