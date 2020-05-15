@@ -88,7 +88,7 @@ def monitor_processes(process_map: Mapping, heartbeat_interval: int = 60) -> Ite
             process = process_data.process
 
             if process and process.is_alive():
-                logging.debug(f'Process for "{name}" (pid={process.pid}) is alive')
+                logging.info(f'Process for "{name}" (pid={process.pid}) is alive')
 
             else:
                 if process:
