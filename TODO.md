@@ -32,6 +32,7 @@
   1. deploy to the server
 - [x] Implement an example module to be added by `create-agent`. It should have at least one example of `monitor`, `logic_adapter` and `datasource`
 - [x] Create a mechanism (_similar to/an extension of_ `live-client`'s `check_live_features`) which validates which features are available for a given settings file
+- [ ] Make `Remote logger` a managed process, so it can be restarted when needed. Maybe make it a dda module
 - [ ] Create some mechanism for defining the settings format for each of the modules (maybe `jsonschema` or `dataclasses`)
 - [ ] Create some mechanism for validating the settings for each process, based on their process_type. Examples:
   - [ ] chatbot `logic_adapters`
