@@ -34,9 +34,10 @@ def update_chat(chat, last_ts, next_ts, index_mnemonic, settings):
     for item in items_to_send:
         message = item.get("MESSAGE", "")
         source = item.get("SOURCE", "")
-        timestamp = item[index_mnemonic]
         if message and source:
-            messenger.maybe_send_chat_message(message, timestamp, settings, author_name=source)
+            messenger.maybe_send_chat_message(
+                message, timestamp.get_timestamp(), settings, author_name=source
+            )
 
 
 def send_message(message, timestamp, settings=None):
