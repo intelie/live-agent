@@ -220,18 +220,22 @@ def start(settings, **kwargs):
     @query.on_event(bot_query, settings, timeout=read_timeout)
     def handle_events(event, *args, **kwargs):
         messenger.join_messenger(settings)
-        bot_processes = route_message(settings, bots_registry, event)
+        bot_processes.update(route_message(settings, bots_registry, event))
 
         # There is no use saving the processes, so we save a dict with no values
         state_manager.save(
             {"bots_registry": dict((room_id, (None, None)) for room_id in bots_registry)},
             force=True,
         )
-        return bot_processes
+        return
 
-    bot_processes = handle_events()
-    for bot in bot_processes:
-        bot.terminate()
-        bot.join()
+    bot_processes = set()
+    try:
+        handle_events(bot_processes)
+    finally:
+        if isinstance(bot_processes, set):
+            for bot in bot_processes:
+                bot.terminate()
+                bot.join(5)
 
     return
