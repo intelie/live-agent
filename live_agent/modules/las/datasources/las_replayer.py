@@ -233,5 +233,7 @@ def start(settings, **kwargs):
             )
 
         iterations += 1
+        del las_data
+        del chat_data
 
     return
