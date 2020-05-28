@@ -40,14 +40,6 @@
 - [ ] Create a module which reads the stats from the system hosting the agent and sends it to live (use [_psutil_](https://pypi.org/project/psutil/) or [_proc_](https://pypi.org/project/proc/)
 
 
-### Use cases
-
-- [x] Create a project for the [_Shell GameChanger_](https://gitlab.intelie.com/intelie/dda-shellgamechanger) feature
-- [x] Create a project for the [_torque and drag_](https://gitlab.intelie.com/intelie/dda-stars) integration
-- [ ] _maybe:_ Create a project for _Constellation's video-collector_
-- [ ] _maybe:_ Create a project for _Propetro's isolation forest_
-
-
 ### User interface
 
 - [ ] Create a module which provides a management web UI for controlling the agent's settings (including the list of enabled modules)
@@ -64,4 +56,4 @@
 ### Features
 
 - [ ] Create a logic adapter type which delegates the execution of `process` and `execute_action` to an external webservice (using ReST)
-- [ ] _maybe:_ Create a [slack integration module](https://slack.dev/python-slackclient/real_time_messaging.html)
+- [ ] _maybe:_ Create a [slack integration module](https://slack.dev/python-slackclient/real_time_messaging.html). [slack-tangerine](https://pypi.org/project/slack-tangerine/) and [slack-machine](https://slack-machine.readthedocs.io/en/latest/) might be useful.
