@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from multiprocessing import Queue
+from multiprocessing import Queue, active_children
 from functools import partial
 
 from eliot import start_action
@@ -220,7 +220,7 @@ def start(settings, **kwargs):
     @query.on_event(bot_query, settings, timeout=read_timeout)
     def handle_events(event, *args, **kwargs):
         messenger.join_messenger(settings)
-        bot_processes.update(route_message(settings, bots_registry, event))
+        route_message(settings, bots_registry, event)
 
         # There is no use saving the processes, so we save a dict with no values
         state_manager.save(
@@ -229,13 +229,14 @@ def start(settings, **kwargs):
         )
         return
 
-    bot_processes = set()
     try:
-        handle_events(bot_processes)
-    finally:
-        if isinstance(bot_processes, set):
-            for bot in bot_processes:
-                bot.terminate()
-                bot.join(5)
+        handle_events()
+    except Exception:
+        # Nothing to do. Let this process end
+        pass
+
+    for bot in active_children():
+        bot.terminate()
+        bot.join(5)
 
     return
