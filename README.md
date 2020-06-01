@@ -189,5 +189,5 @@ $ python setup.py egg_info sdist
 $ twine check dist/*
 
 # Upload the package
-$ twine upload dist/* -r intelie
+$ twine upload dist/*
 ```

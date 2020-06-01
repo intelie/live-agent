@@ -1,7 +1,5 @@
 # Pending tasks
 
-- [ ] Publish to github and pypi
-
 ### Architecture and usage
 
 - [x] Create a `live-client` library and use it as a dependency for the agent

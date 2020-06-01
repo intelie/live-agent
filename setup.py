@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.10.3",
+    version="0.10.5",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -46,7 +46,7 @@ setup(
         "live_agent/scripts/add-agent-module",
         "live_agent/scripts/validate-settings",
     ],
-    url="https://gitlab.intelie.com/intelie/live-agent/",
+    url="https://github.com/intelie/live-agent",
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
     install_requires=[
