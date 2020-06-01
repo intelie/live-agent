@@ -29,7 +29,7 @@ The module `chatbot` includes an example settings file.
 # 2- Activate the virtualenv
 
 # 3- Install live-agent (you should use a requirements.txt file to manage your dependencies)
-(virtualenv)$ pip install live-agent[chatbot] --trusted-host pypi.intelie
+(virtualenv)$ pip install live-agent[chatbot]
 
 # 4- Bootstrap a new agent
 (virtualenv)$ create-agent

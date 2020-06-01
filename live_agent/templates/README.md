@@ -38,7 +38,7 @@ Requires python 3.6 or newer
 # 2- Activate the virtualenv
 
 # 3- Install live-agent (you probably should use a requirements.txt file to manage your dependencies)
-(virtualenv)$ pip install -r requirements.txt -c constraints.txt --trusted-host pypi.intelie
+(virtualenv)$ pip install -r requirements.txt -c constraints.txt
 
 # 4- Bootstrap a new agent
 (virtualenv)$ create-agent

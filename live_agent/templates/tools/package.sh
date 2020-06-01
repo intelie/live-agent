@@ -67,7 +67,6 @@ fi
 
 docker run --rm -it \
     -v ${PROJECT_ROOT}:/build \
-    --add-host pypi.intelie:10.42.1.118 \
     --env VERSION=${VERSION} \
     --env RELEASE=${RELEASE} \
     ${BUILDER_IMAGE_TAG} \
