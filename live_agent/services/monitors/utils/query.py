@@ -56,10 +56,6 @@ def handle_events(event, callback, settings, accumulator=None):
             missing_curve_names = ", ".join(missing_curves)
             logging.info(f"Some curves are missing ({missing_curve_names}) from event {event} ")
 
-    except KeyboardInterrupt:
-        logging.info(f"Stopping ")
-        raise
-
     except Exception as e:
         logging.exception(f"Error during query: <{e}>")
         handle_events(event, callback, settings)
@@ -92,14 +88,18 @@ def validate_event(event, settings):
 
 def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_duration):
     # Purge old events and add the new ones
-    accumulator.extend(latest_events)
-
     latest_event = latest_events[-1]
     window_end = latest_event.get(index_mnemonic, 0)
     window_start = window_end - window_duration
-
     last_index = window_start
 
+    if index_mnemonic not in latest_event:
+        mnemonics_list = latest_event.keys()
+        logging.error(
+            f"Mnemonic '{index_mnemonic}' not found. Available mnemonics are: '{mnemonics_list}'"
+        )
+
+    accumulator.extend(latest_events)
     purged_accumulator = []
     for item in accumulator:
         index = item.get(index_mnemonic, 0)
@@ -110,6 +110,8 @@ def refresh_accumulator(latest_events, accumulator, index_mnemonic, window_durat
             # Reset the accumulator
             purged_accumulator = [item]
             last_index = index
+        elif index == 0:
+            logging.error(f"{index_mnemonic} not found, ignoring event")
 
     logging.debug(
         "{} of {} events between {} and {}".format(
