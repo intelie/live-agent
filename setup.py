@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.10.7",
+    version="0.11.0",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -50,7 +50,7 @@ setup(
     author="Vitor Mazzi",
     author_email="vitor.mazzi@intelie.com.br",
     install_requires=[
-        "live-client>=0.6.1",
+        "live-client>=0.8.1",
         "eliot>=1.12.0",
         "eliot-tree>=19.0.0",
         "setproctitle>=1.1.10",

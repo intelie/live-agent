@@ -1,5 +1,5 @@
 
-live-client==0.7.4
+live-client==0.8.1
 aiocometd==0.4.5    # from live-client
 pytz==2019.2        # from live-client
 
