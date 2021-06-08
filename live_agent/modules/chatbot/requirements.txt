@@ -1,7 +1,7 @@
 
 ChatterBot==1.0.5
 chatterbot-corpus==1.2.0
-Jinja2==2.10.1
+Jinja2==2.11.3
 pytz==2019.2
 python-dateutil>=2.7,<2.8
 PyYAML>=4.2.b1
