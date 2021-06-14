@@ -34,7 +34,7 @@ def install_requires(module=None):
 
 setup(
     name="live_agent",
-    version="0.11.0",
+    version="0.11.1",
     description="A framework for implementing agents which interact with the Intelie LIVE platform",
     long_description=get_readme(),
     long_description_content_type="text/markdown",
@@ -61,7 +61,7 @@ setup(
         "chatbot": [
             "ChatterBot==1.0.5",
             "chatterbot-corpus==1.2.0",
-            "Jinja2==2.10.1",
+            "Jinja2==2.11.3",
             "pytz>=2019.2",
             "python-dateutil>=2.7,<2.8",
             "PyYAML>=3.12,<4.0",
